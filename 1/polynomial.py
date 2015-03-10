@@ -6,7 +6,9 @@ import numpy as np
 from bresenham import bresenham_line
 
 
-# TODO: Handle a < 0
+# TODO:
+# - Handle a < 0
+# - Make it fool proof (x >= xn, ...)
 def incremental_poly(a, b, c, range_x):
 
     """
@@ -22,8 +24,7 @@ def incremental_poly(a, b, c, range_x):
     e = 0                      # Error term: e(x, y) = F(x, y) = y - (ax^2 + bx + c)
     dedx = -2 * a * x - a - b  # dedx(x, y) = e(x+1, y) - e(x, y) = -2ax - a - b
     dedy = 1                   # dedy(x, y) = e(x, y+1) - e(x, y) = 1
-    ddedx = -(a + a)           # ddedx(x, y) = dedx(x+1, y) - dedx(x, y) = -2a
-    ddedy = 0                  # ddedy(x, y) = dedy(x, y+1) - dedy(x, y) = 0
+    dedxdx = -(a + a)          # dedxdx(x, y) = dedx(x+1, y) - dedx(x, y) = -2a
 
     xs, ys = [], []
 
@@ -32,23 +33,23 @@ def incremental_poly(a, b, c, range_x):
         xs.append(x)
         ys.append(y)
 
+        # Invariant
         assert e == y - (a * x**2 + b * x + c)
 
         # Go up
         e += dedy
-        dedy += ddedy
         y += 1
 
-        # If we above the curve, go right
+        # If we are above the curve, go right
         if e > 0:
             e += dedx
-            dedx += ddedx
+            dedx += dedxdx
             x += 1
 
     return np.array(xs), np.array(ys)
 
 
-# Compute reference polynome
+# Compute reference polynomial
 ref_poly = np.vectorize(lambda a, b, c, x: a * x**2 + b * x + c)
 
 

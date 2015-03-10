@@ -1,2 +1,11 @@
+# Python
 *.pyc
+
+# Tmp
 ~*
+
+# Latex
+*.aux
+*.log
+*.synctex.gz
+*.pdf
