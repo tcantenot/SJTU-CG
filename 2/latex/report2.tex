@@ -142,7 +142,7 @@ Let $P'$ be the rotated point $P$ belonging to the $(YZ)$ plane.
 
 \begin{equation}
 \left.\begin{aligned}
-P' = R_y(\alpha) \times P 
+P' = R_y(\alpha)P 
 &=
 \begin{bmatrix}
 	cos(\alpha)  & 0 & sin(\alpha) & 0 \\
@@ -172,12 +172,12 @@ x \\ y \\ z \\ 1
 \end{bmatrix}&\\
 &=
 \begin{bmatrix}
-0 & y & D & 1
+0 & y & \sqrt{x^2 + z^2} & 1
 \end{bmatrix}^{T}&\\
 &=
 \begin{bmatrix}
-0 & y & \sqrt{x^2 + z^2} & 1
-\end{bmatrix}^{T}&\
+0 & y & D & 1
+\end{bmatrix}^{T}&
 \end{aligned}\right.
 \end{equation}
 
@@ -204,11 +204,11 @@ R_x(\alpha) =
 \end{equation}
 
 \noindent
-In our case,
+In our case $\alpha = \phi$, and since a rotation conserve the length (of $OP$)
 \begin{equation}
 \left.\begin{aligned}
-&cos(\phi) = \frac{D}{|OP|} = \frac{\sqrt{x^2 + z^2}}{\sqrt{x^2 + y^2 + z^2}}&\\
-&sin(\phi) = \frac{y}{|OP|} = \frac{y}{\sqrt{x^2 + y^2 + z^2}}&\\
+&cos(\alpha) = \frac{D}{|OP|} = \frac{\sqrt{x^2 + z^2}}{\sqrt{x^2 + y^2 + z^2}}&\\
+&sin(\alpha) = \frac{y}{|OP|} = \frac{y}{\sqrt{x^2 + y^2 + z^2}}&\\
 \end{aligned}\right.
 \end{equation}
 
@@ -217,7 +217,7 @@ Let $P''$ be the rotated point $P'$ belonging to the $Z$ axis.
 
 \begin{equation}
 \left.\begin{aligned}
-P'' = R_x(\alpha) \times P'
+P'' = R_x(\alpha)P'
 &=
 \begin{bmatrix}
 	1 & 0 			& 0 		   & 0 \\
@@ -240,7 +240,7 @@ P'' = R_x(\alpha) \times P'
 \end{bmatrix}&\\
 &=
 \begin{bmatrix}
-0 & 0 & \frac{y^2 + D^2}{|OP|} & 1
+0 & \frac{yD}{|OP|} + \frac{-Dy}{|OP|} & \frac{y^2 + D^2}{|OP|} & 1
 \end{bmatrix}^{T}&\\
 &=
 \begin{bmatrix}
@@ -260,7 +260,7 @@ P'' = R_x(\alpha) \times P'
 The full transformation consists in the concatenation of the two rotations we applied:
 \begin{equation}
 \left.\begin{aligned}
-P'' &= R_x(\phi)R_y(\alpha)P&\\
+P'' &= R_x(\phi)R_y(90 - \theta)P&\\
 &=
 \begin{bmatrix}
 0 & 0 & |OP| & 1
@@ -271,4 +271,174 @@ P'' &= R_x(\phi)R_y(\alpha)P&\\
 \end{bmatrix}^{T}&\\
 \end{aligned}\right.
 \end{equation}
+
+
+
+
+\pagebreak \noindent
+\textbf{b})
+
+\bigskip \noindent
+\textbf{1/ Rotate $OP$ about the $Z$ axis onto the $(XZ)$ plane:}\\\\
+Let $P_{xy}$ the projection of the point $P$ on the plane $XY$ and $\theta$ be the angle between $P_{xy}$ and the $Y$ axis.
+
+\bigskip \noindent
+The rotation we want to perform correspond to the angle $-(90 - \theta) = \theta - 90$. \\\\
+We know that the 4x4 rotation about an angle $\alpha$ around the $Y$ axis has the following matrix form:
+
+\begin{equation}
+R_z(\alpha) =
+\begin{bmatrix}
+	cos(\alpha) & -sin(\alpha) & 0 & 0 \\
+	sin(\alpha) & cos(\alpha)  & 0 & 0 \\
+	0 		    & 0 		   & 1 & 0 \\
+	0 			& 0 		   & 0 & 1
+\end{bmatrix}
+\end{equation}
+\noindent
+In our case, $\alpha = \theta - 90$ and
+\begin{equation}
+\left.\begin{aligned}
+	&cos(\alpha) = \frac{x}{D}& \\
+	&sin(\alpha) = -\frac{y}{D}&
+\end{aligned}\right.
+\end{equation}
+where $D = \sqrt{x^2 + y^2}$.\\
+
+
+\noindent
+Let $P'$ be the rotated point $P$ belonging to the $(XY)$ plane.
+
+\begin{equation}
+\left.\begin{aligned}
+P' = R_z(\alpha)P 
+&=
+\begin{bmatrix}
+	cos(\alpha) & -sin(\alpha) & 0 & 0 \\
+	sin(\alpha) & cos(\alpha)  & 0 & 0 \\
+	0 		    & 0 		   & 1 & 0 \\
+	0 			& 0 		   & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\ y \\ z \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+	\frac{x}{D}  & \frac{y}{D} & 0 & 0 \\
+	-\frac{y}{D} & \frac{x}{D}  & 0 & 0 \\
+	0 		     & 0 		    & 1 & 0 \\
+	0 			 & 0 		    & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\ y \\ z \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+\frac{x^2}{D} + \frac{y^2}{D} \\
+ \frac{-xy}{d} + \frac{yx}{D} \\ 
+ z \\
+ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+\sqrt{x^2 + y^2} & 0 & z & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+D & 0 & z & 1
+\end{bmatrix}^{T}&
+\end{aligned}\right.
+\end{equation}
+
+
+\pagebreak
+\noindent
+\textbf{2/ Rotate $OP'$ about the $Y$ axis onto the $Z$ axis:}
+
+
+\bigskip \noindent
+Let $\phi$ be the angle of rotation around the $Y$.
+
+\bigskip \noindent
+We know that the 4x4 rotation about an angle $\alpha$ around the $Y$ axis has the following matrix form:
+
+\begin{equation}
+R_y(\alpha) =
+\begin{bmatrix}
+	cos(\alpha)  & 0 & sin(\alpha) & 0 \\
+	0 			 & 1 & 0		   & 0 \\
+	-sin(\alpha) & 0 & cos(\alpha) & 0 \\
+	0 			 & 0 & 0 		   & 1
+\end{bmatrix}
+\end{equation}
+
+\noindent
+In our case $\alpha = 90 - \phi$, and since a rotation conserve the length (of $OP$)
+\begin{equation}
+\left.\begin{aligned}
+&cos(\alpha) = \frac{z}{|OP|} = \frac{z}{\sqrt{x^2 + y^2 + z^2}}&\\
+&sin(\alpha) = -\frac{D}{|OP|} = -\frac{\sqrt{x^2 + y^2}}{\sqrt{x^2 + y^2 + z^2}}&\\
+\end{aligned}\right.
+\end{equation}
+
+\bigskip \noindent
+Let $P''$ be the rotated point $P'$ belonging to the $Z$ axis.
+
+\begin{equation}
+\left.\begin{aligned}
+P'' = R_y(\alpha)P'
+&=
+\begin{bmatrix}
+	cos(\alpha)  & 0 & sin(\alpha) & 0 \\
+	0 			 & 1 & 0		   & 0 \\
+	-sin(\alpha) & 0 & cos(\alpha) & 0 \\
+	0 			 & 0 & 0 		   & 1
+\end{bmatrix}
+\begin{bmatrix}
+D \\ 0 \\ z \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+	\frac{z}{|OP|} & 0 & -\frac{D}{|OP|} & 0 \\
+	0 			   & 1 & 0		   		 & 0 \\
+	\frac{D}{|OP|} & 0 & \frac{z}{|OP|} & 0 \\
+	0 			   & 0 & 0 		     & 1
+\end{bmatrix}	
+\begin{bmatrix}
+D \\ 0 \\ z \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+\frac{Dz}{|OP|} + \frac{-zD}{|OP|} & 0 & \frac{z^2 + D^2}{|OP|} & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+0 & 0 & \frac{z^2 + (\sqrt{x^2 + y^2})^2}{\sqrt{x^2 + y^2 + z^2}} & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+0 & 0 & |OP| & 1
+\end{bmatrix}^{T}&\\
+\end{aligned}\right.
+\end{equation}
+
+\bigskip \bigskip \noindent
+\textbf{3/ Full transformation:}
+
+\bigskip \noindent
+The full transformation consists in the concatenation of the two rotations we applied:
+\begin{equation}
+\left.\begin{aligned}
+P'' &= R_y(90 - \phi)R_z(90 - \theta)P&\\
+&=
+\begin{bmatrix}
+0 & 0 & |OP| & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+0 & 0 & \sqrt{x^2 + y^2 + z^2} & 1
+\end{bmatrix}^{T}&\\
+\end{aligned}\right.
+\end{equation}
+
 \end{document}
