@@ -4,6 +4,9 @@
 # Tmp
 ~*
 
+# Archive
+*.zip
+
 # Latex
 *.aux
 *.log
