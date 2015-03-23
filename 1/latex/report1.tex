@@ -40,7 +40,7 @@
 
 
 \title{\textbf{Computer Graphics} \\ Assignment 1}
-\author{Thierry CANTENOT}
+\author{Thierry CANTENOT \\ J114030901}
 \date{10/03/14}
 
 \pdfinfo{%
@@ -77,7 +77,7 @@ Let define the error term as:
 \end{equation}
 We have,
 \begin{equation}
-	e(x, y) 
+	e(x, y)
 	\begin{cases}
 	 = 0 & \text{if the point P(x, y) is on the curve} \\
 	 > 0 & \text{if the point P(x, y) is above the curve} \\
@@ -89,10 +89,10 @@ We have,
 To evaluate the error term incrementally, we use finite differences:
 \begin{equation}
 \left.\begin{aligned}
-	F(x + 1, y) - F(x, y) 
+	F(x + 1, y) - F(x, y)
 	&= y - (a(x + 1)^2 + b(x + 1) + c) - y + ax^2 + bx + c& \\
 	&= -2ax - a - b& \\\\
-	F(x, y + 1) - F(x, y) 
+	F(x, y + 1) - F(x, y)
 	&= y + 1 - (ax^2 + bx + c) - y + ax^2 + bx + c& \\
 	&= 1&
 \end{aligned}\right.
@@ -101,7 +101,7 @@ To evaluate the error term incrementally, we use finite differences:
 Let define the changes in the error term in $x$ and $y$ resp. by:
 \begin{equation}
 \left.\begin{aligned}
-	&dedx(x, y) = F(x + 1, y) - F(x, y) = -2ax - a - b& \\	
+	&dedx(x, y) = F(x + 1, y) - F(x, y) = -2ax - a - b& \\
 	&dedy(x, y) = F(x, y + 1) - F(x, y) = 1& \\\\
 \end{aligned}\right.
 \end{equation}
@@ -128,17 +128,17 @@ Thus we have:
 \noindent
 Besides, the fact that $F(x + 1, y)$ depends on the two previous values is not a problem for the initialization because we only need $F_0$ and $dedx_0$ as starting values:
 \begin{equation}
-	F_1 = 
+	F_1 =
 	\begin{cases}
 	F_0 + dedx_0 \\
 	F_0 + 1
 	\end{cases}
-	F_2 = 
+	F_2 =
 	\begin{cases}
 	F_1 + dedx_0 -2a\\
 	F_1 + 1
 	\end{cases}
-	F_3 = 
+	F_3 =
 	\begin{cases}
 	F_2 + dedx_1 -2a\\
 	F_2 + 1
@@ -209,8 +209,22 @@ Note:
 \begin{itemize}
 	\item The only multiplications are in the initialization (non avoidable): \\
 	 \textbf{the main loop has no multiplication, only additions}
-	\item This implementation works only for $a \ge 0$. 
+	\item This implementation works only for $a \ge 0$.
 	\\To handle $a < 0$, we have do go down (line 31: $y$ $-$$= 1$) and check when we go below the curve (line 34: $e \le 0$).
 \end{itemize}
+
+
+\newpage
+\subsection{Results}
+
+\begin{figure}[!htb]\centering
+    \includegraphics[width=0.8\linewidth]{./images/plot.png}
+    \caption{\small{Plot of $2x^2 + 4x + 1$}}
+\end{figure}
+
+\begin{figure}[!htb]\centering
+    \includegraphics[width=0.8\linewidth]{./images/zoom.png}
+    \caption{\small{Zoom: differences between reference and incremental}}
+\end{figure}
 
 \end{document}
