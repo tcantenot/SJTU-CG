@@ -115,7 +115,7 @@ Let $P_{xz}$ the projection of the point $P$ on the plane $XZ$ and $\theta$ be t
 
 \bigskip \noindent
 The rotation we want to perform correspond to the angle $-(90 - \theta) = \theta - 90$. \\\\
-We know that the 4x4 rotation bout an angle $\alpha$ around the $Y$ axis has the following matrix form:
+We know that the 4x4 rotation about an angle $\alpha$ around the $Y$ axis has the following matrix form:
 
 \begin{equation}
 R_y(\alpha) =
@@ -187,7 +187,88 @@ x \\ y \\ z \\ 1
 \textbf{2/ Rotate $OP'$ about the $X$ axis onto the $Z$ axis:}
 
 
-%\bigskip \noindent
-%The rotation we want to perform correspond to the angle $-(90 - \theta) = \theta - 90$. \\\\%
+\bigskip \noindent
+Let $\phi$ be the angle of rotation around the $X$.
 
+\bigskip \noindent
+We know that the 4x4 rotation about an angle $\alpha$ around the $X$ axis has the following matrix form:
+
+\begin{equation}
+R_x(\alpha) =
+\begin{bmatrix}
+	1  & 0 			& 0 		   & 0 \\
+	0 & cos(\alpha) & -sin(\alpha) & 0 \\
+	0 & sin(\alpha) & cos(\alpha)  & 0 \\
+	0 & 0 			& 0 		   & 1
+\end{bmatrix}
+\end{equation}
+
+\noindent
+In our case,
+\begin{equation}
+\left.\begin{aligned}
+&cos(\phi) = \frac{D}{|OP|} = \frac{\sqrt{x^2 + z^2}}{\sqrt{x^2 + y^2 + z^2}}&\\
+&sin(\phi) = \frac{y}{|OP|} = \frac{y}{\sqrt{x^2 + y^2 + z^2}}&\\
+\end{aligned}\right.
+\end{equation}
+
+\bigskip \noindent
+Let $P''$ be the rotated point $P'$ belonging to the $Z$ axis.
+
+\begin{equation}
+\left.\begin{aligned}
+P'' = R_x(\alpha) \times P'
+&=
+\begin{bmatrix}
+	1 & 0 			& 0 		   & 0 \\
+	0 & cos(\alpha) & -sin(\alpha) & 0 \\
+	0 & sin(\alpha) & cos(\alpha)  & 0 \\
+	0 & 0 			& 0 		   & 1
+\end{bmatrix}
+\begin{bmatrix}
+0 \\ y \\ D \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+	1 & 0 			   & 0 		         & 0 \\
+	0 & \frac{D}{|OP|} & -\frac{y}{|OP|} & 0 \\
+	0 & \frac{y}{|OP|} & \frac{D}{|OP|}  & 0 \\
+	0 & 0 			   & 0 		         & 1
+\end{bmatrix}
+\begin{bmatrix}
+0 \\ y \\ D \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+0 & 0 & \frac{y^2 + D^2}{|OP|} & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+0 & 0 & \frac{y^2 + (\sqrt{x^2 + z^2})^2}{\sqrt{x^2 + y^2 + z^2}} & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+0 & 0 & |OP| & 1
+\end{bmatrix}^{T}&\\
+\end{aligned}\right.
+\end{equation}
+
+\bigskip \bigskip \noindent
+\textbf{3/ Full transformation:}
+
+\bigskip \noindent
+The full transformation consists in the concatenation of the two rotations we applied:
+\begin{equation}
+\left.\begin{aligned}
+P'' &= R_x(\phi)R_y(\alpha)P&\\
+&=
+\begin{bmatrix}
+0 & 0 & |OP| & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+0 & 0 & \sqrt{x^2 + y^2 + z^2} & 1
+\end{bmatrix}^{T}&\\
+\end{aligned}\right.
+\end{equation}
 \end{document}
