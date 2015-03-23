@@ -1,0 +1,193 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+
+\title{\textbf{Computer Graphics} \\ Assignment 2}
+\author{Thierry CANTENOT \\ J114030901}
+\date{23/03/14}
+
+\pdfinfo{%
+  /Title    (Assignment 2)
+  /Author   (Thierry CANTENOT)
+  /Creator  ()
+  /Producer ()
+  /Subject  (Computer Graphics)
+  /Keywords ()
+}
+
+\begin{document}
+\maketitle
+
+\section{Rotations}
+\bigskip
+
+\subsection{Problem statement}
+\bigskip
+
+\begin{enumerate}
+\item Prove that two successive 2D rotations are additive:\\ $R(\theta_1) . R(\theta_2) = R(\theta_1+\theta_2)$.
+
+\bigskip
+\item Consider a line from the origin of a right-handed coordinate system to the point P(x,y,z). Find the transformation matrices needed to rotate the line into the positive z axis in two different ways, and show by algebraic manipulation that, in each case, the point P does go to the z axis. For each method, calculate the sines and cosines of the angles of rotation.
+a. Rotate about the y axis into the (y,z) plane, then rotate about the x axis into the z axis.
+b. Rotate about the z axis into the (x,z) plane, then rotate about the y axis into the z axis.
+
+\end{enumerate}
+
+\pagebreak
+\subsection{Answer}
+\bigskip
+
+\subsection{Q1}
+\bigskip
+In 2D, a rotation of angle $\theta$ has the following matrix form:
+
+\begin{equation}
+R(\theta) =
+\begin{bmatrix}
+	cos(\theta) & -sin(\theta)\\
+	sin(\theta) & cos(\theta)
+\end{bmatrix}
+\end{equation}
+\noindent
+Thus,
+\begin{equation}
+\left.\begin{aligned}
+R(\theta_1).R(\theta_2)&=
+\begin{bmatrix}
+	cos(\theta_1) & -sin(\theta_1)\\
+	sin(\theta_1) & cos(\theta_1)
+\end{bmatrix}
+\begin{bmatrix}
+	cos(\theta_2) & -sin(\theta_2)\\
+	sin(\theta_2) & cos(\theta_2)
+\end{bmatrix}&\\
+&= \begin{bmatrix}
+	cos(\theta_1)cos(\theta_2) - sin(\theta_1)sin(\theta_2) & -cos(\theta_1)sin(\theta_2) - sin(\theta_1)cos(\theta_2)\\
+	sin(\theta_1)cos(\theta_2) + cos(\theta_1)sin(\theta_2) & -sin(\theta_1)sin(\theta_2) + cos(\theta_1)cos(\theta_2)
+\end{bmatrix}&
+\end{aligned}\right.
+\end{equation}
+
+\bigskip \noindent
+By considering the following trigonometric equalities:
+
+\begin{equation}
+\left.\begin{aligned}
+&cos(\alpha)cos(\beta) - sin(\alpha)sin(\beta) = cos(\alpha + \beta)&\\
+&sin(\alpha)cos(\beta) + cos(\alpha)sin(\beta) = sin(\alpha + \beta)&
+\end{aligned}\right.
+\end{equation}
+
+\bigskip \noindent
+And then by replacing, we have
+
+\begin{equation}
+\left.\begin{aligned}
+R(\theta_1).R(\theta_2)&=
+\begin{bmatrix}
+	cos(\theta_1 + \theta_2) & -sin(\theta_1 + \theta_2)\\
+	sin(\theta_1 + \theta_2) & cos(\theta_1 + \theta_2)
+\end{bmatrix}&\\
+&= R(\theta_1 + \theta_2) \qquad \text{Q.E.D}&\\
+\end{aligned}\right.
+\end{equation}
+
+\pagebreak
+
+\subsubsection{Q2}
+\bigskip
+
+\noindent
+Let $O$ be the origin of our right-handed coordinate system. \\
+$OP$ denotes the vector from $O(0, 0, 0)$ to $P(x, y, z)$ and $|OP|$ its length.
+
+
+\bigskip \noindent
+\textbf{a})
+
+\bigskip \noindent
+\textbf{1/ Rotate $OP$ about the $Y$ axis onto the $(YZ)$ plane:}\\\\
+Let $P_{xz}$ the projection of the point $P$ on the plane $XZ$ and $\theta$ be the angle between $P_{xz}$ and the $X$ axis.
+
+\bigskip \noindent
+The rotation we want to perform correspond to the angle $-(90 - \theta) = \theta - 90$. \\\\
+We know that the 4x4 rotation bout an angle $\alpha$ around the $Y$ axis has the following matrix form:
+
+\begin{equation}
+R_y(\alpha) =
+\begin{bmatrix}
+	cos(\alpha)  & 0 & sin(\alpha) & 0 \\
+	0 			 & 1 & 0		   & 0 \\
+	-sin(\alpha) & 0 & cos(\alpha) & 0 \\
+	0 			 & 0 & 0 		   & 1
+\end{bmatrix}
+\end{equation}
+\noindent
+In our case, $\alpha = 90 - \theta$ and
+\begin{equation}
+\left.\begin{aligned}
+	&cos(\alpha) = \frac{z}{D}& \\
+	&sin(\alpha) = -\frac{x}{D}&
+\end{aligned}\right.
+\end{equation}
+where $D = \sqrt{x^2 + z^2}$.\\
+
+
+\noindent
+Let $P'$ be the rotated point $P$ belonging to the $(YZ)$ plane.
+
+\begin{equation}
+\left.\begin{aligned}
+P' = R_y(\alpha) \times P 
+&=
+\begin{bmatrix}
+	cos(\alpha)  & 0 & sin(\alpha) & 0 \\
+	0 			 & 1 & 0		   & 0 \\
+	-sin(\alpha) & 0 & cos(\alpha) & 0 \\
+	0 			 & 0 & 0 		   & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\ y \\ z \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+	\frac{z}{D}  & 0 & -\frac{x}{D} & 0 \\
+	0 			 & 1 & 0		    & 0 \\
+	\frac{x}{D}  & 0 & \frac{z}{D}  & 0 \\
+	0 			 & 0 & 0 		    & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\ y \\ z \\ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+\frac{xz}{D} + \frac{-zx}{D} \\
+ y \\ 
+ \frac{x^2}{d} + \frac{z^2}{D} \\ 
+ 1
+\end{bmatrix}&\\
+&=
+\begin{bmatrix}
+0 & y & D & 1
+\end{bmatrix}^{T}&\\
+&=
+\begin{bmatrix}
+0 & y & \sqrt{x^2 + z^2} & 1
+\end{bmatrix}^{T}&\
+\end{aligned}\right.
+\end{equation}
+
+
+\pagebreak
+\noindent
+\textbf{2/ Rotate $OP'$ about the $X$ axis onto the $Z$ axis:}
+
+
+%\bigskip \noindent
+%The rotation we want to perform correspond to the angle $-(90 - \theta) = \theta - 90$. \\\\%
+
+\end{document}
