@@ -12,3 +12,9 @@
 *.log
 *.synctex.gz
 *.pdf
+
+# Others
+materials
+*.ppt
+*.docx
+*.djvu
