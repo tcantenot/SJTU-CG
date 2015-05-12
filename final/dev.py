@@ -52,8 +52,8 @@ class GLFrame(wx.Frame):
         self.timer.Start(dt)
 
         # Mouse positions
-        self.lastx = self.x = 30
-        self.lasty = self.y = 30
+        self.clickx = self.lastx = self.x = 30
+        self.clicky = self.lasty = self.y = 30
 
         # Frame size
         self.size = size
@@ -109,13 +109,16 @@ class GLFrame(wx.Frame):
         """Generate a frame."""
         #print "On Frame"
         if evt.GetId() == self.timer.GetId():
-            updated = self.scene.render(mouse=Mouse(self.x, self.y))
+            updated = self.scene.render(mouse=Mouse(self.x, self.y, self.clickx, self.clicky))
             if updated: self.swapBuffers()
             evt.Skip()
 
     def onMouseDown(self, evt):
         self.canvas.CaptureMouse()
-        self.x, self.y = self.lastx, self.lasty = evt.GetPosition()
+        self.x, self.y = evt.GetPosition()
+        self.y = self.size[1] - self.y # Invert y-axis
+        self.lastx, self.lasty = self.x, self.y
+        self.clickx, self.clicky = self.x, self.y
         #print "Mouse down ({}, {})".format(self.x, self.y)
 
 
@@ -129,6 +132,7 @@ class GLFrame(wx.Frame):
         if evt.Dragging() and evt.LeftIsDown():
             self.lastx, self.lasty = self.x, self.y
             self.x, self.y = evt.GetPosition()
+            self.y = self.size[1] - self.y # Invert y-axis
             self.canvas.Refresh(False)
             #print "Mouse motion ({}, {})".format(self.x, self.y)
 

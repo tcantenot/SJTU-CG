@@ -40,12 +40,14 @@ class Demo(Scene):
         self.size = size
         self.startTime = 0
 
-        self.mouse = Mouse(-1, -1)
+        self.mouse = Mouse(-1, -1, -1, -1)
         self.frameScheme = FRAME_SCHEME.ON_DEMAND
 
         self.program = Program()
         self.vs = Shader(SHADER_STAGE.VERTEX)
         self.fs = Shader(SHADER_STAGE.FRAGMENT)
+
+        self.resized = True
 
 
     def init(self, size=None):
@@ -64,7 +66,12 @@ class Demo(Scene):
 
         needsFrame = False
 
+
         if self.initialized:
+
+            if self.resized:
+                needsFrame = True
+                self.resized = False
 
             # TODO: add check interval to save resources
             # Check if the program needs to be reloaded
@@ -81,9 +88,9 @@ class Demo(Scene):
                     mouseMoved = True
 
             if self.frameScheme == FRAME_SCHEME.CONTINUOUS:
-                needsFrame = True
+                needsFrame |= True
             elif self.frameScheme == FRAME_SCHEME.ON_DEMAND:
-                needsFrame = reloaded or mouseMoved
+                needsFrame |= reloaded or mouseMoved
             else:
                 print "Unknown frame scheme: {}".format(self.frameScheme)
 
@@ -100,7 +107,10 @@ class Demo(Scene):
                 glUniform2f(glGetUniformLocation(self.program.id, "uResolution"), res[0], res[1])
 
                 # Mouse
-                glUniform2f(glGetUniformLocation(self.program.id, "uMouse"), self.mouse.x, self.mouse.y)
+                glUniform4f(
+                    glGetUniformLocation(self.program.id, "uMouse"),
+                    self.mouse.x, self.mouse.y, self.mouse.clickx, self.mouse.clicky
+                )
 
                 ### Draw ###
                 glClear(GL_COLOR_BUFFER_BIT)
@@ -112,6 +122,7 @@ class Demo(Scene):
     def resize(self, size):
         """ Resize hook """
         self.size = size
+        self.resized = True
         w, h = size
         glViewport(0, 0, w, h)
 
@@ -120,7 +131,10 @@ class Demo(Scene):
         """ Create the program used by the scene """
 
         self.vs.loadFromFile("assets/shaders/scene.vert")
-        self.fs.loadFromFile("assets/shaders/scene.frag")
+        #self.fs.loadFromFile("assets/shaders/scene.frag")
+        #self.fs.loadFromFile("assets/shaders/dev.frag")
+        #self.fs.loadFromFile("assets/shaders/debug.frag")
+        self.fs.loadFromFile("assets/shaders/debug_sphere_tracing.frag")
         self.program.attachShader(self.vs)
         self.program.attachShader(self.fs)
         self.program.link()

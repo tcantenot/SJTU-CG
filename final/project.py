@@ -15,7 +15,7 @@ def display(scene):
 
     def _display():
         scene.init()
-        updated = scene.render(mouse=Mouse(0, 0))
+        updated = scene.render(mouse=Mouse(0, 0, 0, 0))
         if updated: glut.glutSwapBuffers()
 
     return _display

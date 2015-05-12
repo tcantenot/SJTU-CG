@@ -1,4 +1,4 @@
-import os.path, time
+import os.path, time, re
 from utils import enum, hms
 
 try:
@@ -17,6 +17,20 @@ def GetGLStage(estage):
     elif estage == SHADER_STAGE.FRAGMENT:
         stage = GL_FRAGMENT_SHADER
     return stage
+
+def readShaderFile(filename):
+    source = ""
+    with open(filename) as f:
+        for line in f.readlines():
+            if line.startswith('#include '):
+                beg = line.find('"')
+                end = line.find('"', beg+1)
+                include = line[beg+1:end]
+                dirname = os.path.dirname(filename)
+                source += readShaderFile(os.path.join(dirname, include))
+            else:
+                source += "".join(line)
+    return source
 
 
 class Shader(object):
@@ -46,9 +60,7 @@ class Shader(object):
             print "Failed to create {} shader".format(SHADER_STAGE.name(self.stage).lower())
 
         # Read shader source from file
-        source = None
-        with open(filename) as f:
-            source = "".join(f.readlines())
+        source = readShaderFile(filename)
 
         # Get file information (filename and timestamp)
         self.filename = filename
