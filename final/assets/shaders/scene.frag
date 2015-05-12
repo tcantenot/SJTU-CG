@@ -173,7 +173,7 @@ vec2 map( in vec3 pos )
     vec2 res = opU( vec2( sdPlane(     pos), 1.0 ),
 	                vec2( sdSphere(    pos-vec3( 0.0,0.25, 0.0), 0.25 ), 46.9 ) );
 
-    pos.z = mod(pos.z+10.0, 20.0) - 10.0;
+    /*pos.z = mod(pos.z+10.0, 20.0) - 10.0;*/
     vec3 p = pos-vec3(1.0,0.25, 0.0);
     p.z = mod(p.z+10.0, 20.0) - 10.0;
     vec2 box = vec2(sdBox(p, vec3(0.25)), 3.0);

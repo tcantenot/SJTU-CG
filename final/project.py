@@ -7,6 +7,7 @@ except ImportError:
 import time, sys
 
 from scene import Scene, Demo
+from mouse import Mouse
 from utils import now
 
 
@@ -14,7 +15,7 @@ def display(scene):
 
     def _display():
         scene.init()
-        updated = scene.render()
+        updated = scene.render(mouse=Mouse(0, 0))
         if updated: glut.glutSwapBuffers()
 
     return _display

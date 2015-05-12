@@ -30,6 +30,7 @@ class Scene(object):
         pass
 
 class Demo(Scene):
+    """ Small demo class used to render a scene """
 
     def __init__(self, size=(0, 0)):
         Scene.__init__(self)
@@ -48,6 +49,8 @@ class Demo(Scene):
 
 
     def init(self, size=None):
+        """ Initialize the scene """
+
         if not self.initialized:
             if size: self.size = size
             self._createProgram()
@@ -57,6 +60,7 @@ class Demo(Scene):
 
 
     def render(self, *args, **kwargs):
+        """ Render a frame if necessary """
 
         needsFrame = False
 
@@ -106,11 +110,15 @@ class Demo(Scene):
 
 
     def resize(self, size):
+        """ Resize hook """
         self.size = size
         w, h = size
         glViewport(0, 0, w, h)
 
+
     def _createProgram(self):
+        """ Create the program used by the scene """
+
         self.vs.loadFromFile("assets/shaders/scene.vert")
         self.fs.loadFromFile("assets/shaders/scene.frag")
         self.program.attachShader(self.vs)
@@ -120,13 +128,17 @@ class Demo(Scene):
 
 
     def _createBuffer(self):
+        """ Create the fullscreen quad vertex buffer """
 
+        # NDC fullscreen quad
         ndcQuad = np.array([(-1, -1), (-1, +1), (+1, -1), (+1, +1)], dtype=np.float32)
 
+        # Create and fill vertex buffer of the NDC quad
         self.vertexbuffer = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.vertexbuffer)
         glBufferData(GL_ARRAY_BUFFER, ndcQuad.nbytes, ndcQuad, GL_STATIC_DRAW)
 
+        # Set buffer layout
         location = glGetAttribLocation(self.program.id, "VertexPosition")
         glEnableVertexAttribArray(location)
         glBindBuffer(GL_ARRAY_BUFFER, self.vertexbuffer)
