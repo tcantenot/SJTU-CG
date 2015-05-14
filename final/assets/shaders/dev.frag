@@ -11,6 +11,8 @@ uniform vec4 uMouse = vec4(0.0);
 
 out vec4 RenderTarget0;
 
+#define GAMMA_CORRECTION 0
+
 struct HitInfo
 {
     float id;
@@ -23,16 +25,17 @@ float map(vec3 pos)
 
     float scene = VOID;
 
-    // Checkboard plane
     float plane = sdPlaneY(pos+vec3(0, 2, 0));
     float box = sdBox(pos.yzx, vec3(0.1, 0.5, 0.4));
+    float sphere = sdSphere(pos.yzx, 1.0);
 
     /*opRepAngle(pos.zx, 10.0);*/
     opRep1(pos.z, 1.0);
 
     float cylinder = sdCylinder(pos, vec2(0.1, 0.3));
 
-    scene = min(plane, scene);
+    scene = opU(plane, scene);
+    scene = opU(sphere, scene);
     /*scene = min(box, scene);*/
     /*scene = min(cylinder, scene);*/
     scene = opU(scene, opCombine(box, cylinder, 0.04));
@@ -112,7 +115,7 @@ vec3 render(in vec3 ro, in vec3 rd)
         /*float ambient = clamp(0.5+0.5*normal.y, 0.0, 1.0);*/
         vec3 ambient = vec3(0.2);
         float diffuse = clamp(dot(normal, light), 0.0, 1.0);
-        float specular = pow(clamp(dot(ref, light), 0.0, 1.0),16.0);
+        float specular = pow(clamp(dot(ref, light), 0.0, 1.0), 128.0);
 
         /*diffuse *= softshadow(pos, light, 0.02, 2.5);*/
 
@@ -167,28 +170,38 @@ mat3 setCamera(vec3 eye, vec3 target, float cr)
     return mat3(cu, cv, cw);
 }
 
-
+mat3 lookat( in vec3 fw, in vec3 up )
+{
+	fw = normalize(fw);
+	vec3 rt = normalize( cross(fw, normalize(up)) );
+	return mat3( rt, cross(rt, fw), fw );
+}
 
 vec3 scene(vec3 ro, vec3 rd)
 {
     vec3 color = render(ro, rd);
-	/*color = pow(color, vec3(0.4545)); // Gamma*/
+
+    #if GAMMA_CORRECTION
+    color = pow(color, vec3(0.4545));
+    #endif
+
     return color;
 }
 
 void main()
 {
     vec2 fragCoord = gl_FragCoord.xy;
+    float aspect = uResolution.x / uResolution.y;
 
 	vec2 q = fragCoord.xy / uResolution.xy;
     vec2 p = q * 2.0 - 1.0;
-	p.x *= uResolution.x / uResolution.y;
+	p.x *= aspect;
 
     vec2 mo = uMouse.xy/uResolution.xy;
     mo = vec2(0.0);
 
 	float time = 15.0 + uTime;
-    time = 5.0;
+    time = 42.0;
 
 	// Camera
 	vec3 eye = vec3(
@@ -206,7 +219,7 @@ void main()
     mat3 ca = setCamera(eye, target, 0.0);
 
     // Ray origin and direction
-    float focal = 2.5;
+    float focal = 1.25;
     vec3 ro = eye;
 	vec3 rd = ca * normalize(vec3(p.xy, focal));
 
@@ -215,3 +228,58 @@ void main()
 
     RenderTarget0 = vec4(color, 1.0);
 }
+
+
+// ANTI-ALIASING
+#if 0
+    vec3 tot = vec3(0.0);
+    #ifdef ANTI_ALIASING
+    for(int i = 0; i < 4; i++)
+    {
+        vec2 offset = vec2(mod(float(i), 2.0), mod(float(i/2), 2.0)) / 2.0;
+    #else
+        vec2 offset = vec2(0.0);
+    #endif
+        /*vec2 xy = (-uResolution.xy + 2.0 * (fragCoord.xy + offset)) / uResolution.y;*/
+        vec2 xy = (fragCoord.xy + offset) / uResolution.xy;
+        xy = xy * 2.0 - 1.0;
+        xy.x *= aspect;
+
+        // camera
+        vec3 ro = vec3( 8.5*cos(0.2+.33*time), 5.0+2.0*cos(0.1*time), 8.5*sin(0.1+0.37*time) );
+        vec3 ta = vec3( -2.5+3.0*cos(1.2+.41*time), 0.0, 2.0+3.0*sin(2.0+0.38*time) );
+        float roll = 0.2*sin(0.1*time);
+
+        // camera tx
+        mat3 ca = setLookAt(ro, ta, roll);
+        vec3 rd = normalize(ca * vec3(xy.xy,1.75));
+
+        vec3 color = render(ro, rd);
+
+        tot += pow(color, vec3(0.4545));
+    #ifdef ANTI_ALIASING
+    }
+	tot /= 4.0;
+    #endif
+
+    color = tot;
+#endif
+
+// VIGNETING
+#if 0
+	vec2 q = fragCoord.xy / uResolution.xy;
+    color *= 0.2 + 0.8 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.1);
+#endif
+
+// HIT INFO
+#if 0
+    // See: https://www.shadertoy.com/view/4s2GWd
+    struct HitInfo
+    {
+        float id;
+        vec3 pos;
+        float dist;
+        vec3 normal;
+        vec3 uvw;
+    };
+#endif

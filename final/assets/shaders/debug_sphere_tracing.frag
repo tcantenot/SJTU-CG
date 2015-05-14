@@ -32,8 +32,11 @@ Known issues:
 */
 #version 140
 
+#include "print.glsl"
+
 in vec2 vTexCoord;
 
+uniform float uTime;
 uniform vec2 uResolution;
 uniform vec4 uMouse = vec4(0.0);
 
@@ -188,6 +191,10 @@ void main()
             color = vec3(0.150);
         }
     }
+
+	// Multiples of 4x5 work best
+    vec2 vFontSize = vec2(8.0, 15.0);
+    color = mix(color, vec3(1.0), printNumber(fragCoord, vec2(1.0, uResolution.y - 15.0), vFontSize, uTime, 9.0, 6.0));
 
     RenderTarget0 = vec4(color, 1.0);
 }

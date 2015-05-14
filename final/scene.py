@@ -132,9 +132,9 @@ class Demo(Scene):
 
         self.vs.loadFromFile("assets/shaders/scene.vert")
         #self.fs.loadFromFile("assets/shaders/scene.frag")
-        #self.fs.loadFromFile("assets/shaders/dev.frag")
+        self.fs.loadFromFile("assets/shaders/dev.frag")
         #self.fs.loadFromFile("assets/shaders/debug.frag")
-        self.fs.loadFromFile("assets/shaders/debug_sphere_tracing.frag")
+        #self.fs.loadFromFile("assets/shaders/debug_sphere_tracing.frag")
         self.program.attachShader(self.vs)
         self.program.attachShader(self.fs)
         self.program.link()
