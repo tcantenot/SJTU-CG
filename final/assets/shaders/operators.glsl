@@ -10,6 +10,20 @@ float opU(float d1, float d2)
 	return min(d1, d2);
 }
 
+float opU(float d1, float d2, inout bool first)
+{
+    first = d1 <= d2;
+    return first ? d1 : d2;
+}
+
+float opU(float d1, float d2, int id1, int id2, inout int id)
+{
+    bool first = false;
+    float d = opU(d1, d2, first);
+    id = first ? id1 : id2;
+    return d;
+}
+
 // Intersection
 float opI(float d1, float d2)
 {
