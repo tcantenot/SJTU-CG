@@ -78,7 +78,8 @@ float map(vec3 pos, inout HitInfo hitInfo)
 
     // Cylinder
     vec3 cpos = pos;
-    float cylinderCell = opRep1(cpos.z, 1.0);
+    float cylinderCell = opRepMirror2(cpos.xz, vec2(1.0)).x;
+    /*cpos += vec3(0.0, 0.25*sin(0.5*(cylinderCell+0.1) * uTime), 0.0);*/
     float cylinder = sdCylinder(cpos, vec2(0.1, 0.3));
 
     int id = NONE_ID;
@@ -170,6 +171,7 @@ vec3 phong(vec3 pos, vec3 normal, vec3 view, vec3 light, Material mat)
     float occ = 0.5 + 0.5 * normal.y;
 
     float shadow = softshadow(pos, light, 0.02, 2.5);
+    shadow = 1.0;
 
     vec3 color = vec3(0.0);
     color += amb * mat.ambient * occ;
@@ -183,7 +185,7 @@ vec3 render(in vec3 ro, in vec3 rd)
 {
     const float PRECIS = 0.0001;
     const float TMIN = 0.1;
-    const float TMAX = 50.0;
+    const float TMAX = 200.0;
     const int STEP_MAX = 500;
 
     HitInfo hitInfo;
@@ -228,49 +230,64 @@ vec3 render(in vec3 ro, in vec3 rd)
 
         color = phong(pos, normal, view, light, mat);
 
-        // Checkboard floor
+        // Checkerboard floor
         if(hitInfo.id == 0)
         {
-
             float f = mod(floor(2.0 * pos.z) + floor(2.0 * pos.x), 2.0);
-            color = 0.4 + 0.1 * f * vec3(1.0);
+            color = vec3(0.2 + 0.1 * f);
         }
 
-    // Test ray with isolinesPlane:
-#define DEBUG_MODE 1
-#if DEBUG_MODE == 1
-
-        float isolinesPlane = 0.0;//(uMouse.y / uResolution.y - 0.1) * 8.0;
-
-        isolinesPlane = max(0.0, isolinesPlane);
-        if(rd.y * sign(ro.y - isolinesPlane) < 0.0)
+        // Test ray with isolinesPlane
+        #define DEBUG_MODE 1
+        #if DEBUG_MODE
         {
-            float d = (ro.y - isolinesPlane) / -rd.y;
-            if(d < rayLength)
+            float y = 2.0 * (uMouse.y / uResolution.y) - 1.0;
+            float isolinesPlane = y;
+
+            // If the ray is going towards the isolines plane
+            if(rd.y * sign(ro.y - isolinesPlane) < 0.0)
             {
-                vec3 hit = ro + d * rd;
-                float hitDist = map(hit);
-                float iso = fract(hitDist * 5.0);
+                float d = (ro.y - isolinesPlane) / -rd.y;
+                if(d < rayLength)
+                {
+                    vec3 hit = ro + d * rd;
+                    float hitDist = map(hit);
+                    float iso = fract(hitDist * 10.0);
 
-                vec3 lhs = vec3(.2,.4,.6);
-                vec3 rhs = vec3(.2,.2,.4);
-                /*lhs = vec3(.5, 0.0, 0.0);*/
-                /*rhs = vec3(1.0, 0.0, 0.0);*/
-                vec3 dist_color = mix(lhs, rhs, iso);
+                    vec3 lhs = vec3(.2,.4,.6);
+                    vec3 rhs = vec3(.2,.2,.4);
+                    /*lhs = vec3(.5, 0.0, 0.0);*/
+                    /*rhs = vec3(1.0, 0.0, 0.0);*/
+                    vec3 distColor = mix(lhs, rhs, iso);
 
-                dist_color *= 1.0 / (max(0.0, hitDist) + 0.001);
-                /*dist_color = min(vec3(1.0,1.0,1.0),dist_color);*/
-                color = mix(color,dist_color, 0.25);
-                /*color = dist_color;*/
-                rayLength = d;
+                    #if 1
+                    if(mod(fract(hitDist), 0.05) < 0.01)
+                    {
+                        distColor = vec3(0.15);
+                    }
+                    #endif
+
+                    #if 0
+                    if(mod(fract(hitDist), 0.02) < 0.004)
+                    {
+                        distColor = vec3(1.0);
+                    }
+                    #endif
+
+                    distColor *= 1.0 / max(0.0001, hitDist);
+                    distColor *= 0.05;
+                    color = mix(color, distColor, 0.90);
+                    rayLength = d;
+                }
             }
         }
-#endif
+        #endif
     }
     else // Background
     {
-        /*vec2 uv = vTexCoord;*/
-		/*color = vec3(uv, 0.5 + 0.5 * sin(uTime));*/
+        vec2 uv = vTexCoord;
+        color = vec3(uv, 0.5 + 0.5 * sin(1.0));
+        /*color = vec3(uv, 0.5 + 0.5 * sin(uTime));*/
     }
 
 	return clamp(color, 0.0, 1.0);

@@ -194,7 +194,8 @@ void main()
 
 	// Multiples of 4x5 work best
     vec2 vFontSize = vec2(8.0, 15.0);
-    color = mix(color, vec3(1.0), printNumber(fragCoord, vec2(1.0, uResolution.y - 15.0), vFontSize, uTime, 9.0, 6.0));
+    float value = uTime;
+    color = mix(color, vec3(1.0), printNumber(fragCoord, vec2(1.0, uResolution.y - 15.0), vFontSize, value, 9.0, 6.0));
 
     RenderTarget0 = vec4(color, 1.0);
 }
