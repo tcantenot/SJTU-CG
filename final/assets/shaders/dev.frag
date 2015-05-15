@@ -1,5 +1,6 @@
 #version 140
 
+#include "camera.glsl"
 #include "primitives.glsl"
 #include "operators.glsl"
 
@@ -11,50 +12,49 @@ uniform vec4 uMouse = vec4(0.0);
 
 out vec4 RenderTarget0;
 
-#define ANTI_ALIASING 1
+#define LIGHTING 1
 #define OCCLUSION 1
 #define SHADOWS 1
 
 #define GAMMA_CORRECTION 1
-#define VIGNETTING 0
+#define VIGNETTING 1
 
-#define ISOLINES_DEBUG 0
-#define MOUSE 1
+#define ISOLINES_DEBUG 1
+#define MOUSE 0
 
-#define QUALITY 2
+#define QUALITY 3
 
 #if QUALITY == 0
 const int AA_SAMPLES = 16;
-const float PRECIS = 0.00001;
+const float PRECISION = 0.00001;
 const float TMIN = 0.1;
 const float TMAX = 5000.0;
 const int STEP_MAX = 4096;
 #elif QUALITY == 1
 const int AA_SAMPLES = 8;
-const float PRECIS = 0.0001;
+const float PRECISION = 0.0001;
 const float TMIN = 0.1;
 const float TMAX = 500.0;
 const int STEP_MAX = 1000;
 #elif QUALITY == 2
 const int AA_SAMPLES = 4;
-const float PRECIS = 0.0001;
+const float PRECISION = 0.0001;
 const float TMIN = 0.1;
 const float TMAX = 200.0;
 const int STEP_MAX = 500;
 #elif QUALITY == 3
 const int AA_SAMPLES = 2;
-const float PRECIS = 0.0001;
+const float PRECISION = 0.0001;
 const float TMIN = 0.1;
 const float TMAX = 100.0;
 const int STEP_MAX = 250;
 #else
 const int AA_SAMPLES = 1;
-const float PRECIS = 0.001;
+const float PRECISION = 0.001;
 const float TMIN = 0.1;
 const float TMAX = 500.0;
-const int STEP_MAX = 50;
+const int STEP_MAX = 100;
 #endif
-
 
 const float NONE = 1e20;
 
@@ -165,12 +165,14 @@ vec3 calcNormal(vec3 pos)
 }
 
 float castRay(
-    vec3 ro, vec3 rd,
+    Ray ray,
     const float tmin, const float tmax,
     const float precis, const int stepmax,
     inout HitInfo hitInfo
 )
 {
+    vec3 ro = ray.origin;
+    vec3 rd = ray.direction;
     float t = tmin;
     for(int i = 0; i < stepmax; i++)
     {
@@ -237,19 +239,21 @@ vec3 phong(vec3 pos, vec3 normal, vec3 view, Light light, Material mat)
     return color;
 }
 
-vec3 render(in vec3 ro, in vec3 rd)
+#include "isolines.glsl"
+
+vec3 raytrace(Ray ray)
 {
-    HitInfo hitInfo;
-
-    float t = castRay(ro, rd, TMIN, TMAX, PRECIS, STEP_MAX, hitInfo);
-
     vec3 color = vec3(0.0);
 
-    if(hitInfo.id >= 0)
+    // Cast ray and get intersection info
+    HitInfo hitInfo;
+    float t = castRay(ray, TMIN, TMAX, PRECISION, STEP_MAX, hitInfo);
+
+    if(hitInfo.id >= 0) // Object hit
     {
         vec3 pos = hitInfo.pos;
         vec3 normal = hitInfo.normal;
-        vec3 view = -normalize(rd);
+        vec3 view = -normalize(ray.direction);
 
         Material mat;
         #if 0
@@ -275,12 +279,17 @@ vec3 render(in vec3 ro, in vec3 rd)
         }
         #endif
 
-        for(int i = 0; i < LIGHT_COUNT; ++i)
+        #if LIGHTING
+        // Apply Phong lighting model
+        const float lightCount = LIGHT_COUNT;
+        for(int i = 0; i < lightCount; ++i)
         {
             Light light = uLights[i];
             color += phong(pos, normal, view, light, mat);
         }
-
+        #else
+        color = mat.diffuse;
+        #endif
 
         // Checkerboard floor
         if(hitInfo.id == 0)
@@ -289,48 +298,14 @@ vec3 render(in vec3 ro, in vec3 rd)
             color = mix(color, vec3(0.2 + 0.1 * f), 0.65);
         }
 
+
         #if ISOLINES_DEBUG
         {
-            float rayLength = t;
-
             float y = 2.0 * (uMouse.y / uResolution.y) - 1.0;
-            float isolinesPlane = y;
-
-            // If the ray is going towards the isolines plane
-            if(rd.y * sign(ro.y - isolinesPlane) < 0.0)
+            vec3 isolines = vec3(0.0);
+            if(isolinesDebug(ray, t, y, isolines))
             {
-                float d = (ro.y - isolinesPlane) / -rd.y;
-                if(d < rayLength)
-                {
-                    vec3 hit = ro + d * rd;
-                    float hitDist = map(hit);
-                    float iso = fract(hitDist * 10.0);
-
-                    vec3 lhs = vec3(.2,.4,.6);
-                    vec3 rhs = vec3(.2,.2,.4);
-                    /*lhs = vec3(.5, 0.0, 0.0);*/
-                    /*rhs = vec3(1.0, 0.0, 0.0);*/
-                    vec3 distColor = mix(lhs, rhs, iso);
-
-                    #if 1
-                    if(mod(fract(hitDist), 0.05) < 0.01)
-                    {
-                        distColor = vec3(0.15);
-                    }
-                    #endif
-
-                    #if 0
-                    if(mod(fract(hitDist), 0.02) < 0.004)
-                    {
-                        distColor = vec3(1.0);
-                    }
-                    #endif
-
-                    distColor *= 1.0 / max(0.0001, hitDist);
-                    distColor *= 0.10;
-                    color = mix(color, distColor, 0.90);
-                    rayLength = d;
-                }
+                color = mix(color, isolines, 0.90);
             }
         }
         #endif
@@ -345,102 +320,49 @@ vec3 render(in vec3 ro, in vec3 rd)
 	return clamp(color, 0.0, 1.0);
 }
 
-mat3 setCamera(vec3 eye, vec3 target, float cr)
-{
-	vec3 cw = normalize(target - eye);
-	vec3 cp = vec3(sin(cr), cos(cr), 0.0);
-	vec3 cu = normalize(cross(cw, cp));
-	vec3 cv = normalize(cross(cu, cw));
-    return mat3(cu, cv, cw);
-}
 
-mat3 lookat(vec3 fw, vec3 up)
+void main()
 {
-	fw = normalize(fw);
-	vec3 rt = normalize(cross(fw, normalize(up)));
-	return mat3(rt, cross(rt, fw), fw);
-}
+    // Screen info
+    vec2 resolution = uResolution;
+    vec2 fragCoord  = gl_FragCoord.xy;
 
-vec3 scene(vec3 ro, vec3 rd)
-{
-    vec3 color = render(ro, rd);
+    // Time
+    float time = 15.0 + uTime;
+    time = 42.0;
+
+    // Mouse
+    vec2 mouse = vec2(0.0);
+    #if MOUSE
+    mouse = uMouse.xy / uResolution.xy;
+    #endif
+
+    // Camera
+    Camera camera = Camera(vec3(1.0), 1.25, vec3(0.0), 0.0);
+    moveCamera(camera, time, mouse, fragCoord, resolution);
+
+    // Ray tracing (sphere tracing)
+
+    vec3 color = vec3(0.0);
+
+    // Multisample antialiasing
+    float aa = float(AA_SAMPLES) / 2.0;
+    for(int i = 0; i < AA_SAMPLES; i++)
+    {
+        vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
+        Ray ray = getRay(camera, fragCoord + offset, uResolution);
+        color += raytrace(ray); // Cast ray through the scene
+    }
+	color /= float(AA_SAMPLES);
 
     #if GAMMA_CORRECTION
     color = pow(color, vec3(0.4545));
     #endif
 
-    return color;
-}
-
-void main()
-{
-    vec2 fragCoord = gl_FragCoord.xy;
-    float aspect = uResolution.x / uResolution.y;
-
-	vec2 q = fragCoord.xy / uResolution.xy;
-    vec2 p = q * 2.0 - 1.0;
-	p.x *= aspect;
-
-    vec2 mo = vec2(0.0);
-
-    #if MOUSE
-    mo = uMouse.xy / uResolution.xy;
-    #endif
-
-	float time = 15.0 + uTime;
-    time = 42.0;
-
-	// Camera
-	vec3 eye = vec3(
-        -0.5 + 3.2 * cos(0.1 * time + 6.0 * mo.x),
-        1.0 + 2.0 * mo.y,
-        0.5 + 3.2 * sin(0.1 * time + 6.0 * mo.x)
-    );
-
-	vec3 target = vec3(-0.5, -0.4, 0.5);
-
-    /*eye = vec3(0.0, 10.0, -15.0);*/
-    target = vec3(0.0, 0.0, 0.0);
-
-	// Camera-to-World matrix
-    mat3 cam = setCamera(eye, target, 0.0);
-
-    // Ray origin and direction
-    float focal = 1.25;
-    vec3 ro = eye;
-
-    vec3 color = vec3(0.0);
-
-    #if ANTI_ALIASING
-    for(int i = 0; i < AA_SAMPLES; i++)
-    {
-        vec2 offset = vec2(
-            mod(float(i), float(AA_SAMPLES)/2.0),
-            mod(float(i/2), float(AA_SAMPLES)/2.0)
-        ) / (float(AA_SAMPLES) / 2.0);
-    #else
-        vec2 offset = vec2(0.0);
-    #endif
-
-
-        vec3 rd = vec3(0.0);
-        {
-            vec2 q = (fragCoord.xy + offset) / uResolution.xy;
-            vec2 p = q * 2.0 - 1.0;
-            p.x *= aspect;
-	        rd = cam * normalize(vec3(p.xy, focal));
-        }
-
-        // Render scene
-        color += scene(ro, rd);
-    #if ANTI_ALIASING
-    }
-	color /= float(AA_SAMPLES);
-    #endif
-
+    // Vignetting
     #if VIGNETTING
     vec2 q = fragCoord.xy / uResolution.xy;
-    color *= 0.2 + 0.8 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.1);
+    color *= 0.05 + 1.0 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.1);
     #endif
 
     RenderTarget0 = vec4(color, 1.0);

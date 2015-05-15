@@ -42,6 +42,7 @@ class Demo(Scene):
 
         self.mouse = Mouse(-1, -1, -1, -1)
         self.frameScheme = FRAME_SCHEME.ON_DEMAND
+        #self.frameScheme = FRAME_SCHEME.CONTINUOUS
 
         self.program = Program()
         self.vs = Shader(SHADER_STAGE.VERTEX)
@@ -125,6 +126,7 @@ class Demo(Scene):
         self.resized = True
         w, h = size
         glViewport(0, 0, w, h)
+        print "Resized: {}".format(self.size)
 
 
     def _createProgram(self):

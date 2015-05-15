@@ -87,6 +87,7 @@ class GLFrame(wx.Frame):
     def onResize(self, event):
         """Process the resize event."""
         size = self.size = self.getGLExtents()
+        print "onRRRESIZE: {}".format(self.size)
         if self.canvas.GetContext():
             # Make sure the frame is shown before calling SetCurrent.
             if self.scene: self.scene.resize(size)
@@ -103,35 +104,36 @@ class GLFrame(wx.Frame):
         # Initialize Scene if required
         if self.scene and not self.scene.initialized:
             self.scene.init(self.size)
+        event.Skip()
 
 
-    def onFrame(self, evt):
+    def onFrame(self, event):
         """Generate a frame."""
         #print "On Frame"
-        if evt.GetId() == self.timer.GetId():
+        if event.GetId() == self.timer.GetId():
             updated = self.scene.render(mouse=Mouse(self.x, self.y, self.clickx, self.clicky))
             if updated: self.swapBuffers()
-            evt.Skip()
+        event.Skip()
 
-    def onMouseDown(self, evt):
+    def onMouseDown(self, event):
         self.canvas.CaptureMouse()
-        self.x, self.y = evt.GetPosition()
+        self.x, self.y = event.GetPosition()
         self.y = self.size[1] - self.y # Invert y-axis
         self.lastx, self.lasty = self.x, self.y
         self.clickx, self.clicky = self.x, self.y
         #print "Mouse down ({}, {})".format(self.x, self.y)
 
 
-    def onMouseUp(self, evt):
+    def onMouseUp(self, event):
         self.canvas.ReleaseMouse()
-        x, y = evt.GetPosition()
+        x, y = event.GetPosition()
         #print "Mouse up ({}, {})".format(x, y)
 
 
-    def onMouseMotion(self, evt):
-        if evt.Dragging() and evt.LeftIsDown():
+    def onMouseMotion(self, event):
+        if event.Dragging() and event.LeftIsDown():
             self.lastx, self.lasty = self.x, self.y
-            self.x, self.y = evt.GetPosition()
+            self.x, self.y = event.GetPosition()
             self.y = self.size[1] - self.y # Invert y-axis
             self.canvas.Refresh(False)
             #print "Mouse motion ({}, {})".format(self.x, self.y)

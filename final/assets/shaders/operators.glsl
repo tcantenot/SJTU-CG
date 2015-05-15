@@ -82,6 +82,21 @@ float opCombine(float d1, float d2, float r)
     return (rd1 > 0 && rd2 > 0) ? min(m, r - sqrt(rd1 * rd1 + rd2 * rd2)) : m;
 }
 
+// Derived from Johann Korndorfer's technique: https://www.youtube.com/watch?v=s8nFqwOho-s
+float opCombineChamfer(float d1, float d2, float r)
+{
+    float m = min(d1, d2);
+
+    if(d1 < r && d2 < r)
+    {
+        return min(m, d1 + d2 - r);
+    }
+    else
+    {
+        return m;
+    }
+}
+
 
 // REPETITIONS
 
