@@ -2,18 +2,14 @@
     Camera class & camera utils
 */
 
+#include "ray.glsl"
+
 struct Camera
 {
     vec3 position;
     float focal;
     vec3 target;
     float roll;
-};
-
-struct Ray
-{
-    vec3 origin;
-    vec3 direction;
 };
 
 mat3 lookAt(vec3 origin, vec3 target, float roll)
@@ -114,4 +110,4 @@ void moveCamera3(inout Camera camera, float time, vec2 mouse, vec2 fragCoord, ve
         smoothstep(2.0, 10.0, abs(sin(time)) * 5.0 + 5.0) + 2.0);
 }
 
-#define moveCamera moveCamera3
+#define moveCamera moveCamera1

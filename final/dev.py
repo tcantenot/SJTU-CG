@@ -87,7 +87,6 @@ class GLFrame(wx.Frame):
     def onResize(self, event):
         """Process the resize event."""
         size = self.size = self.getGLExtents()
-        print "onRRRESIZE: {}".format(self.size)
         if self.canvas.GetContext():
             # Make sure the frame is shown before calling SetCurrent.
             if self.scene: self.scene.resize(size)

@@ -1,8 +1,25 @@
 #version 140
 
+#define LIGHTING 1
+#define LIGHTING_OCCLUSION 1
+#define LIGHTING_SHADOWS 1
+
+#define GAMMA_CORRECTION 1
+#define VIGNETTING 1
+
+#define ISOLINES_DEBUG 0
+#define MOUSE 1
+
+#define QUALITY 3
+
 #include "camera.glsl"
-#include "primitives.glsl"
-#include "operators.glsl"
+#include "hitinfo.glsl"
+#include "isolines.glsl"
+#include "light.glsl"
+#include "lighting.glsl"
+#include "material.glsl"
+#include "scene.glsl"
+
 
 in vec2 vTexCoord;
 
@@ -12,17 +29,6 @@ uniform vec4 uMouse = vec4(0.0);
 
 out vec4 RenderTarget0;
 
-#define LIGHTING 1
-#define OCCLUSION 1
-#define SHADOWS 1
-
-#define GAMMA_CORRECTION 1
-#define VIGNETTING 1
-
-#define ISOLINES_DEBUG 1
-#define MOUSE 0
-
-#define QUALITY 3
 
 #if QUALITY == 0
 const int AA_SAMPLES = 16;
@@ -56,39 +62,6 @@ const float TMAX = 500.0;
 const int STEP_MAX = 100;
 #endif
 
-const float NONE = 1e20;
-
-struct Light
-{
-    vec4 position;
-    vec3 color;
-    float power;
-};
-
-struct Material
-{
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
-};
-
-struct HitInfo
-{
-    int id;
-    vec3 pos;
-    float dist;
-    vec3 normal;
-    vec3 cell;
-    //vec3 uvw;
-};
-
-const int NONE_ID     = -1;
-const int PLANE_ID    = 0;
-const int BOX_ID      = 1;
-const int SPHERE_ID   = 2;
-const int CYLINDER_ID = 3;
-
 const int MATERIAL_COUNT = 4;
 
 uniform Material uMaterials[MATERIAL_COUNT] = Material[MATERIAL_COUNT]
@@ -107,61 +80,17 @@ uniform Light uLights[LIGHT_COUNT] = Light[LIGHT_COUNT]
     Light(vec4(normalize(vec3(-0.6, 0.7, 0.5)), 0.0), vec3(0.9, 0.7, 0.5), 0.9)
 );
 
-
-float map(vec3 pos, inout HitInfo hitInfo)
-{
-    float scene = NONE;
-
-    // Plane
-    float plane = sdPlaneY(pos+vec3(0, 0.5, 0));
-
-    // Box
-    float box = sdBox(pos.yzx-vec3(0.0, 0.0, -0.8), vec3(0.1, 0.5, 0.4));
-
-    // Sphere
-    vec3 spos = pos;
-    float sphereCell = opRep1(spos.y, 1.1);
-    float sphere = sdSphere(spos, 0.5);
-
-    // Cylinder
-    vec3 cpos = pos;
-    float cylinderCell = opRepMirror2(cpos.xz, vec2(1.0)).x;
-    /*cpos += vec3(0.0, 0.25*sin(0.5*(cylinderCell+0.1) * uTime), 0.0);*/
-    float cylinder = sdCylinder(cpos+vec3(0.0, 0.2, 0.0), vec2(0.1, 0.5));
-
-    int id = NONE_ID;
-    scene = opU(scene, plane, id, PLANE_ID, id);
-    scene = opU(scene, box, id, BOX_ID, id);
-    scene = opU(scene, sphere, id, SPHERE_ID, id);
-    scene = opU(scene, cylinder, id, CYLINDER_ID, id);
-    /*scene = opU(scene, opCombine(box, cylinder, 0.04));*/
-
-    hitInfo.id = id;
-
-    if(id == SPHERE_ID) hitInfo.cell.x = sphereCell;
-    else if(id == CYLINDER_ID) hitInfo.cell.x = cylinderCell;
-    else hitInfo.cell.x = NONE;
-
-    return scene;
-}
-
-float map(vec3 pos)
-{
-    HitInfo _;
-    return map(pos, _);
-}
-
 // Compute normal by central differences on the distance field at the shading point
 // (gradient approximation)
 vec3 calcNormal(vec3 pos)
 {
-	vec3 eps = vec3(0.001, 0.0, 0.0);
-	vec3 normal = vec3(
-	    map(pos+eps.xyy) - map(pos-eps.xyy),
-	    map(pos+eps.yxy) - map(pos-eps.yxy),
-	    map(pos+eps.yyx) - map(pos-eps.yyx)
+    vec3 eps = vec3(0.001, 0.0, 0.0);
+    vec3 normal = vec3(
+        map(pos+eps.xyy) - map(pos-eps.xyy),
+        map(pos+eps.yxy) - map(pos-eps.yxy),
+        map(pos+eps.yyx) - map(pos-eps.yyx)
     );
-	return normalize(normal);
+    return normalize(normal);
 }
 
 float castRay(
@@ -174,9 +103,11 @@ float castRay(
     vec3 ro = ray.origin;
     vec3 rd = ray.direction;
     float t = tmin;
+
+    // Raymarching using sphere tracing
     for(int i = 0; i < stepmax; i++)
     {
-	    float d = map(ro + t * rd, hitInfo);
+        float d = map(ro + t * rd, hitInfo);
         t += d;
         if(d < precis || t > tmax) break;
     }
@@ -195,51 +126,6 @@ float castRay(
 
     return t;
 }
-
-float softShadows(vec3 ro, vec3 rd, const float mint, const float tmax)
-{
-	float res = 1.0;
-    float t = mint;
-    for(int i = 0; i < 50; i++)
-    {
-		float h = map(ro + t * rd);
-        float sharpness = 20.0;
-        res = min(res, sharpness * h / t);
-        t += clamp(h, 0.02, 0.05);
-        if(h < 0.001 || t > tmax) break;
-    }
-    return clamp(res, 0.0, 1.0);
-}
-
-
-vec3 phong(vec3 pos, vec3 normal, vec3 view, Light light, Material mat)
-{
-    vec3 l = light.position.xyz;
-    float amb = clamp(0.5 + 0.5 * normal.y, 0.0, 1.0);
-    float dif = clamp(dot(l, normal), 0.0, 1.0);
-    vec3 h = normalize(view + l);
-    float spe = pow(clamp(dot(h, normal), 0.0, 1.0), mat.shininess);
-
-    float occ = 1.0;
-    #if OCCLUSION
-    occ = 0.5 + 0.5 * normal.y;
-    #endif
-
-    float shadow = 1.0;
-    #if SHADOWS
-    shadow = softShadows(pos, l, 0.02, 2.5);
-    #endif
-
-    vec3 color = vec3(0.0);
-    color += amb * mat.ambient * occ;
-    vec3 diffCoeff = light.power * light.color * dif * occ * shadow;
-    color += diffCoeff * mat.diffuse;
-    color += diffCoeff * spe * mat.specular;
-
-    return color;
-}
-
-#include "isolines.glsl"
 
 vec3 raytrace(Ray ray)
 {
@@ -291,13 +177,8 @@ vec3 raytrace(Ray ray)
         color = mat.diffuse;
         #endif
 
-        // Checkerboard floor
-        if(hitInfo.id == 0)
-        {
-            float f = mod(floor(2.0 * pos.z) + floor(2.0 * pos.x), 2.0);
-            color = mix(color, vec3(0.2 + 0.1 * f), 0.65);
-        }
-
+        // Post-processing effects
+        postProcessing(color, hitInfo, uTime, uMouse.xy, gl_FragCoord.xy, uResolution);
 
         #if ISOLINES_DEBUG
         {
@@ -317,7 +198,7 @@ vec3 raytrace(Ray ray)
         /*color = vec3(uv, 0.5 + 0.5 * sin(uTime));*/
     }
 
-	return clamp(color, 0.0, 1.0);
+    return clamp(color, 0.0, 1.0);
 }
 
 
@@ -353,7 +234,7 @@ void main()
         Ray ray = getRay(camera, fragCoord + offset, uResolution);
         color += raytrace(ray); // Cast ray through the scene
     }
-	color /= float(AA_SAMPLES);
+    color /= float(AA_SAMPLES);
 
     #if GAMMA_CORRECTION
     color = pow(color, vec3(0.4545));

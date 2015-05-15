@@ -1,3 +1,5 @@
+#include "ray.glsl"
+#include "scene.glsl"
 
 bool isolinesDebug(Ray ray, float rayLength, float y, out vec3 isolines)
 {

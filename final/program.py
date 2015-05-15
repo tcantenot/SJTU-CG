@@ -4,6 +4,7 @@ class Program(object):
     """ OpenGL program object """
 
     def __init__(self):
+        self.id = 0
         self.shaders = { }
         self.linked = False
 
@@ -23,9 +24,15 @@ class Program(object):
         for stage, shaders in self.shaders.items():
             for i, shader in enumerate(shaders):
                 if not shader.compiled:
-                    print "Failed to link program: {} shader {} \
-                        not compiled".format(SHADER_STAGE.name(self.stage).lower(), i)
+                    print "Failed to link program: {} shader '{}' not compiled".format(
+                        SHADER_STAGE.name[shader.stage].lower(), shader.filename
+                    )
                     return False
+
+        # Destroy previous program
+        if self.id != 0:
+            glDeleteProgram(self.id)
+            self.linked = False
 
         # Create the underlying OpenGL program
         self.id = glCreateProgram()

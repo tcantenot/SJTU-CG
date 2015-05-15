@@ -18,19 +18,44 @@ def GetGLStage(estage):
         stage = GL_FRAGMENT_SHADER
     return stage
 
+class ShaderDependency(object):
+
+    def __init__(self, filename, timestamp):
+        self.filename = filename
+        self.timestamp = timestamp
+
+    def checkNewer(self):
+        timestamp = time.ctime(os.path.getmtime(self.filename))
+        return timestamp > self.timestamp
+
+
 def readShaderFile(filename):
-    source = ""
-    with open(filename) as f:
-        for line in f.readlines():
-            if line.startswith('#include '):
-                beg = line.find('"')
-                end = line.find('"', beg+1)
-                include = line[beg+1:end]
-                dirname = os.path.dirname(filename)
-                source += readShaderFile(os.path.join(dirname, include))
-            else:
-                source += "".join(line)
-    return source
+    """ Read a shader file and return it along with its dependencies """
+
+    def _readShaderFile(filename, deps=[]):
+        source = ""
+        with open(filename) as f:
+            for line in f.readlines():
+                if line.startswith('#include '):
+                    beg = line.find('"')
+                    end = line.find('"', beg+1)
+                    inc = line[beg+1:end]
+                    dirname = os.path.dirname(filename)
+                    include = os.path.join(dirname, inc)
+                    if include not in deps:
+                        deps.append(include)
+                        src = _readShaderFile(include, deps)
+                        source += '\n// >>>>> #include "{}"\n\n'.format(inc)
+                        source += src
+                        source += '\n// <<<<< #include "{}"\n'.format(inc)
+                else:
+                    source += line
+        return source
+
+    dependencies = []
+    source = _readShaderFile(filename, dependencies)
+    return source, dependencies
+
 
 
 class Shader(object):
@@ -42,6 +67,7 @@ class Shader(object):
         self.timestamp = None
         self.filename = None
         self.compiled = False
+        self.dependencies = []
 
 
     def loadFromFile(self, filename):
@@ -53,6 +79,10 @@ class Shader(object):
             print "Unknown shader stage: {}".format(self.stage)
             return False
 
+        if self.id != 0:
+            glDeleteShader(self.id)
+            self.compiled = False
+
         # Create shader
         self.id = glCreateShader(stage)
 
@@ -60,7 +90,13 @@ class Shader(object):
             print "Failed to create {} shader".format(SHADER_STAGE.name(self.stage).lower())
 
         # Read shader source from file
-        source = readShaderFile(filename)
+        source, deps = readShaderFile(filename)
+
+        # Add shader dependencies
+        self.dependencies = []
+        for dep in deps:
+            timestamp = time.ctime(os.path.getmtime(dep))
+            self.dependencies.append(ShaderDependency(dep, timestamp))
 
         # Get file information (filename and timestamp)
         self.filename = filename
@@ -103,4 +139,10 @@ class Shader(object):
             print "[{}] - New version of '{}' detected. Reloading...".format(hms(), self.filename)
             self.loadFromFile(self.filename)
             return True
+        else:
+            for dep in self.dependencies:
+                if dep.checkNewer():
+                    print "[{}] - New version of dependency '{}' detected. Reloading '{}'...".format(hms(), dep.filename, self.filename)
+                    self.loadFromFile(self.filename)
+                    return True
         return False

@@ -126,7 +126,6 @@ class Demo(Scene):
         self.resized = True
         w, h = size
         glViewport(0, 0, w, h)
-        print "Resized: {}".format(self.size)
 
 
     def _createProgram(self):
