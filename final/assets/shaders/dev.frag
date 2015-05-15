@@ -12,19 +12,57 @@ uniform vec4 uMouse = vec4(0.0);
 out vec4 RenderTarget0;
 
 #define ANTI_ALIASING 1
-#define AA_SAMPLES 4
+#define OCCLUSION 1
+#define SHADOWS 1
 
 #define GAMMA_CORRECTION 1
 #define VIGNETTING 0
+
+#define ISOLINES_DEBUG 0
+#define MOUSE 1
+
+#define QUALITY 2
+
+#if QUALITY == 0
+const int AA_SAMPLES = 16;
+const float PRECIS = 0.00001;
+const float TMIN = 0.1;
+const float TMAX = 5000.0;
+const int STEP_MAX = 4096;
+#elif QUALITY == 1
+const int AA_SAMPLES = 8;
+const float PRECIS = 0.0001;
+const float TMIN = 0.1;
+const float TMAX = 500.0;
+const int STEP_MAX = 1000;
+#elif QUALITY == 2
+const int AA_SAMPLES = 4;
+const float PRECIS = 0.0001;
+const float TMIN = 0.1;
+const float TMAX = 200.0;
+const int STEP_MAX = 500;
+#elif QUALITY == 3
+const int AA_SAMPLES = 2;
+const float PRECIS = 0.0001;
+const float TMIN = 0.1;
+const float TMAX = 100.0;
+const int STEP_MAX = 250;
+#else
+const int AA_SAMPLES = 1;
+const float PRECIS = 0.001;
+const float TMIN = 0.1;
+const float TMAX = 500.0;
+const int STEP_MAX = 50;
+#endif
 
 
 const float NONE = 1e20;
 
 struct Light
 {
-    vec3 direction;
-    vec3 position;
+    vec4 position;
     vec3 color;
+    float power;
 };
 
 struct Material
@@ -39,9 +77,9 @@ struct HitInfo
 {
     int id;
     vec3 pos;
-    float cell;
-    vec3 normal;
     float dist;
+    vec3 normal;
+    vec3 cell;
     //vec3 uvw;
 };
 
@@ -51,7 +89,9 @@ const int BOX_ID      = 1;
 const int SPHERE_ID   = 2;
 const int CYLINDER_ID = 3;
 
-const Material materials[] = Material[]
+const int MATERIAL_COUNT = 4;
+
+uniform Material uMaterials[MATERIAL_COUNT] = Material[MATERIAL_COUNT]
 (
     Material(vec3(0.2), vec3(0.2, 0.8, 0.7), vec3(1.0), 64.0),
     Material(vec3(0.2), vec3(0.5, 0.9, 0.5), vec3(1.0), 100.0),
@@ -59,6 +99,13 @@ const Material materials[] = Material[]
     Material(vec3(0.2), vec3(0.5, 0.3, 0.0), vec3(1.0), 16.0)
 );
 
+const int LIGHT_COUNT = 2;
+
+uniform Light uLights[LIGHT_COUNT] = Light[LIGHT_COUNT]
+(
+    Light(vec4(normalize(vec3(-0.6, 0.7, -0.5)), 0.0), vec3(0.9, 0.6, 0.3), 0.7),
+    Light(vec4(normalize(vec3(-0.6, 0.7, 0.5)), 0.0), vec3(0.9, 0.7, 0.5), 0.9)
+);
 
 
 float map(vec3 pos, inout HitInfo hitInfo)
@@ -66,7 +113,7 @@ float map(vec3 pos, inout HitInfo hitInfo)
     float scene = NONE;
 
     // Plane
-    float plane = sdPlaneY(pos+vec3(0, 2, 0));
+    float plane = sdPlaneY(pos+vec3(0, 0.5, 0));
 
     // Box
     float box = sdBox(pos.yzx-vec3(0.0, 0.0, -0.8), vec3(0.1, 0.5, 0.4));
@@ -80,7 +127,7 @@ float map(vec3 pos, inout HitInfo hitInfo)
     vec3 cpos = pos;
     float cylinderCell = opRepMirror2(cpos.xz, vec2(1.0)).x;
     /*cpos += vec3(0.0, 0.25*sin(0.5*(cylinderCell+0.1) * uTime), 0.0);*/
-    float cylinder = sdCylinder(cpos, vec2(0.1, 0.3));
+    float cylinder = sdCylinder(cpos+vec3(0.0, 0.2, 0.0), vec2(0.1, 0.5));
 
     int id = NONE_ID;
     scene = opU(scene, plane, id, PLANE_ID, id);
@@ -91,9 +138,9 @@ float map(vec3 pos, inout HitInfo hitInfo)
 
     hitInfo.id = id;
 
-    if(id == SPHERE_ID) hitInfo.cell = sphereCell;
-    else if(id == CYLINDER_ID) hitInfo.cell = cylinderCell;
-    else hitInfo.cell = NONE;
+    if(id == SPHERE_ID) hitInfo.cell.x = sphereCell;
+    else if(id == CYLINDER_ID) hitInfo.cell.x = cylinderCell;
+    else hitInfo.cell.x = NONE;
 
     return scene;
 }
@@ -147,66 +194,66 @@ float castRay(
     return t;
 }
 
-float softshadow(vec3 ro, vec3 rd, const float mint, const float tmax)
+float softShadows(vec3 ro, vec3 rd, const float mint, const float tmax)
 {
 	float res = 1.0;
     float t = mint;
-    for(int i = 0; i < 16; i++)
+    for(int i = 0; i < 50; i++)
     {
 		float h = map(ro + t * rd);
-        res = min(res, 8.0 * h / t);
-        t += clamp(h, 0.02, 0.10);
+        float sharpness = 20.0;
+        res = min(res, sharpness * h / t);
+        t += clamp(h, 0.02, 0.05);
         if(h < 0.001 || t > tmax) break;
     }
     return clamp(res, 0.0, 1.0);
 }
 
 
-vec3 phong(vec3 pos, vec3 normal, vec3 view, vec3 light, Material mat)
+vec3 phong(vec3 pos, vec3 normal, vec3 view, Light light, Material mat)
 {
+    vec3 l = light.position.xyz;
     float amb = clamp(0.5 + 0.5 * normal.y, 0.0, 1.0);
-    float dif = clamp(dot(light, normal), 0.0, 1.0);
-    vec3 h = normalize(view + light);
+    float dif = clamp(dot(l, normal), 0.0, 1.0);
+    vec3 h = normalize(view + l);
     float spe = pow(clamp(dot(h, normal), 0.0, 1.0), mat.shininess);
-    float occ = 0.5 + 0.5 * normal.y;
 
-    float shadow = softshadow(pos, light, 0.02, 2.5);
-    shadow = 1.0;
+    float occ = 1.0;
+    #if OCCLUSION
+    occ = 0.5 + 0.5 * normal.y;
+    #endif
+
+    float shadow = 1.0;
+    #if SHADOWS
+    shadow = softShadows(pos, l, 0.02, 2.5);
+    #endif
 
     vec3 color = vec3(0.0);
     color += amb * mat.ambient * occ;
-    color += dif * mat.diffuse * occ * shadow;
-    color += dif * spe * mat.specular * occ;
+    vec3 diffCoeff = light.power * light.color * dif * occ * shadow;
+    color += diffCoeff * mat.diffuse;
+    color += diffCoeff * spe * mat.specular;
 
     return color;
 }
 
 vec3 render(in vec3 ro, in vec3 rd)
 {
-    const float PRECIS = 0.0001;
-    const float TMIN = 0.1;
-    const float TMAX = 200.0;
-    const int STEP_MAX = 500;
-
     HitInfo hitInfo;
 
     float t = castRay(ro, rd, TMIN, TMAX, PRECIS, STEP_MAX, hitInfo);
 
-    vec3 color = vec3(0.8, 0.9, 1.0);
-    color = vec3(0.0);
-
-    float rayLength = t;
+    vec3 color = vec3(0.0);
 
     if(hitInfo.id >= 0)
     {
         vec3 pos = hitInfo.pos;
         vec3 normal = hitInfo.normal;
-        vec3 view   = -normalize(rd);
-        vec3 light  = normalize(vec3(-0.6, 0.7, -0.5));
+        vec3 view = -normalize(rd);
 
         Material mat;
         #if 0
-        mat = materials[hitInfo.id];
+        mat = uMaterials[hitInfo.id];
         #else
         mat.ambient = vec3(0.05, 0.15, 0.2);
         mat.specular = vec3(1.0, 1.0, 1.0);
@@ -218,29 +265,34 @@ vec3 render(in vec3 ro, in vec3 rd)
         else
         {
             mat.diffuse = vec3(0.2, 0.6, 0.8);
-            if(hitInfo.cell != NONE)
+            if(hitInfo.cell.x != NONE)
             {
-                mat.diffuse.r = abs(sin(hitInfo.cell * 15.0));
-                mat.diffuse.g = abs(cos(hitInfo.cell * 50.0));
-                mat.diffuse.b = abs(cos(mod(hitInfo.cell, 0.5) * 305.2));
-                mat.shininess = mix(64.0, 128.0, abs(sin(hitInfo.cell)));
+                mat.diffuse.r = abs(sin(hitInfo.cell.x * 15.0));
+                mat.diffuse.g = abs(cos(hitInfo.cell.x * 50.0));
+                mat.diffuse.b = abs(cos(mod(hitInfo.cell.x, 0.5) * 305.2));
+                mat.shininess = mix(64.0, 128.0, abs(sin(hitInfo.cell.x)));
             }
         }
         #endif
 
-        color = phong(pos, normal, view, light, mat);
+        for(int i = 0; i < LIGHT_COUNT; ++i)
+        {
+            Light light = uLights[i];
+            color += phong(pos, normal, view, light, mat);
+        }
+
 
         // Checkerboard floor
         if(hitInfo.id == 0)
         {
             float f = mod(floor(2.0 * pos.z) + floor(2.0 * pos.x), 2.0);
-            color = vec3(0.2 + 0.1 * f);
+            color = mix(color, vec3(0.2 + 0.1 * f), 0.65);
         }
 
-        // Test ray with isolinesPlane
-        #define DEBUG_MODE 1
-        #if DEBUG_MODE
+        #if ISOLINES_DEBUG
         {
+            float rayLength = t;
+
             float y = 2.0 * (uMouse.y / uResolution.y) - 1.0;
             float isolinesPlane = y;
 
@@ -275,7 +327,7 @@ vec3 render(in vec3 ro, in vec3 rd)
                     #endif
 
                     distColor *= 1.0 / max(0.0001, hitDist);
-                    distColor *= 0.05;
+                    distColor *= 0.10;
                     color = mix(color, distColor, 0.90);
                     rayLength = d;
                 }
@@ -302,11 +354,11 @@ mat3 setCamera(vec3 eye, vec3 target, float cr)
     return mat3(cu, cv, cw);
 }
 
-mat3 lookat( in vec3 fw, in vec3 up )
+mat3 lookat(vec3 fw, vec3 up)
 {
 	fw = normalize(fw);
-	vec3 rt = normalize( cross(fw, normalize(up)) );
-	return mat3( rt, cross(rt, fw), fw );
+	vec3 rt = normalize(cross(fw, normalize(up)));
+	return mat3(rt, cross(rt, fw), fw);
 }
 
 vec3 scene(vec3 ro, vec3 rd)
@@ -329,8 +381,11 @@ void main()
     vec2 p = q * 2.0 - 1.0;
 	p.x *= aspect;
 
-    vec2 mo = uMouse.xy / uResolution.xy;
-    mo = vec2(0.0);
+    vec2 mo = vec2(0.0);
+
+    #if MOUSE
+    mo = uMouse.xy / uResolution.xy;
+    #endif
 
 	float time = 15.0 + uTime;
     time = 42.0;
