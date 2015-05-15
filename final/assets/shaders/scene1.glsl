@@ -1,6 +1,9 @@
-#include "primitives.glsl"
-#include "operators.glsl"
 #include "hitinfo.glsl"
+#include "material.glsl"
+#include "operators.glsl"
+#include "params.glsl"
+#include "primitives.glsl"
+
 
 const float NONE = 1e20;
 
@@ -10,11 +13,21 @@ const int BOX_ID      = 1;
 const int SPHERE_ID   = 2;
 const int CYLINDER_ID = 3;
 
-float map(vec3 pos, inout HitInfo hitInfo)
+const int MATERIAL_COUNT = 4;
+
+uniform Material uMaterials[MATERIAL_COUNT] = Material[MATERIAL_COUNT]
+(
+    Material(vec3(0.2), vec3(0.2, 0.8, 0.7), vec3(1.0), 64.0),
+    Material(vec3(0.2), vec3(0.5, 0.9, 0.5), vec3(1.0), 100.0),
+    Material(vec3(0.2), vec3(0.5, 0.5, 0.9), vec3(1.0), 128.0),
+    Material(vec3(0.2), vec3(0.5, 0.3, 0.0), vec3(1.0), 16.0)
+);
+
+
+float Hook_Map(vec3 pos, inout HitInfo hitInfo)
 {
     float scene = NONE;
 
-    #if 1
     // Plane
     float plane = sdPlaneY(pos+vec3(0, 0.5, 0));
 
@@ -38,25 +51,42 @@ float map(vec3 pos, inout HitInfo hitInfo)
     scene = opU(scene, box, id, BOX_ID, id);
     scene = opU(scene, sphere, id, SPHERE_ID, id);
     scene = opU(scene, cylinder, id, CYLINDER_ID, id);
-    scene = opU(scene, opCombineChamfer(box, cylinder, 0.04));
+    scene = opU(scene, opCombineChamfer(box, cylinder, 0.1));
 
     hitInfo.id = id;
 
     if(id == SPHERE_ID) hitInfo.cell.x = sphereCell;
+    else if(id == BOX_ID) hitInfo.cell.x = boxCell;
     else if(id == CYLINDER_ID) hitInfo.cell.x = cylinderCell;
     else hitInfo.cell.x = NONE;
 
     return scene;
 }
 
-void postProcessing(
-    inout vec3 color,
-    HitInfo hitInfo,
-    float time,
-    vec2 mouse,
-    vec2 fragCoord,
-    vec2 resolution
-)
+Material Hook_Material(HitInfo hitInfo, Params params)
+{
+    Material mat;
+
+    #if 0
+    mat = uMaterials[hitInfo.id];
+    #else
+    mat.ambient = vec3(0.05, 0.15, 0.2);
+    mat.specular = vec3(1.0, 1.0, 1.0);
+    mat.shininess = 128.0;
+    mat.diffuse = vec3(0.2, 0.6, 0.8);
+    if(hitInfo.cell.x != NONE)
+    {
+        mat.diffuse.r = abs(sin(hitInfo.cell.x * 15.0));
+        mat.diffuse.g = abs(cos(hitInfo.cell.x * 50.0));
+        mat.diffuse.b = abs(cos(mod(hitInfo.cell.x, 0.5) * 305.2));
+        mat.shininess = mix(64.0, 128.0, abs(sin(hitInfo.cell.x)));
+    }
+    #endif
+
+    return mat;
+}
+
+void Hook_PostProcess(inout vec3 color, HitInfo hitInfo, Params params)
 {
     vec3 pos = hitInfo.pos;
 
@@ -67,3 +97,7 @@ void postProcessing(
         color = mix(color, vec3(0.2 + 0.1 * f), 0.65);
     }
 }
+
+#define HOOK_MAP Hook_Map
+#define HOOK_MATERIAL Hook_Material
+#define HOOK_POSTPROCESS Hook_PostProcess

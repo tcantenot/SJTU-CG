@@ -8,16 +8,16 @@
 #define VIGNETTING 1
 
 #define ISOLINES_DEBUG 0
-#define MOUSE 1
-
-#define QUALITY 3
+#define CAMERA_MOUSE 1
 
 #include "camera.glsl"
+#include "camera_controls.glsl"
 #include "hitinfo.glsl"
 #include "isolines.glsl"
 #include "light.glsl"
 #include "lighting.glsl"
 #include "material.glsl"
+#include "params.glsl"
 #include "scene.glsl"
 
 
@@ -25,10 +25,12 @@ in vec2 vTexCoord;
 
 uniform float uTime;
 uniform vec2 uResolution;
-uniform vec4 uMouse = vec4(0.0);
+uniform vec4 uMouse;
 
 out vec4 RenderTarget0;
 
+
+#define QUALITY 4
 
 #if QUALITY == 0
 const int AA_SAMPLES = 16;
@@ -58,27 +60,19 @@ const int STEP_MAX = 250;
 const int AA_SAMPLES = 1;
 const float PRECISION = 0.001;
 const float TMIN = 0.1;
-const float TMAX = 500.0;
+const float TMAX = 100.0;
 const int STEP_MAX = 100;
 #endif
 
-const int MATERIAL_COUNT = 4;
 
-uniform Material uMaterials[MATERIAL_COUNT] = Material[MATERIAL_COUNT]
-(
-    Material(vec3(0.2), vec3(0.2, 0.8, 0.7), vec3(1.0), 64.0),
-    Material(vec3(0.2), vec3(0.5, 0.9, 0.5), vec3(1.0), 100.0),
-    Material(vec3(0.2), vec3(0.5, 0.5, 0.9), vec3(1.0), 128.0),
-    Material(vec3(0.2), vec3(0.5, 0.3, 0.0), vec3(1.0), 16.0)
-);
-
+// Lights
 const int LIGHT_COUNT = 2;
-
 uniform Light uLights[LIGHT_COUNT] = Light[LIGHT_COUNT]
 (
     Light(vec4(normalize(vec3(-0.6, 0.7, -0.5)), 0.0), vec3(0.9, 0.6, 0.3), 0.7),
     Light(vec4(normalize(vec3(-0.6, 0.7, 0.5)), 0.0), vec3(0.9, 0.7, 0.5), 0.9)
 );
+
 
 // Compute normal by central differences on the distance field at the shading point
 // (gradient approximation)
@@ -116,7 +110,7 @@ float castRay(
     {
         hitInfo.id = -1;
     }
-    else // Hit
+    else
     {
         // Store hit info
         hitInfo.dist   = t;
@@ -127,7 +121,7 @@ float castRay(
     return t;
 }
 
-vec3 raytrace(Ray ray)
+vec3 raytrace(Ray ray, Params params)
 {
     vec3 color = vec3(0.0);
 
@@ -141,29 +135,8 @@ vec3 raytrace(Ray ray)
         vec3 normal = hitInfo.normal;
         vec3 view = -normalize(ray.direction);
 
-        Material mat;
-        #if 0
-        mat = uMaterials[hitInfo.id];
-        #else
-        mat.ambient = vec3(0.05, 0.15, 0.2);
-        mat.specular = vec3(1.0, 1.0, 1.0);
-        mat.shininess = 128.0;
-        if(hitInfo.id == 1)
-        {
-            mat.diffuse = vec3(1.0, 0.6, 0.8);
-        }
-        else
-        {
-            mat.diffuse = vec3(0.2, 0.6, 0.8);
-            if(hitInfo.cell.x != NONE)
-            {
-                mat.diffuse.r = abs(sin(hitInfo.cell.x * 15.0));
-                mat.diffuse.g = abs(cos(hitInfo.cell.x * 50.0));
-                mat.diffuse.b = abs(cos(mod(hitInfo.cell.x, 0.5) * 305.2));
-                mat.shininess = mix(64.0, 128.0, abs(sin(hitInfo.cell.x)));
-            }
-        }
-        #endif
+        // Get the material of the hit object
+        Material mat = getMaterial(hitInfo, params);
 
         #if LIGHTING
         // Apply Phong lighting model
@@ -178,11 +151,11 @@ vec3 raytrace(Ray ray)
         #endif
 
         // Post-processing effects
-        postProcessing(color, hitInfo, uTime, uMouse.xy, gl_FragCoord.xy, uResolution);
+        postProcess(color, hitInfo, params);
 
         #if ISOLINES_DEBUG
         {
-            float y = 2.0 * (uMouse.y / uResolution.y) - 1.0;
+            float y = 2.0 * params.mouse.y - 1.0;
             vec3 isolines = vec3(0.0);
             if(isolinesDebug(ray, t, y, isolines))
             {
@@ -204,25 +177,16 @@ vec3 raytrace(Ray ray)
 
 void main()
 {
-    // Screen info
-    vec2 resolution = uResolution;
-    vec2 fragCoord  = gl_FragCoord.xy;
-
-    // Time
-    float time = 15.0 + uTime;
-    time = 42.0;
-
-    // Mouse
-    vec2 mouse = vec2(0.0);
-    #if MOUSE
-    mouse = uMouse.xy / uResolution.xy;
-    #endif
+    // Input parameters
+    Params params = Params(gl_FragCoord.xy, uResolution, uMouse/uResolution.xyxy, uTime);
+    params.time = 42.0;
 
     // Camera
     Camera camera = Camera(vec3(1.0), 1.25, vec3(0.0), 0.0);
-    moveCamera(camera, time, mouse, fragCoord, resolution);
+    moveCamera(camera, params);
 
-    // Ray tracing (sphere tracing)
+
+    /// Ray tracing (sphere tracing) ///
 
     vec3 color = vec3(0.0);
 
@@ -231,10 +195,11 @@ void main()
     for(int i = 0; i < AA_SAMPLES; i++)
     {
         vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
-        Ray ray = getRay(camera, fragCoord + offset, uResolution);
-        color += raytrace(ray); // Cast ray through the scene
+        Ray ray = getRay(camera, params.fragCoord + offset, params.resolution);
+        color += raytrace(ray, params); // Cast ray through the scene
     }
     color /= float(AA_SAMPLES);
+
 
     #if GAMMA_CORRECTION
     color = pow(color, vec3(0.4545));
@@ -242,7 +207,7 @@ void main()
 
     // Vignetting
     #if VIGNETTING
-    vec2 q = fragCoord.xy / uResolution.xy;
+    vec2 q = params.fragCoord.xy / params.resolution.xy;
     color *= 0.05 + 1.0 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.1);
     #endif
 
