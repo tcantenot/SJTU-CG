@@ -165,7 +165,7 @@ vec3 raytrace(Ray ray, Params params)
     {
         float y = 2.0 * params.mouse.y - 1.0;
         y *= 10.0;
-        isolinesDebug(color, ray, t, y, params);
+        isolinesDebug(color, ray, t, y, params, 1.0);
     }
     #endif
 
@@ -182,11 +182,11 @@ void main()
     // Camera
     Camera camera = Camera(vec3(5.0), 2.0, vec3(0.0), 0.0);
     camera.position = vec3(-30.0, 30.0, 30.0);
-    camera.position = vec3(5.0, 20.0, 0.000001);
+    camera.position = vec3(5.0, 2.0, 0.000001);
     /*camera.position.xz += params.mouse.xy * 30.0;*/
 
     // TODO: create a hook for the camera movement ("belong" to the scene)
-    moveCamera(camera, params);
+    /*moveCamera(camera, params);*/
 
 
     /// Ray tracing (sphere tracing) ///

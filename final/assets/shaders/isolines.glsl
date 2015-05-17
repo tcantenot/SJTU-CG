@@ -7,16 +7,14 @@ bool isolinesDebug(
     Ray ray,
     float rayLength,
     float y,
-    Params params
+    Params params,
+    float mixCoeff
 )
 {
     vec3 isolines = vec3(0.0);
 
     vec3 ro = ray.origin;
     vec3 rd = ray.direction;
-
-    //FIXME
-    y = 0.0;
 
     // If the ray is going towards the isolines plane
     if(rd.y * sign(ro.y - y) < 0.0)
@@ -26,80 +24,61 @@ bool isolinesDebug(
         {
             vec3 hit = ro + d * rd;
             float hitDist = map(hit);
-            float iso = fract(hitDist);// * 10.0);
+            float iso = fract(hitDist);
 
             vec3 lhs = vec3(.2,.4,.6);
             vec3 rhs = vec3(.2,.2,.4);
-            /*isolines = mix(lhs, rhs, clamp(hitDist/100.0, 0.0, 1.0));*/
+            /*isolines = mix(lhs, rhs, clamp(hitDist/1.0, 0.0, 1.0));*/
             isolines = mix(lhs, rhs, iso);
 
             float dd = distance(ro, hit);
 
+            // Line width
+            float lw;
 
+
+            // Every 1/10
             #if 1
-            if(mod(fract(hitDist * 10.0), 1.0) < 0.05)
+            lw = 0.005;
+            if(hitDist > lw && mod(hitDist, 0.1) < lw)
             {
-                float md = 15.0;
+                float md = 10.0;
                 if(dd < md)
                 {
-                    float m = smoothstep(dd/md, 0.0, 1.0);
+                    float m = smoothstep(0.0, 1.0, dd/md);
                     m = 1.0 - m*m;
                     isolines = mix(color, vec3(0.8), m);
                 }
             }
             #endif
 
+            // Every 1/5
             #if 1
-            if(mod(fract(hitDist * 5.0), 1.0) < 0.05)
+            lw = 0.01;
+            if(hitDist > lw && mod(hitDist, 0.2) < lw)
             {
-                float md = 35.0;
+                float md = 25.0;
                 if(dd < md)
                 {
-                    float m = smoothstep(dd/md, 0.0, 1.0);
+                    float m = smoothstep(0.0, 1.0, dd/md);
                     m = 1.0 - m*m;
                     isolines = mix(color, vec3(0.8), m);
                 }
             }
             #endif
 
+            // Every 1
             #if 1
-            float f = abs(ro.y - y);
-            /*f = 1.0 / f;*/
-            /*f = 1.0;*/
-            float mm = clamp(dd, 0.0, 1.0);
-            mm = 1.0 - mm;
-            /*float m = 1.0;*/
-
-            /*f *= 0.2;*/
-            /*f = 1.0;*/
-
-            float lw = 0.02 / (f*f);
-            lw = clamp(lw, 0.03, 0.10);
-
-            float rep = f;
-            rep = clamp(rep, 1.0, 3.0);
-
-            if(mod(fract(hitDist), rep) < lw)// < 0.005 * f)
+            lw = 0.03;
+            if(hitDist > lw && mod(hitDist, 1.0) < lw)
             {
-                if(hitDist > lw + 0.1)
-                {
-                    isolines = vec3(0.15);
-                    isolines = vec3(0.0);
-
-                    if(dd > 10.0)
-                    {
-                        /*isolines = mix(color, isolines, dd/10.0);*/
-                    }
-                }
+                isolines = vec3(0.0);
             }
             #endif
 
-            isolines *= 1.0 / max(0.0001, hitDist);
-            /*isolines *= 0.25;*/
+            isolines *= 1.0 / max(0.001, hitDist);
 
-            vec2 uv = params.fragCoord / params.resolution;
-            float m = 1.0;
-            color = mix(vec3(uv, 1.0), isolines, m);
+            color = mix(color, isolines, mixCoeff);
 
             return true;
         }
