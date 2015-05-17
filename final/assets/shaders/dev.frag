@@ -1,13 +1,13 @@
 #version 140
 
 #define LIGHTING 1
-#define LIGHTING_OCCLUSION 1
-#define LIGHTING_SHADOWS 1
+#define LIGHTING_OCCLUSION 0
+#define LIGHTING_SHADOWS 0
 
 #define GAMMA_CORRECTION 1
 #define VIGNETTING 1
 
-#define ISOLINES_DEBUG 0
+#define ISOLINES_DEBUG 1
 #define CAMERA_MOUSE 1
 
 #include "camera.glsl"
@@ -18,6 +18,7 @@
 #include "lighting.glsl"
 #include "material.glsl"
 #include "params.glsl"
+#include "postprocess.glsl"
 #include "scene.glsl"
 
 
@@ -30,7 +31,7 @@ uniform vec4 uMouse;
 out vec4 RenderTarget0;
 
 
-#define QUALITY 4
+#define QUALITY 2
 
 #if QUALITY == 0
 const int AA_SAMPLES = 16;
@@ -42,13 +43,13 @@ const int STEP_MAX = 4096;
 const int AA_SAMPLES = 8;
 const float PRECISION = 0.0001;
 const float TMIN = 0.1;
-const float TMAX = 500.0;
+const float TMAX = 1000.0;
 const int STEP_MAX = 1000;
 #elif QUALITY == 2
 const int AA_SAMPLES = 4;
 const float PRECISION = 0.0001;
 const float TMIN = 0.1;
-const float TMAX = 200.0;
+const float TMAX = 1000.0;
 const int STEP_MAX = 500;
 #elif QUALITY == 3
 const int AA_SAMPLES = 2;
@@ -69,8 +70,8 @@ const int STEP_MAX = 100;
 const int LIGHT_COUNT = 2;
 uniform Light uLights[LIGHT_COUNT] = Light[LIGHT_COUNT]
 (
-    Light(vec4(normalize(vec3(-0.6, 0.7, -0.5)), 0.0), vec3(0.9, 0.6, 0.3), 0.7),
-    Light(vec4(normalize(vec3(-0.6, 0.7, 0.5)), 0.0), vec3(0.9, 0.7, 0.5), 0.9)
+    Light(vec4(normalize(vec3(-0.6, 0.7, -0.5)), 0.0), vec3(0.9, 0.6, 0.3), 0.5),
+    Light(vec4(normalize(vec3(-0.6, 0.7, 0.5)), 0.0), vec3(0.9, 0.7, 0.5), 0.5)
 );
 
 
@@ -152,17 +153,6 @@ vec3 raytrace(Ray ray, Params params)
 
         // Post-processing effects
         postProcess(color, hitInfo, params);
-
-        #if ISOLINES_DEBUG
-        {
-            float y = 2.0 * params.mouse.y - 1.0;
-            vec3 isolines = vec3(0.0);
-            if(isolinesDebug(ray, t, y, isolines))
-            {
-                color = mix(color, isolines, 0.90);
-            }
-        }
-        #endif
     }
     else // Background
     {
@@ -170,6 +160,14 @@ vec3 raytrace(Ray ray, Params params)
         color = vec3(uv, 0.5 + 0.5 * sin(1.0));
         /*color = vec3(uv, 0.5 + 0.5 * sin(uTime));*/
     }
+
+    #if ISOLINES_DEBUG
+    {
+        float y = 2.0 * params.mouse.y - 1.0;
+        y *= 10.0;
+        isolinesDebug(color, ray, t, y, params);
+    }
+    #endif
 
     return clamp(color, 0.0, 1.0);
 }
@@ -182,7 +180,12 @@ void main()
     params.time = 42.0;
 
     // Camera
-    Camera camera = Camera(vec3(1.0), 1.25, vec3(0.0), 0.0);
+    Camera camera = Camera(vec3(5.0), 2.0, vec3(0.0), 0.0);
+    camera.position = vec3(-30.0, 30.0, 30.0);
+    camera.position = vec3(5.0, 20.0, 0.000001);
+    /*camera.position.xz += params.mouse.xy * 30.0;*/
+
+    // TODO: create a hook for the camera movement ("belong" to the scene)
     moveCamera(camera, params);
 
 
@@ -200,16 +203,8 @@ void main()
     }
     color /= float(AA_SAMPLES);
 
-
-    #if GAMMA_CORRECTION
-    color = pow(color, vec3(0.4545));
-    #endif
-
-    // Vignetting
-    #if VIGNETTING
-    vec2 q = params.fragCoord.xy / params.resolution.xy;
-    color *= 0.05 + 1.0 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.1);
-    #endif
+    // Post processing
+    postProcess(color, params);
 
     RenderTarget0 = vec4(color, 1.0);
 }

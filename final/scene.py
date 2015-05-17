@@ -2,6 +2,7 @@ try:
     from OpenGL.GL import *
 except ImportError:
     raise ImportError, "Required dependency OpenGL not present"
+
 try:
     import numpy as np
 except ImportError:
@@ -49,6 +50,9 @@ class Demo(Scene):
         self.fs = Shader(SHADER_STAGE.FRAGMENT)
 
         self.resized = True
+
+        # TODO
+        self.camera = None
 
 
     def init(self, size=None):

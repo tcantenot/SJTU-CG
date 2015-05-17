@@ -23,6 +23,19 @@ void moveCamera1(inout Camera camera, Params params)
     );
 }
 
+void moveCamera11(inout Camera camera, Params params)
+{
+    #if !CAMERA_MOUSE
+    params.mouse = vec4(0.0);
+    #endif
+
+	camera.position = vec3(
+        -0.5 + 9.2 * cos(0.1 * params.time + 6.0 * params.mouse.x),
+        1.0 + 2.0 * params.mouse.y,
+        0.5 + 9.2 * sin(0.1 * params.time + 6.0 * params.mouse.x)
+    );
+}
+
 vec3 path(float t, float ya)
 {
     vec2 p  = 100.0 * sin(0.02 * t * vec2(1.0,1.2) + vec2(0.1, 0.9));

@@ -1,9 +1,10 @@
 #include "hitinfo.glsl"
+#include "material.glsl"
 #include "params.glsl"
 
 
 // Scene description
-#include "scene1.glsl"
+#include "scene3.glsl"
 
 
 // Distance field hook
@@ -32,6 +33,7 @@ Material getMaterial(HitInfo hitInfo, Params params)
     Material mat;
     mat.ambient   = vec3(0.2);
     mat.diffuse   = vec3(params.fragCoord/params.resolution, abs(sin(params.time)));
+    mat.diffuse   = vec3(1.0);
     mat.specular  = vec3(1.0);
     mat.shininess = 64.0;
     return mat;

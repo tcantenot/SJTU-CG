@@ -33,7 +33,8 @@ float Hook_Map(vec3 pos, inout HitInfo hitInfo)
 
     // Box
     vec3 bpos = pos;
-    float boxCell = opRepMirror2(bpos.xz, vec2(1.0)).x;
+    float boxCell = 0.0;
+    /*float boxCell = opRepMirror2(bpos.xz, vec2(1.0)).x;*/
     float box = sdBox(bpos, vec3(0.2, 0.1, 0.2));
 
     // Sphere

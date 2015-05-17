@@ -33,7 +33,7 @@ float opI(float d1, float d2)
 // Substraction
 float opS(float d1, float d2)
 {
-    return max(-d2, d1);
+    return max(d1, -d2);
 }
 
 // Complementary
@@ -64,6 +64,7 @@ vec3 opTwist(vec3 p, const float a, const float b)
 // where f(z) is a linear function of the third axis (i.e the twist axis)
 // Lip(twist) = sqrt(4 + (pi/f')^2)
 // where f' is the derivative of the linear function f of the twist
+// Converge towards 0.5
 float opTwistLip(const float a)
 {
     const float Pi = 3.141592654;
@@ -89,7 +90,7 @@ float opCombineChamfer(float d1, float d2, float r)
 
     if(d1 < r && d2 < r)
     {
-        return min(m, d1 + d2 - r);
+        return min(m, d1 + (d2 - r));
     }
     else
     {
@@ -97,6 +98,26 @@ float opCombineChamfer(float d1, float d2, float r)
     }
 }
 
+// Intersection d1 with everything that is not d2
+float opDivide(float d1, float d2)
+{
+    return opI(d1, -d2);
+}
+
+// Derived from Johann Korndorfer's technique: https://www.youtube.com/watch?v=s8nFqwOho-s
+float opDivideChamfer(float d1, float d2, float r)
+{
+    float m = max(d1, -d2);
+
+    if(d1 < r && d2 < r)
+    {
+        return max(m, d1 - (d2 - r));
+    }
+    else
+    {
+        return m;
+    }
+}
 
 // REPETITIONS
 
@@ -121,6 +142,14 @@ float opRep1(inout float p, float size)
     p = mod(p, size) - halfSize;
     return i;
 }
+
+float opMirror2(inout vec2 p, vec2 b)
+{
+    vec2 ap = abs(p) - b;
+    if(ap.x > ap.y) p = p.yx;
+    return 1.0;
+}
+
 
 float opRepMirror1(inout float p, float size)
 {

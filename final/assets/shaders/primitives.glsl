@@ -39,6 +39,13 @@ float sdBox(vec3 p, vec3 b)
     return min(max3(d), 0.0) + length(max(d, 0.0));
 }
 
+// Infinite box in one axis
+float sdBox2(vec2 p, vec2 b)
+{
+    vec2 d = abs(p) - b;
+    return min(max2(d), 0.0) + length(max(d, 0.0));
+}
+
 // b = (dx, dy, dz) // distances to center of the box
 float udBox(vec3 p, vec3 b)
 {

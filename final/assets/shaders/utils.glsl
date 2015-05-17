@@ -1,5 +1,10 @@
 /// UTITLITY FUNCTIONS ///
 
+float max2(vec2 n)
+{
+    return max(n.x, n.y);
+}
+
 float max3(float x, float y, float z)
 {
     return max(x, max(y, z));

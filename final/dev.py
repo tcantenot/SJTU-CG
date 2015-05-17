@@ -145,8 +145,6 @@ class GLFrame(wx.Frame):
             self.Close()
 
 
-
-
 if __name__ == "__main__":
     app = wx.App()
     frame = GLFrame(None, -1, 'GL Window', size=(600, 480))
