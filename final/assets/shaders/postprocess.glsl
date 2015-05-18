@@ -8,7 +8,7 @@ void postProcess(inout vec3 color, Params params)
 
     // Vignetting
     #if VIGNETTING
-    vec2 q = params.fragCoord.xy / params.resolution.xy;
+    vec2 q = params.pixel.xy / params.resolution.xy;
     color *= 0.05 + 1.0 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.1);
     #endif
 }

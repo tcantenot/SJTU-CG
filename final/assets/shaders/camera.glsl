@@ -7,7 +7,7 @@
 struct Camera
 {
     vec3 position;
-    float focal;
+    float fov;
     vec3 target;
     float roll;
 };
@@ -22,13 +22,9 @@ mat3 lookAt(vec3 origin, vec3 target, float roll)
     return mat3(u, v, w);
 }
 
-vec2 getScreenPos(vec2 fragCoord, vec2 screenResolution)
+vec2 getScreenPos(vec2 pixel, vec2 resolution)
 {
-    float aspect = screenResolution.x / screenResolution.y;
-    vec2 q = fragCoord / screenResolution;
-    vec2 p = 2.0 * q - 1.0;
-    p.x *= aspect;
-    return p;
+    return (2.0 * pixel - resolution) / resolution.y;
 }
 
 vec3 getRayDir(mat3 camMat, float camFocal, vec2 screenPos)
@@ -47,25 +43,25 @@ vec3 getRayDir(vec3 origin, vec3 target, float camFocal, vec2 screenPos)
     return getRayDir(origin, target, camFocal, 0.0, screenPos);
 }
 
-vec3 getRayDir(vec3 origin, vec3 target, float camFocal, float roll, vec2 fragCoord, vec2 screenResolution)
+vec3 getRayDir(vec3 origin, vec3 target, float camFocal, float roll, vec2 pixel, vec2 resolution)
 {
-    return getRayDir(origin, target, camFocal, roll, getScreenPos(fragCoord, screenResolution));
+    return getRayDir(origin, target, camFocal, roll, getScreenPos(pixel, resolution));
 }
 
-vec3 getRayDir(vec3 origin, vec3 target, float camFocal, vec2 fragCoord, vec2 screenResolution)
+vec3 getRayDir(vec3 origin, vec3 target, float camFocal, vec2 pixel, vec2 resolution)
 {
-    return getRayDir(origin, target, camFocal, 0.0, getScreenPos(fragCoord, screenResolution));
+    return getRayDir(origin, target, camFocal, 0.0, getScreenPos(pixel, resolution));
 }
 
-vec3 getRayDir(Camera cam, vec2 fragCoord, vec2 screenResolution)
+vec3 getRayDir(Camera cam, vec2 pixel, vec2 resolution)
 {
-    return getRayDir(cam.position, cam.target, cam.focal, cam.roll, fragCoord, screenResolution);
+    return getRayDir(cam.position, cam.target, cam.fov, cam.roll, pixel, resolution);
 }
 
-Ray getRay(Camera camera, vec2 fragCoord, vec2 screenResolution)
+Ray getRay(Camera camera, vec2 pixel, vec2 resolution)
 {
     Ray ray;
     ray.origin = camera.position;
-    ray.direction = getRayDir(camera, fragCoord, screenResolution);
+    ray.direction = getRayDir(camera, pixel, resolution);
     return ray;
 }

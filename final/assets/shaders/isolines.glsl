@@ -8,7 +8,8 @@ bool isolinesDebug(
     float rayLength,
     float y,
     Params params,
-    float mixCoeff
+    float mixCoeff,
+    float falloff
 )
 {
     vec3 isolines = vec3(0.0);
@@ -76,7 +77,7 @@ bool isolinesDebug(
             }
             #endif
 
-            isolines *= 1.0 / max(0.001, hitDist);
+            isolines *= 1.0 / max(0.001, falloff * hitDist);
 
             color = mix(color, isolines, mixCoeff);
 
@@ -85,4 +86,9 @@ bool isolinesDebug(
     }
 
     return false;
+}
+
+bool isolinesDebug(inout vec3 color, Ray ray, float rayLength, float y, Params params)
+{
+    return isolinesDebug(color, ray, rayLength, y, params, 1.0, 1.2);
 }

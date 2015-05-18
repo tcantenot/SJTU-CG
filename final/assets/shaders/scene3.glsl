@@ -5,6 +5,20 @@
 
 const float NONE = 1e20;
 
+float mb(vec3 p,float size)
+{
+    const float pi = 3.141592654;
+    return 0.5-atan(length(p)-size)/pi;
+}
+
+float mb2d(float x)
+{
+    const float pi = 3.141592654;
+    x = -clamp(x,0.0001,0.78);
+    return (tan((x-0.5)*pi)+1.0);
+}
+
+
 float Hook_Map(vec3 p, inout HitInfo hitInfo)
 {
     float scene = NONE;
@@ -45,6 +59,8 @@ float Hook_Map(vec3 p, inout HitInfo hitInfo)
     opRepMirror2(p.xz, vec2(8));
     scene = sdSphere(p, 1.0);
     /*scene = opU(scene, sdBox(p, vec3(1.0)));*/
+
+    /*scene = mb2d(mb(p, 2.0) + mb(p-vec3(1.8), 1.0));*/
 #endif
 
     return scene;

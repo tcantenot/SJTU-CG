@@ -165,7 +165,7 @@ vec3 raytrace(Ray ray, Params params)
     {
         float y = 2.0 * params.mouse.y - 1.0;
         y *= 10.0;
-        isolinesDebug(color, ray, t, y, params, 1.0);
+        isolinesDebug(color, ray, t, y, params, 1.0, 1.5);
     }
     #endif
 
@@ -198,7 +198,7 @@ void main()
     for(int i = 0; i < AA_SAMPLES; i++)
     {
         vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
-        Ray ray = getRay(camera, params.fragCoord + offset, params.resolution);
+        Ray ray = getRay(camera, params.pixel + offset, params.resolution);
         color += raytrace(ray, params); // Cast ray through the scene
     }
     color /= float(AA_SAMPLES);

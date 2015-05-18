@@ -63,11 +63,11 @@ float map(vec2 p)
 
 void main()
 {
-    vec2 fragCoord = gl_FragCoord.xy;
+    vec2 pixel = gl_FragCoord.xy;
     float aspect = uResolution.x / uResolution.y;
 
     // UV
-    vec2 ndc = -1.0 + 2.0 * fragCoord.xy / uResolution.xy;
+    vec2 ndc = -1.0 + 2.0 * pixel.xy / uResolution.xy;
     vec2 uv = ndc;
     uv.x *= aspect;
 
@@ -195,7 +195,7 @@ void main()
 	// Multiples of 4x5 work best
     vec2 vFontSize = vec2(8.0, 15.0);
     float value = uTime;
-    color = mix(color, vec3(1.0), printNumber(fragCoord, vec2(1.0, uResolution.y - 15.0), vFontSize, value, 9.0, 6.0));
+    color = mix(color, vec3(1.0), printNumber(pixel, vec2(1.0, uResolution.y - 15.0), vFontSize, value, 9.0, 6.0));
 
     RenderTarget0 = vec4(color, 1.0);
 }
