@@ -4,7 +4,7 @@
 
 
 // Scene description
-#include "scene4.glsl"
+#include "scene3.glsl"
 
 
 // Distance field hook
