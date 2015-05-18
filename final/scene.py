@@ -51,6 +51,10 @@ class Demo(Scene):
 
         self.resized = True
 
+        # Scene tweak values
+        self.tweaks = [1.0 for _ in xrange(4)]
+        self.tweaked = False
+
         # TODO
         self.camera = None
 
@@ -77,6 +81,10 @@ class Demo(Scene):
             if self.resized:
                 needsFrame = True
                 self.resized = False
+
+            if self.tweaked:
+                needsFrame = True
+                self.tweaked = False
 
             # TODO: add check interval to save resources
             # Check if the program needs to be reloaded
@@ -117,6 +125,12 @@ class Demo(Scene):
                     self.mouse.x, self.mouse.y, self.mouse.clickx, self.mouse.clicky
                 )
 
+                # Tweaks
+                glUniform4f(
+                    glGetUniformLocation(self.program.id, "uTweaks"),
+                    self.tweaks[0], self.tweaks[1], self.tweaks[2], self.tweaks[3]
+                )
+
                 ### Draw ###
                 glClear(GL_COLOR_BUFFER_BIT)
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
@@ -132,6 +146,12 @@ class Demo(Scene):
         glViewport(0, 0, w, h)
 
 
+    def setTweakValue(self, value, i):
+        """ Set a tweak value """
+        if i < 4:
+            self.tweaks[i] = value
+            self.tweaked = True
+
     def _createProgram(self):
         """ Create the program used by the scene """
 
@@ -140,6 +160,7 @@ class Demo(Scene):
         self.fs.loadFromFile("assets/shaders/dev.frag")
         #self.fs.loadFromFile("assets/shaders/debug.frag")
         #self.fs.loadFromFile("assets/shaders/debug_sphere_tracing.frag")
+        #self.fs.loadFromFile("assets/shaders/pathtracer.glsl")
         self.program.attachShader(self.vs)
         self.program.attachShader(self.fs)
         self.program.link()

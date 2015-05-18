@@ -12,6 +12,7 @@ except ImportError:
 from scene import Scene, Demo
 from utils import now
 from mouse import Mouse
+from tweaker import SceneTweaker
 
 
 class GLFrame(wx.Frame):
@@ -47,7 +48,7 @@ class GLFrame(wx.Frame):
         FRAME_ID = 0x42
         self.timer = wx.Timer(self.canvas, FRAME_ID)
         self.canvas.Bind(wx.EVT_TIMER, self.onFrame, id=FRAME_ID)
-        fps = 60
+        fps = 10
         dt = 1000.0 / fps
         self.timer.Start(dt)
 
@@ -59,7 +60,10 @@ class GLFrame(wx.Frame):
         self.size = size
 
         # Scene
-        self.scene = None
+        self._scene = None
+
+        # Scene tweaker dialog
+        self.sceneTweaker = SceneTweaker(parent=self, scene=None, title='Scene parameters')
 
         # Give the focus to the canvsas
         self.canvas.SetFocus()
@@ -136,6 +140,15 @@ class GLFrame(wx.Frame):
             self.y = self.size[1] - self.y # Invert y-axis
             self.canvas.Refresh(False)
             #print "Mouse motion ({}, {})".format(self.x, self.y)
+
+    @property
+    def scene(self):
+        return self._scene
+
+    @scene.setter
+    def scene(self, s):
+        self._scene = s
+        self.sceneTweaker.scene = s
 
 
     def onKeyDown(self, e):

@@ -28,6 +28,8 @@ uniform float uTime;
 uniform vec2 uResolution;
 uniform vec4 uMouse;
 
+uniform vec4 uTweaks;
+
 out vec4 RenderTarget0;
 
 
@@ -163,7 +165,8 @@ vec3 raytrace(Ray ray, Params params)
 
     #if ISOLINES_DEBUG
     {
-        float y = 2.0 * params.mouse.y - 1.0;
+        /*float y = 2.0 * params.mouse.y - 1.0;*/
+        float y = 2.0 * uTweaks.x - 1.0;
         y *= 10.0;
         isolinesDebug(color, ray, t, y, params, 1.0, 1.5);
     }
@@ -186,7 +189,7 @@ void main()
     /*camera.position.xz += params.mouse.xy * 30.0;*/
 
     // TODO: create a hook for the camera movement ("belong" to the scene)
-    /*moveCamera(camera, params);*/
+    moveCamera(camera, params);
 
 
     /// Ray tracing (sphere tracing) ///
