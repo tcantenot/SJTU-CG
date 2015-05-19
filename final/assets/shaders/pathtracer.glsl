@@ -1,20 +1,9 @@
-#version 140
-
 #include "camera.glsl"
 #include "distance_fields.glsl"
 #include "distributions.glsl"
 #include "hitinfo.glsl"
 #include "random.glsl"
 #include "ray.glsl"
-
-in vec2 vTexCoord;
-
-uniform float uTime;
-uniform vec2 uResolution;
-uniform vec4 uMouse;
-
-out vec4 RenderTarget0;
-
 
 vec2 SEED = vec2(0.0);
 
@@ -27,6 +16,9 @@ const int STEP_MAX = 500;
 uniform vec3 uSunDirection = -vec3(1.0, -10.0, -1.0);
 uniform vec3 uSunColor = vec3(2.0, 1.6, 1.0) / 2.0;
 uniform vec3 uSkyColor = vec3(0.7, 0.8, 0.9);
+
+#define DOF 0
+const int NPATHS = 4;
 
 vec3 SUN = uSunDirection;
 
@@ -77,7 +69,14 @@ vec3 WORLD_GET_BACKGROUND(vec3 rd)
 
 vec3 WORLD_GET_COLOR(vec3 pos, vec3 normal, int id)
 {
-    if(id == 1) return vec3(0.9, 0.5, 0.4);
+    // Checkerboard floor
+    if(id == 0)
+    {
+        float f = mod(floor(2.0 * pos.z) + floor(2.0 * pos.x), 2.0);
+        return vec3(0.02 + 0.1 * f);
+        /*color = mix(color, vec3(0.2 + 0.1 * f), 0.65);*/
+    }
+    else if(id == 1) return vec3(0.9, 0.5, 0.4);
     else if(id == 2) return vec3(1.0, 1.0, 1.0);
     else if(id == 3) return vec3(0.0, 1.0, 1.0);
 
@@ -131,7 +130,8 @@ vec3 WORLD_GET_BRDF_RAY(in vec3 pos, in vec3 normal, in vec3 eye, in int materia
 
     /*return reflect(eye, normal);*/
 
-    if(RANDOM_1F(seed) < 0.2)
+    float roughness = 0.01;
+    if(RANDOM_1F(seed) < roughness)
     {
         mat3 tbn = randomTBN(normal, seed);
         return tbn * COSINE_DIRECTION(seed);
@@ -151,11 +151,14 @@ float map(vec3 p, inout HitInfo hitInfo)
 
     int id = -1;
 
-    /*opRepMirror2(p.xz, vec2(8));*/
+    float plane = sdPlaneY(p+vec3(0.0, 1.0, 0.0));
+    opRep1(p.x, 4);
+    opRep1(p.z, 3);
     float sphere = sdSphere(p+vec3(0.1, 0.2, 1.0), 0.5);
     float box = sdBox(p+vec3(1.2, 0.0, 0.0), vec3(0.5));
     float capsule = sdHexPrism(p-vec3(0.0, -0.3, 0.0), vec2(0.1, 0.2));
 
+    scene = opU(scene, plane, id, 0, id);
     scene = opU(scene, sphere, id, 1, id);
     scene = opU(scene, box, id, 2, id);
     scene = opU(scene, capsule, id, 3, id);
@@ -275,7 +278,7 @@ vec3 CALC_PIXEL_COLOR(vec2 pixel, vec2 resolution, float frameTime)
     const int   numLevels = 5;
 
     // Paths per pixel
-    const int npaths = 64;
+    const int npaths = NPATHS;
     vec3 color = vec3(0.0);
 
     float aa = float(npaths) / 2.0;
@@ -313,10 +316,12 @@ vec3 CALC_PIXEL_COLOR(vec2 pixel, vec2 resolution, float frameTime)
         vec3 er = normalize(vec3(p.xy, fov));
         vec3 rd = cam * er;
 
-        /*vec3 go = blurAmount * vec3(2.0 * RANDOM_2F(seed) - 1.0, 0.0);*/
-        /*vec3 gd = normalize(er * focusDistance - go);*/
-        /*ro += go.x * uu + go.y * vv;*/
-        /*rd += gd.x * uu + gd.y * vv;*/
+        #if DOF
+        vec3 go = blurAmount * vec3(2.0 * RANDOM_2F(seed) - 1.0, 0.0);
+        vec3 gd = normalize(er * focusDistance - go);
+        ro += go.x * uu + go.y * vv;
+        rd += gd.x * uu + gd.y * vv;
+        #endif
 
         rd = normalize(rd);
 
@@ -333,8 +338,8 @@ vec3 CALC_PIXEL_COLOR(vec2 pixel, vec2 resolution, float frameTime)
     return color;
 }
 
-void main()
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
-    vec3 color = CALC_PIXEL_COLOR(gl_FragCoord.xy, uResolution, uTime);
-    RenderTarget0 = vec4(color, 1.0);
+    vec3 color = CALC_PIXEL_COLOR(fragCoord, uResolution, uTime);
+    fragColor = vec4(color, 1.0);
 }

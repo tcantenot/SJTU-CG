@@ -31,4 +31,46 @@ float MengerSponge(vec3 p, inout HitInfo hitInfo)
     return res.x;
 }
 
+float mengerSponge(vec3 p, inout HitInfo hitInfo)
+{
+    float x = p.x;
+    float y = p.y;
+    float z = p.z;
+
+    float res = 0.0;
+    if(x<0 || x>1 || y<0 || y>1 || z<0 || z>1 )
+    {
+        hitInfo.id = -1;
+        return res;
+    } 		// point is not part of menger sponge
+
+    int iterations=8;
+
+    float depth=3;
+
+    for(int iter=0; iter<iterations; iter++) {
+        int holex=1;
+        while(holex<depth) {
+            int holey=1;
+            while(holey<depth) {
+                if(
+                        ((x > holex/depth && x< (holex+1) /depth) && (y > holey/depth && y< (holey+1) /depth)) ||
+                        ((y > holex/depth && y< (holex+1) /depth) && (z > holey/depth && z< (holey+1) /depth)) ||
+                        ((x > holex/depth && x< (holex+1) /depth) && (z > holey/depth && z< (holey+1) /depth))
+                  )
+                  {
+                      hitInfo.id = -1;
+                      return res;
+                }		// point is not part of menger sponge
+                holey+=3;
+            }
+            holex+=3;
+        }
+        depth*=3;
+    }
+
+    hitInfo.id = 1;
+    return res;
+}
+
 #define HOOK_MAP MengerSponge

@@ -92,3 +92,12 @@ bool isolinesDebug(inout vec3 color, Ray ray, float rayLength, float y, Params p
 {
     return isolinesDebug(color, ray, rayLength, y, params, 1.0, 1.2);
 }
+
+// http://glsl.herokuapp.com/e#3641.5
+vec4 distance2Color(float d)
+{
+	vec4 c = mix(vec4(0.9, 0.4, 0.4, 1), vec4(0.7, 0.8, 0.9,1), sign(d) * 0.5 + 0.5);
+	c *= abs(sin(d * 100.0));
+	c *= 1.0 - smoothstep(abs(d), 0.0, 0.25);
+	return c;
+}

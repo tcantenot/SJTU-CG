@@ -7,7 +7,7 @@ in vec2 vTexCoord;
 
 uniform float uTime;
 uniform vec2 uResolution;
-uniform vec2 uMouse = vec2(0.0);
+uniform vec4 uMouse = vec4(0.0);
 
 out vec4 RenderTarget0;
 

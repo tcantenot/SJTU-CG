@@ -1,5 +1,3 @@
-#version 140
-
 #define LIGHTING 1
 #define LIGHTING_OCCLUSION 0
 #define LIGHTING_SHADOWS 0
@@ -20,17 +18,6 @@
 #include "params.glsl"
 #include "postprocess.glsl"
 #include "scene.glsl"
-
-
-in vec2 vTexCoord;
-
-uniform float uTime;
-uniform vec2 uResolution;
-uniform vec4 uMouse;
-
-uniform vec4 uTweaks;
-
-out vec4 RenderTarget0;
 
 
 #define QUALITY 2
@@ -175,11 +162,10 @@ vec3 raytrace(Ray ray, Params params)
     return clamp(color, 0.0, 1.0);
 }
 
-
-void main()
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
     // Input parameters
-    Params params = Params(gl_FragCoord.xy, uResolution, uMouse/uResolution.xyxy, uTime);
+    Params params = Params(fragCoord, uResolution, uMouse/uResolution.xyxy, uTime);
     params.time = 42.0;
 
     // Camera
@@ -209,5 +195,6 @@ void main()
     // Post processing
     postProcess(color, params);
 
-    RenderTarget0 = vec4(color, 1.0);
+    // Output
+    fragColor = vec4(color, 1.0);
 }
