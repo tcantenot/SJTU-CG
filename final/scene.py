@@ -15,6 +15,7 @@ from mouse import Mouse
 from utils import enum, now
 from shader import *
 from program import *
+from texture import *
 
 
 FRAME_SCHEME = enum('ON_DEMAND', 'CONTINUOUS')
@@ -51,6 +52,9 @@ class Demo(Scene):
 
         self.resized = True
 
+        # Textures
+        self.textures = []
+
         # Scene tweak values
         self.tweaks = [1.0 for _ in xrange(4)]
         self.tweaked = False
@@ -66,6 +70,7 @@ class Demo(Scene):
             if size: self.size = size
             self._createProgram()
             self._createBuffer()
+            self._loadTextures()
             self.initialized = True
             self.startTime = time.time()
 
@@ -125,6 +130,12 @@ class Demo(Scene):
                     self.mouse.x, self.mouse.y, self.mouse.clickx, self.mouse.clicky
                 )
 
+                # Textures
+                for i, tex in enumerate(self.textures):
+                    glUniform1i(glGetUniformLocation(self.program.id, "uTexture{}".format(i)), i)
+                    glActiveTexture(GL_TEXTURE0 + i)
+                    glBindTexture(GL_TEXTURE_2D, tex.id)
+
                 # Tweaks
                 glUniform4f(
                     glGetUniformLocation(self.program.id, "uTweaks"),
@@ -145,6 +156,9 @@ class Demo(Scene):
         w, h = size
         glViewport(0, 0, w, h)
 
+
+    def addTexture(self, texture):
+        self.textures.append(texture)
 
     def setTweakValue(self, value, i):
         """ Set a tweak value """
@@ -179,3 +193,13 @@ class Demo(Scene):
         glEnableVertexAttribArray(location)
         glBindBuffer(GL_ARRAY_BUFFER, self.vertexbuffer)
         glVertexAttribPointer(location, 2, GL_FLOAT, False, 0, ctypes.c_void_p(0))
+
+    def _loadTextures(self):
+        textures = [
+            "assets/textures/noise_1.jpg"
+        ]
+
+        for f in textures:
+            texture = Texture()
+            if texture.loadFromFile(f):
+                self.addTexture(texture)

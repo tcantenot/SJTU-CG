@@ -1,6 +1,6 @@
 //Cloud Ten by nimitz (twitter: @stormoid)
 
-#define time uTime
+#define time 0
 mat2 mm2(in float a){float c = cos(a), s = sin(a);return mat2(c,s,-s,c);}
 
 vec2 hash2(vec2 n)
@@ -8,16 +8,23 @@ vec2 hash2(vec2 n)
 	float x = dot(n, vec2(1.0, 113.00));
     return fract(sin(vec2(x, x+1.0)) * vec2(13.5453123, 31.1459123));
 }
-
-float noise(float t)
-{
-    //FIXME
-    /*return texture2D(iChannel0,vec2(t,.0)/iChannelResolution[0].xy).x;*/
-    return hash2(vec2(t, t+1.0));
-}
-
 float moy = 0.;
 
+#if 0
+float hash( float n ) { return fract(sin(n)*43758.5453123); }
+float noise( in vec3 x )
+{
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = f*f*(3.0-2.0*f);
+
+    float n = p.x + p.y*157.0 + 113.0*p.z;
+    return mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
+                   mix( hash(n+157.0), hash(n+158.0),f.x),f.y),
+               mix(mix( hash(n+113.0), hash(n+114.0),f.x),
+                   mix( hash(n+270.0), hash(n+271.0),f.x),f.y),f.z);
+}
+#else
 float noise(in vec3 x) //3d noise from iq
 {
     vec3 p = floor(x);
@@ -25,11 +32,20 @@ float noise(in vec3 x) //3d noise from iq
 	f = f*f*(3.0-2.0*f);
 	vec2 uv = (p.xy+vec2(37.0,17.0)*p.z) + f.xy;
 
-    //FIXME
-	/*vec2 rg = texture2D( iChannel0, (uv+ 0.5)/256.0, -100.0 ).yx;*/
-    vec2 rg = hash2((uv+ 0.5)/256.0);
+    vec2 rg = texture(uTexture0, (uv+ 0.5)/256.0, -100.0 ).yx;
 	return mix( rg.x, rg.y, f.z );
 }
+#endif
+
+#if 0
+float noise(float t) {return noise(vec3(t, t*t, t*t-t)); }
+#else
+float noise(float t)
+{
+    return texture(uTexture0, vec2(t,.0) / textureSize(uTexture0, 0)).x;
+}
+#endif
+
 
 float fbm(in vec3 x)
 {
