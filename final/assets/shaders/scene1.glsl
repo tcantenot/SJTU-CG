@@ -87,7 +87,7 @@ Material Hook_Material(HitInfo hitInfo, Params params)
     return mat;
 }
 
-void Hook_PostProcess(inout vec3 color, HitInfo hitInfo, Params params)
+void Hook_PostProcess(inout vec3 color, Ray ray, HitInfo hitInfo, Params params)
 {
     vec3 pos = hitInfo.pos;
 

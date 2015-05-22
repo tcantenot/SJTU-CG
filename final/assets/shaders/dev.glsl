@@ -1,6 +1,7 @@
 #define LIGHTING 1
 #define LIGHTING_OCCLUSION 0
 #define LIGHTING_SHADOWS 0
+#define FOG 1
 
 #define GAMMA_CORRECTION 1
 #define VIGNETTING 1
@@ -141,7 +142,7 @@ vec3 raytrace(Ray ray, Params params)
         #endif
 
         // Post-processing effects
-        postProcess(color, hitInfo, params);
+        postProcess(color, ray, hitInfo, params);
     }
     else // Background
     {

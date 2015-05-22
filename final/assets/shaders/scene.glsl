@@ -1,10 +1,11 @@
 #include "hitinfo.glsl"
 #include "material.glsl"
 #include "params.glsl"
+#include "fog.glsl"
 
 
 // Scene description
-#include "scene4.glsl"
+#include "scene1.glsl"
 
 
 // Distance field hook
@@ -41,9 +42,14 @@ Material getMaterial(HitInfo hitInfo, Params params)
 }
 
 // Post-processing hook
-void postProcess(inout vec3 color, HitInfo hitInfo, Params params)
+void postProcess(inout vec3 color, Ray ray, HitInfo hitInfo, Params params)
 {
     #ifdef HOOK_POSTPROCESS
-    HOOK_POSTPROCESS(color, hitInfo, params);
+    HOOK_POSTPROCESS(color, ray, hitInfo, params);
+    #endif
+
+    #if FOG
+    color = applyFog(color, hitInfo.dist, 0.02);
+    color = applyNonConstFog(color, hitInfo.dist, ray.origin, ray.direction, 0.02);
     #endif
 }

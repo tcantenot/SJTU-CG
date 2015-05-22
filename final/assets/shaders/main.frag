@@ -12,7 +12,7 @@ uniform sampler2D uTexture1;
 
 out vec4 RenderTarget0;
 
-/*#include "dev.glsl"*/
+#include "dev.glsl"
 /*#include "pathtracer.glsl"*/
 /*#include "misc/raytracer.glsl"*/
 /*#include "misc/frozen_wasteland.glsl"*/

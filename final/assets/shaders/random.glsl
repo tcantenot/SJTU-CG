@@ -30,6 +30,15 @@ vec2 hash2_3(vec2 seed)
     return hash3(hash(seed) * seed).yx;
 }
 
+// TODO: try these
+#if 0
+float hash1( float n ) { return fract(43758.5453123*sin(n)); }
+float hash1( vec2  n ) { return fract(43758.5453123*sin(dot(n,vec2(1.0,113.0)))); }
+vec2  hash2( float n ) { return fract(43758.5453123*sin(vec2(n,n+1.0))); }
+vec3  hash3( vec2  n ) { return fract(43758.5453123*sin(dot(n,vec2(1.0,113.0))+vec3(0.0,1.0,2.0))); }
+vec4  hash4( vec2  n ) { return fract(43758.5453123*sin(dot(n,vec2(1.0,113.0))+vec4(0.0,1.0,2.0,3.0))); }
+#endif
+
 
 // Van der Corput radical inverse
 // see: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
