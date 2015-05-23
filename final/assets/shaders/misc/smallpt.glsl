@@ -10,7 +10,7 @@ The code is based in particular on the slides by David Cline.
 Some differences:
 
 - For optimization purposes, the code considers there is
-  only one light source(see the commented loop)
+  only one light source (see the commented loop)
 - Russian roulette and tent filter are not implemented
 
 I spent quite some time pulling my hair over inconsistent
@@ -28,18 +28,11 @@ Zavie
 #define SAMPLES 64
 #define MAXDEPTH 4
 
-// Uncomment to see how many samples never reach NoL light source
-#define DEBUG_NO_HIT 0
+// Uncomment to see how many samples never reach a light source
+//#define DEBUG
 
-// Discard rays that will gather low intensity
-#define LOW_INTENSITY_OPTIMIZATION 1
-#define INTENSITY_THRESHOLD 0.4
-
-// Use Schlick's approximation for Fresnel effect
-#define FRESNEL_SCHLICK 1
-
+// Not used for now
 #define DEPTH_RUSSIAN 2
-#define RUSSIAN_ROULETTE 1
 
 #define PI 3.14159265359
 #define DIFF 0
@@ -47,83 +40,35 @@ Zavie
 #define REFR 2
 #define NUM_SPHERES 9
 
-#include "../random.glsl"
-
 float seed = 0.;
-vec2 SEED = vec2(0.0);
-float rand()
-{
-    return hash2(SEED + vec2(seed++, seed+1.0));
-    return fract(sin(seed++)*43758.5453123);
-}
-
-struct Light
-{
-    vec3 pos;
-    float radius;
-    vec3 color;
-    float power;
-};
-
-const int LIGHT_COUNT = 2;
-uniform Light uLights[LIGHT_COUNT] = Light[](
-    Light(vec3(50.0, 81.6, 81.6), 20.0, vec3(1.0), 3.0),
-    Light(vec3(75.0, 22., 30.6), 10.0, vec3(0.8, 0.5, 0.3), 17.0)
-);
-
+float rand() { return fract(sin(seed++)*43758.5453123); }
 
 struct Ray { vec3 o, d; };
-struct Sphere
-{
-	float radius;
-	vec3 pos;
-    vec3 emissive;
-    vec3 color;
-	int type;
+struct Sphere {
+	float ray;
+	vec3 p, e, c;
+	int refl;
 };
 
-const vec3 white = vec3(1.0);
-const vec3 black = vec3(0.0);
-const vec3 gray  = vec3(0.75);
-const vec3 red   = vec3(0.75, 0.25, 0.25);
-const vec3 green = vec3(0.25, 0.75, 0.25);
-const vec3 blue  = vec3(0.25, 0.25, 0.75);
-
-Sphere spheres[NUM_SPHERES] = Sphere[](
-    // Red wall
-	Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	black,  red, DIFF),
-
-    // Blue wall
-	Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), black, blue, DIFF),
-
-    // Front wall
-	Sphere(1e5, vec3(50., 40.8, -1e5), black, gray, SPEC),
-
-    // Back wall
-	Sphere(1e5, vec3(50., 40.8,  1e5+170), green, green, DIFF),
-
-    // Floor
-	Sphere(1e5, vec3(50., -1e5, 81.6), black, gray, DIFF),
-
-    // Ceiling
-	Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), black, gray, DIFF),
-
-    // Metallic ball
-	Sphere(16.5, vec3(27., 16.5, 47.), black, white, SPEC),
-
-    // Glass ball
-	Sphere(16.5, vec3(73., 16.5, 78.), 	black, vec3(.7, 1., .9), REFR),
-
-    // Ceiling light
-	/*Sphere(uLight.radius/10.0, uLight.pos,	uLight.color, uLight.color, DIFF)*/
-	Sphere(600., vec3(50., 681.33, 81.6), white, black, DIFF)
-);
+Sphere lightSourceVolume = Sphere(20., vec3(50., 81.6, 81.6), vec3(12.), vec3(0.), DIFF);
+Sphere spheres[NUM_SPHERES];
+void initSpheres() {
+	spheres[0] = Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	vec3(0.), vec3(.75, .25, .25), DIFF);
+	spheres[1] = Sphere(1e5, vec3( 1e5+99., 40.8, 81.6),vec3(0.), vec3(.25, .25, .75), DIFF);
+	spheres[2] = Sphere(1e5, vec3(50., 40.8, -1e5),		vec3(0.), vec3(.75), DIFF);
+	spheres[3] = Sphere(1e5, vec3(50., 40.8,  1e5+170.),vec3(0.), vec3(0.), DIFF);
+	spheres[4] = Sphere(1e5, vec3(50., -1e5, 81.6),		vec3(0.), vec3(.75), DIFF);
+	spheres[5] = Sphere(1e5, vec3(50.,  1e5+81.6, 81.6),vec3(0.), vec3(.75), DIFF);
+	spheres[6] = Sphere(16.5, vec3(27., 16.5, 47.), 	vec3(0.), vec3(1.), SPEC);
+	spheres[7] = Sphere(16.5, vec3(73., 16.5, 78.), 	vec3(0.), vec3(.7, 1., .9), REFR);
+	spheres[8] = Sphere(600., vec3(50., 681.33, 81.6),	vec3(12.), vec3(0.), DIFF);
+}
 
 float intersect(Sphere s, Ray ray) {
-	vec3 op = s.pos - ray.o;
-	float t, epsilon = 1e-3, b = dot(op, ray.d), det = b * b - dot(op, op) + s.radius * s.radius;
-	if(det < 0.) return 0.; else det = sqrt(det);
-	return(t = b - det) > epsilon ? t :((t = b + det) > epsilon ? t : 0.);
+	vec3 op = s.p - ray.o;
+	float t, epsilon = 1e-3, b = dot(op, ray.d), det = b * b - dot(op, op) + s.ray * s.ray;
+	if (det < 0.) return 0.; else det = sqrt(det);
+	return (t = b - det) > epsilon ? t : ((t = b + det) > epsilon ? t : 0.);
 }
 
 int intersect(Ray ray, out float t, out Sphere s, int avoid) {
@@ -139,253 +84,108 @@ int intersect(Ray ray, out float t, out Sphere s, int avoid) {
 	return id;
 }
 
-float intersect(Light s, Ray ray) {
-	vec3 op = s.pos - ray.o;
-	float t, epsilon = 1e-3, b = dot(op, ray.d), det = b * b - dot(op, op) + s.radius * s.radius;
-	if(det < 0.) return 0.; else det = sqrt(det);
-	return(t = b - det) > epsilon ? t :((t = b + det) > epsilon ? t : 0.);
+vec3 jitter(vec3 d, float phi, float sina, float cosa) {
+	vec3 w = normalize(d), u = normalize(cross(w.yzx, w)), v = cross(w, u);
+	return (u*cos(phi) + v*sin(phi)) * sina + w * cosa;
 }
-
-void intersect(Light s, Ray ray, inout float dist) {
-    dist = intersect(s, ray);
-}
-
-vec3 jitter(vec3 d, float phi, float sina, float cosa)
-{
-	vec3 w = normalize(d);
-    vec3 u = normalize(cross(w.yzx, w));
-    vec3 v = cross(w, u);
-	return (u * cos(phi) + v * sin(phi)) * sina + w * cosa;
-}
-
-// Schlick's approximation
-// http://en.wikipedia.org/wiki/Schlick%27s_approximation
-float fresnelSchlick(float R0, float HoV, out float R, out float T)
-{
-    const float fresnelBias  = 0.25;
-    const float fresnelScale = 0.50;
-
-    // Schlick reflection coefficient
-    float RC = R0 + (1.0 - R0) * pow(1.0 - HoV, 5.0);
-
-    float P = clamp(fresnelBias + fresnelScale * RC, 0.0, 1.0);
-
-    // Reflection coefficient
-    R = RC / P;
-
-    // Transmission coefficient
-    T = (1.0 - RC) / (1.0 - P);
-
-    return P;
-}
-
-// http://http.developer.nvidia.com/CgTutorial/cg_tutorial_chapter07.html
-float fresnelApprox(float NoL, out float R, out float T)
-{
-    const float fresnelBias  = 0.25;
-    const float fresnelScale = 0.5;
-    const float fresnelPower = 5.0;
-
-    // Reflection coefficient
-    R = clamp(fresnelBias + fresnelScale * pow(1.0 + NoL, fresnelPower), 0.0, 1.0);
-
-    // Transmission coefficient
-    T = 1.0 - R;
-
-    return R;
-}
-
 
 vec3 radiance(Ray ray)
 {
-	vec3 color = vec3(0.0);
-	vec3 mask  = vec3(1.0);
+	vec3 acc = vec3(0.);
+	vec3 mask = vec3(1.);
 	int id = -1;
 
-    const vec3 MASK_THRESHOLD = vec3(INTENSITY_THRESHOLD);
-
-	for(int depth = 0; depth < MAXDEPTH; ++depth)
+	for (int depth = 0; depth < MAXDEPTH; ++depth)
     {
-        // If the mask is too low, the intensity gather
-        // by the subsequent rays won't contribute much
-        #if LOW_INTENSITY_OPTIMIZATION
-        if(all(lessThan(mask, MASK_THRESHOLD))) break;
-        #endif
-
 		float t;
 		Sphere obj;
 
-        // If no hit, exit
-		if((id = intersect(ray, t, obj, id)) < 0) break;
+		if ((id = intersect(ray, t, obj, id)) < 0) break;
 
 		vec3 hit = t * ray.d + ray.o;
 
-		vec3 n = normalize(hit - obj.pos);
+		vec3 n = normalize(hit - obj.p);
 
-        #if RUSSIAN_ROULETTE
+
+		//vec3 f = obj.c;
+		//float p = dot(f, vec3(1.2126, 0.7152, 0.0722));
+		//if (depth > DEPTH_RUSSIAN || p == 0.) if (rand() < p) f /= p; else { acc += mask * obj.e * E; break; }
+
+		if (obj.refl == DIFF)
         {
-            vec3 f = obj.color;
-            float E = 1.0;
-            if(depth > DEPTH_RUSSIAN)
-            {
-                float pr = dot(f, vec3(1.2126, 0.7152, 0.0722));
-                if(rand() < pr) f /= pr;
-                else { color += mask * obj.emissive * E; break; }
-            }
-        }
-        #endif
 
-        // Diffuse material
-		if(obj.type == DIFF)
-        {
-            // Make sure the normal of the surface points in the opposite direction
-            // of the ray (in case we are inside the surface)
-            vec3 normal = n * sign(-dot(n, ray.d));
+            vec3 nl = n * sign(-dot(n, ray.d));
 
-            // Check if current object is visible to any lights
-			vec3 lightIntensity = vec3(0.);
-            for(int i = 0; i < LIGHT_COUNT; ++i)
-            {
-                Light light = uLights[i];
+			vec3 e = vec3(0.);
+			/*for (int i = 0; i < NUM_SPHERES; ++i)*/
+			{
+				 /*Sphere s = spheres[i];*/
+				 /*if (dot(s.e, vec3(1.)) == 0.) continue;*/
 
-                // Vector hit-light
-                vec3 lightDir = light.pos - hit;
-                float r2 = light.radius * light.radius;
+				// Normally we would loop over the light sources and
+				// cast rays toward them, but since there is only one
+				// light source, that is mostly occluded, here goes
+				// the ad hoc optimization:
+                Sphere s = lightSourceVolume;
+                int i = 8;
 
-                // Cosine of the maximum angle to reach the light (cone of light rays)
-				float cosAMax = sqrt(1.0 - clamp(r2 / dot(lightDir, lightDir), 0.0, 1.0));
+				vec3 l0 = s.p - hit;
 
-                // Random cosine inside the cone of light
-				float cosa = mix(cosAMax, 1.0, rand());
+				float cos_a_max = sqrt(1. - clamp(s.ray * s.ray / dot(l0, l0), 0., 1.));
+				float cosa = mix(cos_a_max, 1., rand());
 
-                // Light direction: random vector in the cone of light
-				vec3 refl = jitter(lightDir, 2.0 * PI * rand(), sqrt(1.0 - cosa * cosa), cosa);
+				vec3 l = jitter(l0, 2.*PI*rand(), sqrt(1. - cosa*cosa), cosa);
 
-                // Shadow ray
-                Ray shadowRay = Ray(hit, refl);
+				if (intersect(Ray(hit, l), t, s, id) == i) {
+					float omega = 2. * PI * (1. - cos_a_max);
+					e += (s.e * clamp(dot(l, n),0.,1.) * omega) / PI;
+                    /*return vec3(1.0, 0.0, 0.0);*/
+				}
 
-                // Check if the current hit point if visible from the light
-                Sphere s;
-                intersect(shadowRay, t, s, id);
-                // FIXME: not correct if another opaque object is closer than the light and
-                // further that a refractive one
-				if(s.type == REFR || intersect(light, shadowRay) < t)
-                {
-                    vec3 I = light.power * light.color * clamp(dot(lightDir, normal), 0.0, 1.0);
-                    float omega = 2.0 * PI * (1.0 - cosAMax);
-                    lightIntensity += (I * omega) / PI;
-                }
-            }
+                /*return vec3(0.0, 1.0, 0.0);*/
+			}
 
 			float E = 1.;//float(depth==0);
-			color += mask * obj.emissive * E + mask * obj.color * lightIntensity;
-			mask *= obj.color;
+			acc += mask * obj.e * E + mask * obj.c * e;
+            mask *= obj.c;
 
-            // New ray direction: random vector on the normal-oriented hemisphere
-			float r2 = rand();
-			vec3 d = jitter(normal, 2.*PI*rand(), sqrt(r2), sqrt(1.0- r2));
+            float r2 = rand();
+			vec3 d = jitter(nl, 2.*PI*rand(), sqrt(r2), sqrt(1. - r2));
 
 			ray = Ray(hit, d);
 		}
-        // Specular (reflective) material
-        else if(obj.type == SPEC)
-        {
-			color += mask * obj.emissive;
-			mask *= obj.color;
+
+#if 1
+        else if (obj.refl == SPEC) {
+			acc += mask * obj.e;
+			//mask *= obj.c;
 			ray = Ray(hit, reflect(ray.d, n));
-		}
-        // Refractive material
-        else
-        {
-            // Refractive indices
-            // n1: air, n2: glass
-			float n1 = 1.0, n2 = 1.5;
-
-            // n is the normal vector that points from the surface towards its outside.
-            // NoL is positive if the ray is coming from the inside of the surface
-            // (negative side) and negative if it is coming from the outside.
-			float NoL = dot(n, ray.d);
-
-            // Relative position from the refractive material:
-            // 0: outside, 1: inside
-            float inside = float(NoL > 0.0);
-
-            // Cosine of the angle of incidence: must be positive for the Snell's law
-            float cosTheta1 = abs(NoL);
-
-            // Ratio of refractive indices
-            float r = mix(n1 / n2, n2 / n1, inside);
-
-            // Snell's law
-            // http://en.wikipedia.org/wiki/Snell%27s_law#Derivations_and_formula
-			float cosTheta2 = 1.0 - r * r * (1.0 - cosTheta1 * cosTheta1);
-
-            // If no total internal reflection
-            // => total internal reflection <-> cosTheta2 <= 0.0
-            // http://en.wikipedia.org/wiki/Total_internal_reflection
-			if(cosTheta2 > 0.0)
-            {
-                // /!\ The light path is inverted in path tracing.
-                // For this reason, we arrive either from the reflection or
-                // refraction side, and not the incident one.
-                // This is not an issue because the propagation is reversible.
-
-
-                // Direction of incidence of light (surface -> light source)
-                vec3 refl = reflect(ray.d, n);
-
-                // Refraction direction
-				vec3 refr = r * refl + (r * cosTheta1 + sqrt(cosTheta2)) * n * sign(NoL);
-                refr = normalize(refr);
-
-
-                // Reflection and transmission coefficients
-                // and reflection probability
-                float R, T, P;
-
-                #if FRESNEL_SCHLICK
-                // Reflection coefficient at normal incidence
-				float R0 = pow((n1 - n2) / (n1 + n2), 2.0);
-
-                // cos(theta) = H.V
-                float HoV = mix(cosTheta1, dot(refr, n), inside);
-
-                // Fresnel: Schlick approximation
-                P = fresnelSchlick(R0, HoV, R, T);
-                #else
-                // Fresnel: artist approximation
-                P = fresnelApprox(NoL, R, T);
-                #endif
-
-                // Split ray: reflection + refraction
-				if(rand() < P) // Reflection
-                {
-                    mask *= R;
-			        ray = Ray(hit, refl);
-                }
-				else // Refraction
-                {
-                    mask *= obj.color * T;
-                    ray = Ray(hit, refr);
-                }
+		} else {
+			float a=dot(n,ray.d), ddn=abs(a);
+			float nc=1., nt=1.5, nnt=mix(nc/nt, nt/nc, float(a>0.));
+			float cos2t=1.-nnt*nnt*(1.-ddn*ddn);
+			ray = Ray(hit, reflect(ray.d, n));
+			if (cos2t>0.) {
+				vec3 tdir = normalize(ray.d*nnt + sign(a)*n*(ddn*nnt+sqrt(cos2t)));
+				float R0=(nt-nc)*(nt-nc)/((nt+nc)*(nt+nc)),
+					c = 1.-mix(ddn,dot(tdir, n),float(a>0.));
+				float Re=R0+(1.-R0)*c*c*c*c*c,P=.25+.5*Re,RP=Re/P,TP=(1.-Re)/(1.-P);
+				if (rand()<P) { mask *= RP; }
+				else { mask *= obj.c*TP; ray = Ray(hit, tdir); }
 			}
 		}
+#endif
 	}
-
-	return color;
+	return acc;
 }
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord)
-{
+void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
+	initSpheres();
     float time = uTime;
     time = 42.0;
-
 	seed = time + uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
-
 	vec2 uv = 2. * fragCoord.xy / uResolution.xy - 1.;
-
-	vec3 camPos = vec3((2. *(uMouse.xy==vec2(0.)?.5*uResolution.xy:uMouse.xy) / uResolution.xy - 1.) * vec2(48., 40.) + vec2(50., 40.8), 169.);
-
+	vec3 camPos = vec3((2. * (uMouse.xy==vec2(0.)?.5*uResolution.xy:uMouse.xy) / uResolution.xy - 1.) * vec2(48., 40.) + vec2(50., 40.8), 169.);
 	vec3 cz = normalize(vec3(50., 40., 81.6) - camPos);
 	vec3 cx = vec3(1., 0., 0.);
 	vec3 cy = normalize(cross(cx, cz)); cx = cross(cz, cy);
@@ -400,7 +200,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
     {
         vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
 
-        SEED = pixel + offset;
+        /*SEED = pixel + offset;*/
+        offset = vec2(0.0);
 
         // Screen coords with antialiasing
         vec2 p = (2.0 * (pixel + offset) - resolution) / resolution.y;

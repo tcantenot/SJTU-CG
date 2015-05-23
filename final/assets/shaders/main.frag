@@ -25,7 +25,8 @@ out vec4 RenderTarget0;
 /*#include "misc/noisetex.glsl"*/
 /*#include "misc/elevated.glsl"*/
 /*#include "scenes/canyon.glsl"*/
-#include "misc/smallpt.glsl"
+/*#include "misc/smallpt.glsl"*/
+#include "smallpt.glsl"
 
 void main()
 {
