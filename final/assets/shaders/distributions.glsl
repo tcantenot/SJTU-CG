@@ -115,7 +115,7 @@ vec3 rHemisphereUniform(vec2 seed)
     return p;
 }
 
-// Generate uniform random direction on unit hemisphere proportinal to solid angle
+// Generate uniform random direction on unit hemisphere proportional to solid angle
 // with probability density rho = 1/(2pi * (1 - cos(thetaMax))
 // theta: [0, thetaMax]
 vec3 rHemisphereUniform(float thetaMax, vec2 seed)
@@ -138,7 +138,7 @@ vec3 rHemisphereUniform(float thetaMax, vec2 seed)
     return p;
 }
 
-// Generate random direction on unit hemisphere proportinal to cosine-weighted solid angle
+// Generate random direction on unit hemisphere proportional to cosine-weighted solid angle
 // with probability density rho = cos(theta) / pi
 // theta: [0, pi]
 vec3 rHemisphereCosine(vec2 seed)
@@ -158,7 +158,7 @@ vec3 rHemisphereCosine(vec2 seed)
     return p;
 }
 
-// Generate random direction on unit hemisphere proportinal to cosine-weighted solid angle
+// Generate random direction on unit hemisphere proportional to cosine-weighted solid angle
 // with probability density rho = cos(theta) / (pi * (sin(thetaMax))^2)
 // theta: [0, thetaMax]
 vec3 rHemisphereCosine(float thetaMax, vec2 seed)
@@ -180,7 +180,7 @@ vec3 rHemisphereCosine(float thetaMax, vec2 seed)
     return p;
 }
 
-// Generate random direction on unit hemisphere proportinal to cosine lobe around normal
+// Generate random direction on unit hemisphere proportional to cosine lobe around normal
 // with probability density rho = ((n+1)/2pi) * (cos(theta))^n
 // theta: [0, pi]
 // => General formula:
@@ -204,7 +204,7 @@ vec3 rHemisphereGeneral(float n, vec2 seed)
     return p;
 }
 
-// Generate random direction on unit hemisphere proportinal to cosine lobe around normal
+// Generate random direction on unit hemisphere proportional to cosine lobe around normal
 // with probability density rho = ((n+1)/2pi) * (cos(theta))^n/(1-(cos(thetaMax))^(n+1))
 // theta: [0, thetaMax]
 // => General formula:
