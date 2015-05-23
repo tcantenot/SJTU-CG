@@ -25,10 +25,10 @@ Zavie
 
 // Play with the two following values to change quality.
 // You want as many samples as your GPU can bear. :)
-#define SAMPLES 128
+#define SAMPLES 4
 #define MAXDEPTH 4
 
-// Uncomment to see how many samples never reach a light source
+// Uncomment to see how many samples never reach NoL light source
 /*#define DEBUG*/
 
 #define DEPTH_RUSSIAN 2
@@ -144,8 +144,12 @@ vec3 radiance(Ray ray)
 	vec3 mask = vec3(1.);
 	int id = -1;
 
+    const vec3 MASK_THRESHOLD = vec3(0.1);
+
 	for(int depth = 0; depth < MAXDEPTH; ++depth)
     {
+        if(all(lessThan(mask, MASK_THRESHOLD))) break;
+
 		float t;
 		Sphere obj;
 
@@ -190,12 +194,12 @@ vec3 radiance(Ray ray)
 				float cosa = mix(cosAMax, 1.0, rand());
 
                 // Light direction: random vector in the cone of light
-				vec3 l = jitter(lightDir, 2.0 * PI * rand(), sqrt(1.0 - cosa * cosa), cosa);
+				vec3 refl = jitter(lightDir, 2.0 * PI * rand(), sqrt(1.0 - cosa * cosa), cosa);
 
                 // Check if the current hit point if visible from the light
                 Sphere _;
-                intersect(Ray(hit, l), t, _, id);
-                float lightDist = intersect(light, Ray(hit, l));
+                intersect(Ray(hit, refl), t, _, id);
+                float lightDist = intersect(light, Ray(hit, refl));
 				if(lightDist < t)
                 {
                     float dist = length(lightDir);
@@ -231,18 +235,79 @@ vec3 radiance(Ray ray)
         // Refractive material
         else
         {
-			float a=dot(n,ray.d), ddn=abs(a);
-			float nc=1., nt=1.5, nnt=mix(nc/nt, nt/nc, float(a>0.));
-			float cos2t=1.-nnt*nnt*(1.-ddn*ddn);
-			ray = Ray(hit, reflect(ray.d, n));
-			if(cos2t>0.)
+            // Refractive indices
+            // n1: air, n2: glass
+			float n1 = 1.0, n2 = 1.5;
+
+            // n is the normal vector that points from the surface towards its outside.
+            // NoL is positive if the ray is coming from the inside of the surface
+            // (negative side) and negative if it is coming from the outside.
+			float NoL = dot(n, ray.d);
+
+            // Relative position from the refractive material:
+            // 0: outside, 1: inside
+            float inside = float(NoL > 0.0);
+
+            // Cosine of the angle of incidence: must be positive for the Snell's law
+            float cosTheta1 = abs(NoL);
+
+            // Ratio of refractive indices
+            float r = mix(n1 / n2, n2 / n1, inside);
+
+            // Snell's law
+            // http://en.wikipedia.org/wiki/Snell%27s_law#Derivations_and_formula
+			float cosTheta2 = 1.0 - r * r * (1.0 - cosTheta1 * cosTheta1);
+
+            // If no total internal reflection
+            // => total internal reflection <-> cosTheta2 <= 0.0
+            // http://en.wikipedia.org/wiki/Total_internal_reflection
+			if(cosTheta2 > 0.0)
             {
-				vec3 tdir = normalize(ray.d*nnt + sign(a)*n*(ddn*nnt+sqrt(cos2t)));
-				float R0=(nt-nc)*(nt-nc)/((nt+nc)*(nt+nc)),
-					hov = 1.-mix(ddn,dot(tdir, n),float(a>0.));
-				float Re=R0+(1.-R0)*pow(hov,5.0),P=.25+.5*Re,RP=Re/P,TP=(1.-Re)/(1.-P);
-				if(rand()<P) { mask *= RP; }
-				else { mask *= obj.color*TP; ray = Ray(hit, tdir); }
+                // /!\ The light path is inverted in path tracing.
+                // For this reason, we arrive either from the reflection or
+                // refraction side, and not the incident one.
+                // This is not an issue because the propagation is reversible.
+
+
+                // Direction of incidence of light (surface -> light source)
+                vec3 refl = reflect(ray.d, n);
+
+                // Refraction direction
+				vec3 refr = r * refl + (r * cosTheta1 + sqrt(cosTheta2)) * n * sign(NoL);
+                refr = normalize(refr);
+
+                // Reflection coefficient at normal incidence
+				float R0 = pow((n1 - n2) / (n1 + n2), 2.0);
+
+                // cos(theta) = H.V
+                float HoV = mix(cosTheta1, dot(refr, n), inside);
+
+                // Reflection coefficient: Schlick approximation
+                // http://en.wikipedia.org/wiki/Schlick%27s_approximation
+				float Re = R0 + (1.0 - R0) * pow(1.0 - HoV, 5.0);
+
+
+                float P = 0.25 + 0.5 * Re;
+
+                // Reflection coefficient
+                float RP = Re / P;
+
+                // Transmission coefficient
+                float TP = (1.0 - Re) / (1.0 - P);
+
+                /*RP = Re;*/
+                /*TP = 1.0 - Re;*/
+
+				if(rand() < P) // Reflection
+                {
+                    mask *= RP;
+			        ray = Ray(hit, refl);
+                }
+				else // Refraction
+                {
+                    mask *= obj.color * TP;
+                    ray = Ray(hit, refr);
+                }
 			}
 		}
 	}
