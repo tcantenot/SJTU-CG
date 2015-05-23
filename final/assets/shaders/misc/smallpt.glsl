@@ -25,7 +25,7 @@ Zavie
 
 // Play with the two following values to change quality.
 // You want as many samples as your GPU can bear. :)
-#define SAMPLES 64
+#define SAMPLES 128
 #define MAXDEPTH 4
 
 // Uncomment to see how many samples never reach a light source
@@ -68,41 +68,40 @@ struct Sphere
 	vec3 pos;
     vec3 emissive;
     vec3 color;
-	int refl;
+	int type;
 };
 
 Sphere lightSourceVolume = Sphere(20., vec3(50., 81.6, 81.6), vec3(12.), vec3(0.), DIFF);
-Sphere spheres[NUM_SPHERES];
-void initSpheres() {
+Sphere spheres[NUM_SPHERES] = Sphere[](
     // Red wall
-	spheres[0] = Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	vec3(0.),  vec3(.75, .25, .25), DIFF);
+	Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	vec3(0.),  vec3(.75, .25, .25), DIFF),
 
     // Blue wall
-	spheres[1] = Sphere(1e5, vec3( 1e5+99., 40.8, 81.6),vec3(0.),  vec3(.25, .25, .75), DIFF);
+	Sphere(1e5, vec3( 1e5+99., 40.8, 81.6),vec3(0.),  vec3(.25, .25, .75), DIFF),
 
 
     // Front wall
-	spheres[2] = Sphere(1e5, vec3(50., 40.8, -1e5),		vec3(0.),  vec3(.75), DIFF);
+	Sphere(1e5, vec3(50., 40.8, -1e5),		vec3(0.),  vec3(.75), DIFF),
 
     // Back wall
-	spheres[3] = Sphere(1e5, vec3(50., 40.8,  1e5+170),vec3(0.25, 0.75, 0.25),  vec3(0.), DIFF);
+	Sphere(1e5, vec3(50., 40.8,  1e5+170),vec3(0.25, 0.75, 0.25),  vec3(0.), DIFF),
 
     // Floor
-	spheres[4] = Sphere(1e5, vec3(50., -1e5, 81.6),		vec3(0.),  vec3(.75), DIFF);
+	Sphere(1e5, vec3(50., -1e5, 81.6),		vec3(0.),  vec3(.75), DIFF),
 
     // Ceiling
-	spheres[5] = Sphere(1e5, vec3(50.,  1e5+81.6, 81.6),vec3(0.),  vec3(.75), DIFF);
+	Sphere(1e5, vec3(50.,  1e5+81.6, 81.6),vec3(0.),  vec3(.75), DIFF),
 
     // Metallic ball
-	spheres[6] = Sphere(16.5, vec3(27., 16.5, 47.), 	vec3(0.),  vec3(1.), SPEC);
+	Sphere(16.5, vec3(27., 16.5, 47.), 	vec3(0.),  vec3(1.), SPEC),
 
     // Glass ball
-	spheres[7] = Sphere(16.5, vec3(73., 16.5, 78.), 	vec3(0.),  vec3(.7, 1., .9), REFR);
+	Sphere(16.5, vec3(73., 16.5, 78.), 	vec3(0.),  vec3(.7, 1., .9), REFR),
 
     // Ceiling light
-	/*spheres[8] = Sphere(uLight.radius/10.0, uLight.pos,	uLight.color, uLight.color, DIFF);*/
-	spheres[8] = Sphere(600., vec3(50., 681.33, 81.6),	vec3(1.), vec3(0.), DIFF);
-}
+	/*Sphere(uLight.radius/10.0, uLight.pos,	uLight.color, uLight.color, DIFF)*/
+	Sphere(600., vec3(50., 681.33, 81.6),	vec3(1.), vec3(0.), DIFF)
+);
 
 float intersect(Sphere s, Ray ray) {
 	vec3 op = s.pos - ray.o;
@@ -154,6 +153,7 @@ vec3 radiance(Ray ray)
 		if((id = intersect(ray, t, obj, id)) < 0) break;
 
 		vec3 hit = t * ray.d + ray.o;
+
 		vec3 n = normalize(hit - obj.pos);
         vec3 normal = n * sign(-dot(n, ray.d));
 
@@ -171,55 +171,26 @@ vec3 radiance(Ray ray)
         #endif
 
         // Diffuse material
-		if(obj.refl == DIFF)
+		if(obj.type == DIFF)
         {
             // Check if current object is visible to any emissive objects
 			vec3 emissive = vec3(0.);
-            #if 0
-            for(int i = 0; i < NUM_SPHERES; ++i)
-			{
-                Sphere s = spheres[i];
-                if(dot(s.emissive, vec3(1.)) == 0.) continue;
-
-				// Normally we would loop over the light sources and
-				// cast rays toward them, but since there is only one
-				// light source, that is mostly occluded, here goes
-				// the ad hoc optimization:
-                /*Sphere s = lightSourceVolume;*/
-                /*int i = 8;*/
-
-				vec3 lightDir = s.pos - hit;
-
-				float cos_a_max = sqrt(1. - clamp(s.radius * s.radius / dot(lightDir, lightDir), 0., 1.));
-				float cosa = mix(cos_a_max, 1., rand());
-
-                // Light direction: random vector on the "light direction"-oriented hemisphere
-				vec3 l = jitter(lightDir, 2.*PI*rand(), sqrt(1. - cosa*cosa), cosa);
-
-                // If a light is hit
-				if(intersect(Ray(hit, l), t, s, id) == i)
-                {
-					float omega = 2. * PI *(1. - cos_a_max);
-					emissive +=(s.emissive * clamp(dot(l, n),0.,1.) * omega) / PI;
-				}
-			}
-            #endif
-
             for(int i = 0; i < LIGHT_COUNT; ++i)
             {
                 Light light = uLights[i];
 
                 // Vector hit-light
                 vec3 lightDir = light.pos - hit;
+                float r2 = light.radius * light.radius;
 
                 // Cosine of the maximum angle to reach the light (cone of light rays)
-				float cos_a_max = sqrt(1. - clamp(light.radius * light.radius / dot(lightDir, lightDir), 0., 1.));
+				float cosAMax = sqrt(1.0 - clamp(r2 / dot(lightDir, lightDir), 0.0, 1.0));
 
                 // Random cosine inside the cone of light
-				float cosa = mix(cos_a_max, 1., rand());
+				float cosa = mix(cosAMax, 1.0, rand());
 
                 // Light direction: random vector in the cone of light
-				vec3 l = jitter(lightDir, 2.*PI*rand(), sqrt(1. - cosa*cosa), cosa);
+				vec3 l = jitter(lightDir, 2.0 * PI * rand(), sqrt(1.0 - cosa * cosa), cosa);
 
                 // Check if the current hit point if visible from the light
                 Sphere _;
@@ -232,8 +203,9 @@ vec3 radiance(Ray ray)
                     /*float power = 2000.0;*/
                     /*emissive += power * atten * light.color * clamp(dot(lightDir, normal), 0.0, 1.0);*/
 
-                    float omega = 2. * PI * (1. - cos_a_max);
-                    emissive += (light.power * light.color * clamp(dot(lightDir, normal), 0.0, 1.0) * omega) / PI;
+                    float omega = 2. * PI * (1.0- cosAMax);
+                    vec3 I = light.power * light.color * clamp(dot(lightDir, normal), 0.0, 1.0);
+                    emissive += (I * omega) / PI;
                 }
             }
 
@@ -244,13 +216,13 @@ vec3 radiance(Ray ray)
 
             // New ray direction: random vector on the normal-oriented hemisphere
 			float r2 = rand();
-			vec3 d = jitter(normal, 2.*PI*rand(), sqrt(r2), sqrt(1. - r2));
+			vec3 d = jitter(normal, 2.*PI*rand(), sqrt(r2), sqrt(1.0- r2));
 
 			ray = Ray(hit, d);
 		}
 
         // Specular (reflective) material
-        else if(obj.refl == SPEC)
+        else if(obj.type == SPEC)
         {
 			acc += mask * obj.emissive;
 			mask *= obj.color;
@@ -278,13 +250,17 @@ vec3 radiance(Ray ray)
 	return acc;
 }
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord) {
-	initSpheres();
+void mainImage( out vec4 fragColor, in vec2 fragCoord)
+{
     float time = uTime;
     time = 42.0;
+
 	seed = time + uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
+
 	vec2 uv = 2. * fragCoord.xy / uResolution.xy - 1.;
+
 	vec3 camPos = vec3((2. *(uMouse.xy==vec2(0.)?.5*uResolution.xy:uMouse.xy) / uResolution.xy - 1.) * vec2(48., 40.) + vec2(50., 40.8), 169.);
+
 	vec3 cz = normalize(vec3(50., 40., 81.6) - camPos);
 	vec3 cx = vec3(1., 0., 0.);
 	vec3 cy = normalize(cross(cx, cz)); cx = cross(cz, cy);
@@ -297,8 +273,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord) {
     float aa = float(npaths) / 2.0;
     for(int i = 0; i < npaths; i++)
     {
-        vec2 seed = vec2(float(i), float(i+1));
-
         vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
 
         // Screen coords with antialiasing
