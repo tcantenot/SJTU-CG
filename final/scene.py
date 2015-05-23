@@ -196,7 +196,11 @@ class Demo(Scene):
 
     def _loadTextures(self):
         textures = [
-            "assets/textures/noise_1.jpg"
+            "assets/textures/noise_1.jpg",
+            "assets/textures/noise_2.jpg",
+            "assets/textures/texture_1.jpg",
+            "assets/textures/texture_2.jpg",
+            "assets/textures/texture_3.jpg"
         ]
 
         for f in textures:

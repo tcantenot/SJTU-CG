@@ -9,16 +9,23 @@ uniform vec4 uTweaks;
 
 uniform sampler2D uTexture0;
 uniform sampler2D uTexture1;
+uniform sampler2D uTexture2;
+uniform sampler2D uTexture3;
+uniform sampler2D uTexture4;
+uniform sampler2D uTexture5;
 
 out vec4 RenderTarget0;
 
-#include "dev.glsl"
+/*#include "dev.glsl"*/
 /*#include "pathtracer.glsl"*/
 /*#include "misc/raytracer.glsl"*/
 /*#include "misc/frozen_wasteland.glsl"*/
 /*#include "misc/xyptonjtroz.glsl"*/
 /*#include "misc/cloudten.glsl"*/
 /*#include "misc/noisetex.glsl"*/
+/*#include "misc/elevated.glsl"*/
+/*#include "scenes/canyon.glsl"*/
+#include "misc/smallpt.glsl"
 
 void main()
 {

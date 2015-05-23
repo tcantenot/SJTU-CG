@@ -130,8 +130,21 @@ vec3 WORLD_GET_BRDF_RAY(in vec3 pos, in vec3 normal, in vec3 eye, in int materia
 
     /*return reflect(eye, normal);*/
 
-    float roughness = 0.01;
-    if(RANDOM_1F(seed) < roughness)
+    float diffuse = 0.0;
+    float roughness = 0.0;
+
+
+    if(materialID == 1)
+    {
+        diffuse = 0.0;
+        roughness = 0.2;
+    }
+    else if(materialID == 3)
+    {
+        diffuse = 1.0;
+    }
+
+    if(RANDOM_1F(seed) < diffuse)
     {
         mat3 tbn = randomTBN(normal, seed);
         return tbn * COSINE_DIRECTION(seed);
@@ -140,8 +153,7 @@ vec3 WORLD_GET_BRDF_RAY(in vec3 pos, in vec3 normal, in vec3 eye, in int materia
     {
         vec3 r = reflect(eye, normal);
         mat3 tbn = randomTBN(r, seed);
-        /*return r;*/
-        return tbn * CONE_DIRECTION(0.02, seed);
+        return tbn * CONE_DIRECTION(roughness, seed);
     }
 }
 
@@ -292,8 +304,8 @@ vec3 CALC_PIXEL_COLOR(vec2 pixel, vec2 resolution, float frameTime)
         seed = SEED;
 
         // Screen coords with antialiasing
-        vec2 p = (2.0 * (pixel + RANDOM_2F(seed)) - resolution) / resolution.y;
-        /*vec2 p = (2.0 * (pixel + offset) - resolution) / resolution.y;*/
+        /*vec2 p = (2.0 * (pixel + RANDOM_2F(seed)) - resolution) / resolution.y;*/
+        vec2 p = (2.0 * (pixel + offset) - resolution) / resolution.y;
         /*vec2 p = (pixel * 2.0 - resolution) / resolution.y;*/
 
         // Motion blur
