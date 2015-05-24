@@ -15,8 +15,9 @@ def display(scene):
 
     def _display():
         scene.init()
-        updated = scene.render(mouse=Mouse(0, 0, 0, 0))
-        if updated: glut.glutSwapBuffers()
+        mouse = Mouse(0, 0, 0, 0)
+        for updated, fragIndex in self.scene.render(mouse=mouse):
+            if updated: glut.glutSwapBuffers()
 
     return _display
 

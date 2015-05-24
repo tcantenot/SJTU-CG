@@ -114,8 +114,9 @@ class GLFrame(wx.Frame):
         """Generate a frame."""
         #print "On Frame"
         if event.GetId() == self.timer.GetId():
-            updated = self.scene.render(mouse=Mouse(self.x, self.y, self.clickx, self.clicky))
-            if updated: self.swapBuffers()
+            mouse = Mouse(self.x, self.y, self.clickx, self.clicky)
+            for updated, fragIndex in self.scene.render(mouse=mouse):
+                if updated: self.swapBuffers()
         event.Skip()
 
     def onMouseDown(self, event):

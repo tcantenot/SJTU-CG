@@ -25,7 +25,7 @@ Zavie
 
 // Play with the two following values to change quality.
 // You want as many samples as your GPU can bear. :)
-#define SAMPLES 64
+#define SAMPLES 4
 #define MAXDEPTH 4
 
 // Uncomment to see how many samples never reach NoL light source

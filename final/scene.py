@@ -16,6 +16,10 @@ from utils import enum, now
 from shader import *
 from program import *
 from texture import *
+from framebuffer import *
+
+#TODO:
+# - program location cache (need to be emptied after each program reload...)
 
 
 FRAME_SCHEME = enum('ON_DEMAND', 'CONTINUOUS')
@@ -54,6 +58,11 @@ class Demo(Scene):
 
         # Textures
         self.textures = []
+
+        # Framebuffer and work texture
+        self.framebuffer = Framebuffer()
+        self.worktexture = Texture()
+        self.framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, self.worktexture)
 
         # Scene tweak values
         self.tweaks = [1.0 for _ in xrange(4)]
@@ -143,15 +152,31 @@ class Demo(Scene):
                 )
 
                 ### Draw ###
-                glClear(GL_COLOR_BUFFER_BIT)
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
 
-        return needsFrame
+                self.framebuffer.bind(GL_DRAW_FRAMEBUFFER)
+                glClear(GL_COLOR_BUFFER_BIT)
+
+                fragCount = 4
+                glUniform1i(glGetUniformLocation(self.program.id, "uFragCount"), fragCount);
+
+                for i in xrange(fragCount):
+                    glUniform1i(glGetUniformLocation(self.program.id, "uFragIndex"), i);
+                    self.framebuffer.bind()
+                    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
+                    w, h = self.size
+                    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+                    self.framebuffer.bind(GL_READ_FRAMEBUFFER)
+                    glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR)
+                    yield True, i
+                    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+                    glClear(GL_COLOR_BUFFER_BIT)
 
 
     def resize(self, size):
         """ Resize hook """
         self.size = size
+        self.worktexture.resize(size)
+        self.framebuffer.finalize()
         self.resized = True
         w, h = size
         glViewport(0, 0, w, h)
@@ -193,6 +218,7 @@ class Demo(Scene):
         glEnableVertexAttribArray(location)
         glBindBuffer(GL_ARRAY_BUFFER, self.vertexbuffer)
         glVertexAttribPointer(location, 2, GL_FLOAT, False, 0, ctypes.c_void_p(0))
+
 
     def _loadTextures(self):
         textures = [

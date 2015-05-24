@@ -13,6 +13,8 @@ try:
 except ImportError:
     raise ImportError, "Required dependency Image not present"
 
+import ctypes
+
 
 class Texture(object):
 
@@ -20,10 +22,31 @@ class Texture(object):
         self.id = 0
         self.size = (0, 0)
 
+    def create(self, size):
+        self.destroy()
+        self.size = size
+        self.id = glGenTextures(1)
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1)
+        glBindTexture(GL_TEXTURE_2D, self.id)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size[0], size[1], 0,
+            GL_RGB, GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
+
+
+    def resize(size):
+        self.create(size)
+
+
+    def destroy(self):
+        if self.id != 0: glDeleteTextures(1, self.id)
+
+
     def loadFromFile(self, filename):
 
-        if self.id != 0:
-            glDeleteTextures(1, self.id)
+        self.destroy()
 
         img = Image.open(filename)
 
