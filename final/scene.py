@@ -60,9 +60,8 @@ class Demo(Scene):
         self.textures = []
 
         # Framebuffer and work texture
-        self.framebuffer = Framebuffer()
-        self.worktexture = Texture()
-        self.framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, self.worktexture)
+        self.framebuffer = None
+        self.worktexture = None
 
         # Scene tweak values
         self.tweaks = [1.0 for _ in xrange(4)]
@@ -79,6 +78,7 @@ class Demo(Scene):
             if size: self.size = size
             self._createProgram()
             self._createBuffer()
+            self._createWorkFBO()
             self._loadTextures()
             self.initialized = True
             self.startTime = time.time()
@@ -130,8 +130,7 @@ class Demo(Scene):
 
                 # Resolution
                 w, h = self.size
-                res = np.array([w, h], dtype=np.float32)
-                glUniform2f(glGetUniformLocation(self.program.id, "uResolution"), res[0], res[1])
+                glUniform2f(glGetUniformLocation(self.program.id, "uResolution"), w, h)
 
                 # Mouse
                 glUniform4f(
@@ -153,12 +152,16 @@ class Demo(Scene):
 
                 ### Draw ###
 
-                self.framebuffer.bind(GL_DRAW_FRAMEBUFFER)
-                glClear(GL_COLOR_BUFFER_BIT)
+                w, h = self.size
 
                 glEnable(GL_SCISSOR_TEST)
 
-                fragCount = 128
+                glScissor(0, 0, w, h)
+                self.framebuffer.bind(GL_DRAW_FRAMEBUFFER)
+                #glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+                glClear(GL_COLOR_BUFFER_BIT)
+
+                fragCount = 256
 
                 fragCountX = int(np.floor(np.sqrt(fragCount)))
                 fragCountY = fragCount / fragCountX
@@ -173,7 +176,8 @@ class Demo(Scene):
                 #print "Frag dim = ({}, {})".format(dw, dh)
                 #print ""
 
-                grid = random.sample([random_grid, grid1, grid2], 1)[0]
+                #grid = random.sample([random_grid, grid1, grid2], 1)[0]
+                grid = grid2
 
                 indices = grid(fragCountX, fragCountY);
 
@@ -182,32 +186,31 @@ class Demo(Scene):
                     i = k % fragCountX
                     j = k / fragCountX
 
-                    a = -1.0 + i * dw
-                    b = a + dw
-                    c = -1.0 + j * dh
-                    d = c + dh
+                    mx = -1.0 + i * dw
+                    Mx = mx + dw
+                    my = -1.0 + j * dh
+                    My = my + dh
 
                     #print "#{}: (i, j) = ({}, {})".format(k, i, j)
-                    #print "({}, {}) | ({}, {})".format(a, c, b, d)
+                    #print "({}, {}) | ({}, {})".format(mx, my, Mx, My)
 
                     glUniform1i(glGetUniformLocation(self.program.id, "uFragIndex"), k);
-                    glUniform4f(glGetUniformLocation(self.program.id, "uFragBounds"), a, b, c, d)
+                    glUniform4f(glGetUniformLocation(self.program.id, "uFragBounds"), mx, Mx, my, My)
 
                     # [-1, 1] -> [0, 1]
-                    a = a * 0.5 + 0.5
-                    b = b * 0.5 + 0.5
-                    c = c * 0.5 + 0.5
-                    d = d * 0.5 + 0.5
+                    mx = mx * 0.5 + 0.5
+                    Mx = Mx * 0.5 + 0.5
+                    my = my * 0.5 + 0.5
+                    My = My * 0.5 + 0.5
 
-                    w, h = self.size
-                    glScissor(int(a*w), int(c*h), int(dw*w), int(dh*h))
+                    glScissor(int(mx*w), int(my*h), int(dw*w), int(dh*h))
 
-                    #print "({}, {}) | ({}, {})".format(a, c, b, d)
-                    #print "({}, {}) | ({}, {})".format(a*w, c*h, b*w, d*h)
+                    #print "({}, {}) | ({}, {})".format(mx, my, Mx, My)
+                    #print "({}, {}) | ({}, {})".format(mx*w, my*h, Mx*w, My*h)
                     #print ""
 
                     # Select draw buffer of the work framebuffer
-                    glDrawBuffer(GL_FRONT if iteration % 2 else GL_BACK)
+                    #glDrawBuffer(GL_FRONT if iteration % 2 else GL_BACK)
 
                     # Draw into the work framebuffer
                     self.framebuffer.bind(GL_DRAW_FRAMEBUFFER)
@@ -215,11 +218,12 @@ class Demo(Scene):
 
                     # Copy content of framebuffer into the screen buffer
                     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+                    #glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)
                     self.framebuffer.bind(GL_READ_FRAMEBUFFER)
 
                     # Select read buffer and the back draw buffer of the screen
-                    glReadBuffer(GL_FRONT if iteration % 2 else GL_BACK)
-                    glDrawBuffer(GL_BACK)
+                    #glReadBuffer(GL_FRONT if iteration % 2 else GL_BACK)
+                    #glDrawBuffer(GL_BACK)
 
                     # Copy the content of the work framebuffer into the screen's
                     glScissor(0, 0, w, h)
@@ -233,7 +237,6 @@ class Demo(Scene):
         """ Resize hook """
         self.size = size
         self.worktexture.resize(size)
-        self.framebuffer.finalize()
         self.resized = True
         w, h = size
         glViewport(0, 0, w, h)
@@ -275,6 +278,17 @@ class Demo(Scene):
         glEnableVertexAttribArray(location)
         glBindBuffer(GL_ARRAY_BUFFER, self.vertexbuffer)
         glVertexAttribPointer(location, 2, GL_FLOAT, False, 0, ctypes.c_void_p(0))
+
+
+    def _createWorkFBO(self):
+        """ Create the work framebuffer and work texture """
+        self.framebuffer = Framebuffer()
+        self.worktexture = Texture()
+        self.framebuffer.create()
+        self.framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, self.worktexture)
+        if self.size:
+            self.worktexture.resize(self.size)
+            self.framebuffer.finalize()
 
 
     def _loadTextures(self):

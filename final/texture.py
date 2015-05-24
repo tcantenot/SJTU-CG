@@ -35,13 +35,23 @@ class Texture(object):
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size[0], size[1], 0,
             GL_RGB, GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
 
+    def bind(self):
+        if self.id != 0: glBindTexture(GL_TEXTURE_2D, self.id)
 
-    def resize(size):
-        self.create(size)
+    def resize(self, size):
+        if self.id != 0:
+            self.size = size
+            self.bind()
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size[0], size[1], 0,
+                GL_RGB, GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
+            return False
+        else:
+            self.create(size)
+            return True
 
 
     def destroy(self):
-        if self.id != 0: glDeleteTextures(1, self.id)
+        if self.id != 0: glDeleteTextures([self.id])
 
 
     def loadFromFile(self, filename):

@@ -25,27 +25,26 @@ Zavie
 
 // Play with the two following values to change quality.
 // You want as many samples as your GPU can bear. :)
-#define SAMPLES 4
-#define MAXDEPTH 4
+#define SAMPLES 256
+#define MAXDEPTH 6
 
 // Uncomment to see how many samples never reach NoL light source
 #define DEBUG_NO_HIT 0
 
 // Discard rays that will gather low intensity
-#define LOW_INTENSITY_OPTIMIZATION 1
+#define LOW_INTENSITY_OPTIMIZATION 0
 #define INTENSITY_THRESHOLD 0.2
 
 // Use Schlick's approximation for Fresnel effect
 #define FRESNEL_SCHLICK 1
 
 #define DEPTH_RUSSIAN 2
-#define RUSSIAN_ROULETTE 1
+#define RUSSIAN_ROULETTE 0
 
 #define PI 3.14159265359
 #define DIFF 0
 #define SPEC 1
 #define REFR 2
-#define NUM_SPHERES 10
 
 #include "random.glsl"
 
@@ -67,9 +66,11 @@ struct Light
 
 const int LIGHT_COUNT = 2;
 uniform Light uLights[LIGHT_COUNT] = Light[](
-    Light(vec3(50.0, 51.6, 81.6), 20.0, vec3(1.0), 3.0),
-    Light(vec3(75.0, 22., 30.6), 10.0, vec3(0.8, 0.5, 0.3), 13.0)
+    Light(vec3(50.0, 51.6, 81.6), 20.0, vec3(1.0), 3.0)
+    ,Light(vec3(75.0, 22., 30.6), 10.0, vec3(0.8, 0.5, 0.3), 13.0)
 );
+
+int lightCount = 1;
 
 
 struct Ray { vec3 o, d; };
@@ -90,12 +91,13 @@ const vec3 green  = vec3(0.25, 0.75, 0.25);
 const vec3 blue   = vec3(0.25, 0.25, 0.75);
 const vec3 yellow = vec3(0.75, 0.75, 0.25);
 
+#define NUM_SPHERES 9
 Sphere spheres[NUM_SPHERES] = Sphere[](
     // Red wall
-	Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	black,  red, DIFF),
+	Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	black,  red, SPEC),
 
     // Blue wall
-	Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), black, blue, DIFF),
+	Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), black, blue, SPEC),
 
     // Front wall
 	Sphere(1e5, vec3(50., 40.8, -1e5), black, gray, SPEC),
@@ -104,7 +106,7 @@ Sphere spheres[NUM_SPHERES] = Sphere[](
 	Sphere(1e5, vec3(50., 40.8,  1e5+170), black, green, DIFF),
 
     // Floor
-	Sphere(1e5, vec3(50., -1e5, 81.6), black, gray, DIFF),
+	Sphere(1e5, vec3(50., -1e5, 81.6), black, gray, SPEC),
 
     // Ceiling
 	Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), black, gray, DIFF),
@@ -116,11 +118,11 @@ Sphere spheres[NUM_SPHERES] = Sphere[](
 	Sphere(16.5, vec3(73., 16.5, 78.), 	black, vec3(.7, 1., .9), REFR),
 
     // Ceiling light
-    Sphere(600., vec3(50., 681.33, 81.6), 2.0*white, black, DIFF),
-    /*Sphere(uLights[0].radius, uLights[0].pos, uLights[0].power*uLights[0].color, black, DIFF),*/
+    Sphere(600., vec3(50., 681.33, 81.6), 2.0*white, black, DIFF)
+    /*Sphere(uLights[0].radius, uLights[0].pos, uLights[0].power*uLights[0].color, black, DIFF)*/
 
     // Other light
-    Sphere(uLights[1].radius, uLights[1].pos, 2.0*uLights[1].color, black, DIFF)
+    /*,Sphere(uLights[1].radius, uLights[1].pos, 2.0*uLights[1].color, black, DIFF)*/
 );
 
 float intersect(Sphere s, Ray ray) {
@@ -258,7 +260,7 @@ vec3 radiance(Ray ray)
 
             // Check if current object is visible to any lights
 			vec3 lightIntensity = vec3(0.0);
-            for(int i = 0; i < LIGHT_COUNT; ++i)
+            for(int i = 0; i < lightCount; ++i)
             {
                 Light light = uLights[i];
 

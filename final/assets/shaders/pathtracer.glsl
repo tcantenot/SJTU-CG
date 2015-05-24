@@ -287,7 +287,7 @@ vec3 CALC_PIXEL_COLOR(vec2 pixel, vec2 resolution, float frameTime)
     const float fov = 2.5;
     const float focusDistance = 1.3;
     const float blurAmount = 0.0015;
-    const int   numLevels = 5;
+    const int   numLevels = 8;
 
     // Paths per pixel
     const int npaths = NPATHS;
