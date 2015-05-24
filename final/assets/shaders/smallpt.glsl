@@ -1,34 +1,7 @@
-/*
+#define SAMPLES 64
+#define MAXDEPTH 20
 
-This shader is an attempt at porting smallpt to GLSL.
-
-See what it's all about here:
-http://www.kevinbeason.com/smallpt/
-
-The code is based in particular on the slides by David Cline.
-
-Some differences:
-
-- For optimization purposes, the code considers there is
-  only one light source(see the commented loop)
-- Russian roulette and tent filter are not implemented
-
-I spent quite some time pulling my hair over inconsistent
-behavior between Chrome and Firefox, Angle and native. I
-expect many GLSL related bugs to be lurking, on top of
-implementation errors. Please Let me know if you find any.
-
---
-Zavie
-
-*/
-
-// Play with the two following values to change quality.
-// You want as many samples as your GPU can bear. :)
-#define SAMPLES 256
-#define MAXDEPTH 6
-
-// Uncomment to see how many samples never reach NoL light source
+// Debug to see how many samples never reach a light source
 #define DEBUG_NO_HIT 0
 
 // Discard rays that will gather low intensity
@@ -47,9 +20,11 @@ Zavie
 #define REFR 2
 
 #include "random.glsl"
+#include "distributions.glsl"
 
-float seed = 0.;
+float seed = 0.0;
 vec2 SEED = vec2(0.0);
+
 float rand()
 {
     return hash2(SEED + vec2(seed++, seed+1.0));
@@ -161,6 +136,7 @@ float intersect(Light s, Ray ray, out bool intersection) {
 
 vec3 jitter(vec3 d, float phi, float sina, float cosa)
 {
+    /*return rHemisphereUniform(SEED);*/
 	vec3 w = normalize(d);
     vec3 u = normalize(cross(w.yzx, w));
     vec3 v = cross(w, u);

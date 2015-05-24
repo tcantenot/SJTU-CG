@@ -210,7 +210,7 @@ float castRay(
     vec3 rd = ray.direction;
     float t = tmin;
 
-    // Raymarching using sphere tracing
+    // Raymarching using "sphere" tracing
     for(int i = 0; i < stepmax; i++)
     {
         float d = map(ro + t * rd, hitInfo);
