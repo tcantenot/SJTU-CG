@@ -9,14 +9,14 @@ except ImportError:
     raise ImportError, "Required dependency Numpy not present"
 
 
-import ctypes
-import time
+import ctypes, time, random
 from mouse import Mouse
 from utils import enum, now
 from shader import *
 from program import *
 from texture import *
 from framebuffer import *
+from grid import *
 
 #TODO:
 # - program location cache (need to be emptied after each program reload...)
@@ -156,20 +156,77 @@ class Demo(Scene):
                 self.framebuffer.bind(GL_DRAW_FRAMEBUFFER)
                 glClear(GL_COLOR_BUFFER_BIT)
 
-                fragCount = 4
+                glEnable(GL_SCISSOR_TEST)
+
+                fragCount = 128
+
+                fragCountX = int(np.floor(np.sqrt(fragCount)))
+                fragCountY = fragCount / fragCountX
+                fragCount = fragCountX * fragCountY
+
                 glUniform1i(glGetUniformLocation(self.program.id, "uFragCount"), fragCount);
 
-                for i in xrange(fragCount):
-                    glUniform1i(glGetUniformLocation(self.program.id, "uFragIndex"), i);
-                    self.framebuffer.bind()
-                    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
+                dw = (1.0 - (-1.0)) / float(fragCountX)
+                dh = (1.0 - (-1.0)) / float(fragCountY)
+
+                #print "Frag count = ({}, {})".format(fragCountX, fragCountY)
+                #print "Frag dim = ({}, {})".format(dw, dh)
+                #print ""
+
+                grid = random.sample([random_grid, grid1, grid2], 1)[0]
+
+                indices = grid(fragCountX, fragCountY);
+
+                for iteration, k in enumerate(indices):
+
+                    i = k % fragCountX
+                    j = k / fragCountX
+
+                    a = -1.0 + i * dw
+                    b = a + dw
+                    c = -1.0 + j * dh
+                    d = c + dh
+
+                    #print "#{}: (i, j) = ({}, {})".format(k, i, j)
+                    #print "({}, {}) | ({}, {})".format(a, c, b, d)
+
+                    glUniform1i(glGetUniformLocation(self.program.id, "uFragIndex"), k);
+                    glUniform4f(glGetUniformLocation(self.program.id, "uFragBounds"), a, b, c, d)
+
+                    # [-1, 1] -> [0, 1]
+                    a = a * 0.5 + 0.5
+                    b = b * 0.5 + 0.5
+                    c = c * 0.5 + 0.5
+                    d = d * 0.5 + 0.5
+
                     w, h = self.size
+                    glScissor(int(a*w), int(c*h), int(dw*w), int(dh*h))
+
+                    #print "({}, {}) | ({}, {})".format(a, c, b, d)
+                    #print "({}, {}) | ({}, {})".format(a*w, c*h, b*w, d*h)
+                    #print ""
+
+                    # Select draw buffer of the work framebuffer
+                    glDrawBuffer(GL_FRONT if iteration % 2 else GL_BACK)
+
+                    # Draw into the work framebuffer
+                    self.framebuffer.bind(GL_DRAW_FRAMEBUFFER)
+                    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
+
+                    # Copy content of framebuffer into the screen buffer
                     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
                     self.framebuffer.bind(GL_READ_FRAMEBUFFER)
+
+                    # Select read buffer and the back draw buffer of the screen
+                    glReadBuffer(GL_FRONT if iteration % 2 else GL_BACK)
+                    glDrawBuffer(GL_BACK)
+
+                    # Copy the content of the work framebuffer into the screen's
+                    glScissor(0, 0, w, h)
                     glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR)
-                    yield True, i
-                    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
-                    glClear(GL_COLOR_BUFFER_BIT)
+
+                    # Display the current result
+                    yield True, iteration
 
 
     def resize(self, size):
