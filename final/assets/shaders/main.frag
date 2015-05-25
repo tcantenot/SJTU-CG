@@ -28,6 +28,7 @@ out vec4 RenderTarget0;
 /*#include "misc/smallpt.glsl"*/
 /*#include "smallpt.glsl"*/
 #include "pathtracer2.glsl"
+/*#include "fragmentarium/skypathtracer.glsl"*/
 
 void main()
 {

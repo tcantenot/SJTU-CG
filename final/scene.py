@@ -161,7 +161,7 @@ class Demo(Scene):
                 #glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
                 glClear(GL_COLOR_BUFFER_BIT)
 
-                fragCount = 64
+                fragCount = 500
 
                 fragCountX = int(np.floor(np.sqrt(fragCount)))
                 fragCountY = fragCount / fragCountX

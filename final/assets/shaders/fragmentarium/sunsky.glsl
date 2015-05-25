@@ -18,7 +18,7 @@
 // https://github.com/SimonWallner/kocmoc-demo/blob/RTVIS/README.rst
 
 /*uniform float turbidity = 16.0; //slider[1,2,16]*/
-float turbidity = 16.0 * uTweaks.z; //slider[1,2,16]
+/*float turbidity = 16.0 * uTweaks.z; //slider[1,2,16]*/
 
 const float mieCoefficient = 0.005;
 const float mieDirectionalG = 0.80;
@@ -79,9 +79,15 @@ float SunIntensity(float zenithAngleCos)
 }
 
 /*uniform vec2 SunPos = vec2(0.7, 0.12); //slider[(0,0),(0,0.2),(1,1)]*/
-vec2 SunPos = vec2(2.0 * uTweaks.x, 2.0 * uTweaks.y);
+/*vec2 SunPos = vec2(2.0 * uTweaks.x, 2.0 * uTweaks.y);*/
 /*uniform float SkyFactor = 1.0; //slider[0,1,100]*/
-float SkyFactor = 2.0*uTweaks.w; //slider[0,1,100]
+/*float SkyFactor = 2.0 * uTweaks.w; //slider[0,1,100]*/
+
+// Ad-hoc values
+float turbidity = 1.76;
+vec2 SunPos = vec2(1.58, 1.64);
+float SkyFactor = 0.5;
+
 
 vec3 fromSpherical(vec2 p) {
 	return vec3(
@@ -232,6 +238,5 @@ vec3 sunsky(vec3 viewDir)
 	float sundisk = smoothstep(sunAngularDiameterCos,sunAngularDiameterCos+0.00002,cosViewSunAngle);
 	vec3 sun = (sunE * 19000.0 * Fex)*sundisk;
 
-    /*return vec3(1.0, 0.0, 1.0);*/
 	return 0.01*(sun+sky);
 }

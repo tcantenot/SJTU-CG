@@ -1,5 +1,6 @@
-#define SAMPLES 4
-#define MAXDEPTH 5
+#define MULTIPLICITY 1
+#define SAMPLES 512
+#define MAXDEPTH 8
 
 // Debug to see how many samples never reach a light source
 #define DEBUG_NO_HIT 0
@@ -20,18 +21,27 @@
 #define REFR 2
 
 
+#include "distance_fields.glsl"
 #include "fragmentarium/sunsky.glsl"
 #include "random.glsl"
 #include "ray.glsl"
 #include "distributions.glsl"
+
+#define RAYMARCHING 0
+const float NONE = 1e20;
+const float PRECISION = 0.0001;
+const float TMIN = 0.1;
+const float TMAX = 1000.0;
+const int STEP_MAX = 500;
+
 
 float seed = 0.0;
 vec2 SEED = vec2(0.0);
 
 float rand()
 {
-    SEED += vec2(1.0, -1.0);
-    return hash2(SEED);
+    /*SEED += vec2(0.1, -0.1);*/
+    /*return hash2(SEED);*/
     return fract(sin(seed++)*43758.5453123);
 }
 
@@ -50,7 +60,7 @@ uniform Light uLights[LIGHT_COUNT] = Light[](
     Light(vec3(50.0, 81.6, 81.6), 20.0, vec3(1.0), 3.0)
 );
 
-int lightCount = 1;
+int lightCount = 0;
 
 
 struct Material
@@ -85,43 +95,72 @@ const vec3 red    = vec3(0.75, 0.25, 0.25);
 const vec3 green  = vec3(0.25, 0.75, 0.25);
 const vec3 blue   = vec3(0.25, 0.25, 0.75);
 const vec3 yellow = vec3(0.75, 0.75, 0.25);
+const vec3 lgreen = vec3(0.7, 1.0, 0.9);
+const vec3 lblue  = vec3(0.7, 0.8, 0.9);
 
-#define NUM_SPHERES 3
+#define NUM_SPHERES 4
 Sphere spheres[NUM_SPHERES] = Sphere[](
     // Red wall
-	/*Sphere(1e5, vec3-1e5+1., 40.8, 81.6),	black,  red, DIFF),*/
+    /*Sphere(1e5, vec3(-1e5+1., 40.8, 81.6), Material(DIFF, red, black)),*/
 
     // Blue wall
-	/*Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), black, blue, DIFF),*/
+    /*Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), Material(DIFF, blue, black)),*/
 
     // Front wall
-    /*Sphere(1e5, vec3(50., 40.8, -1e5), black, gray, DIFF),*/
+    /*Sphere(1e5, vec3(50., 40.8, -1e5), Material(DIFF, gray, black)),*/
 
     // Back wall
-    /*Sphere(1e5, vec3(50., 40.8,  1e5+170), black, green, DIFF),*/
+    /*Sphere(1e5, vec3(50., 40.8,  1e5+170), Material(DIFF, green, black)),*/
 
     // Floor
-    /*Sphere(1e5, vec3(50., -1e5, 81.6), black, white, DIFF),*/
     Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFF, white, black)),
 
     // Ceiling
-	/*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), black, gray, DIFF),*/
+    /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFF, gray, black)),*/
 
     // Metallic ball
-	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, white, black)),
+	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, gray, black)),
 
     // Glass ball
-	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFR, vec3(0.7, 1.0, 0.9), black))
+	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFR, lblue, black))
 
-    /*,*/
 
-    // Ceiling light
+    // First light
     /*Sphere(600., vec3(50., 681.33, 81.6), 2.0*white, black, DIFF)*/
-    /*Sphere(uLights[0].radius, uLights[0].pos, uLights[0].power*uLights[0].color, black, DIFF)*/
+    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFF, black, uLights[0].power*uLights[0].color))*/
+    ,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFF, uLights[0].color, uLights[0].color))
 
-    // Other light
-    /*,Sphere(uLights[1].radius, uLights[1].pos, 2.0*uLights[1].color, black, DIFF)*/
+    // Second light
+    /*,Sphere(uLights[1].radius, uLights[1].pos, Material(DIFF, black, 2.0*uLights[1].color)))*/
 );
+
+#define RANDOM_SAMPLING 1
+#if RANDOM_SAMPLING
+
+vec3 ortho(vec3 v) {
+	//  See : http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
+	return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0)  : vec3(0.0, -v.z, v.y);
+}
+
+vec3 getConeSample(vec3 dir, float extent)
+{
+	// Create orthogonal vector(fails for z,y = 0)
+	dir = normalize(dir);
+	vec3 o1 = normalize(ortho(dir));
+	vec3 o2 = normalize(cross(dir, o1));
+
+	// Convert to spherical coords aligned to dir
+	vec2 r =  hash2(vec2(seed-1.0, seed++));
+
+	/*if(Stratify) {r*=0.1; r+= cx;}*/
+	r.x=r.x*2.*PI;
+	r.y=1.0-r.y*extent;
+
+	float oneminus = sqrt(1.0-r.y*r.y);
+	return cos(r.x)*oneminus*o1+sin(r.x)*oneminus*o2+r.y*dir;
+}
+#endif
+
 
 float intersect(Sphere s, Ray ray)
 {
@@ -236,21 +275,84 @@ float fresnelApprox(float NoL, out float R, out float T)
     return R;
 }
 
-void background(Ray ray, int depth, inout vec3 color)
+float map(vec3 p, inout HitInfo hitInfo)
 {
-    bool directLight = true;
+    float scene = NONE;
 
-    if(!directLight)
+    int id = -1;
+
+    p -= vec3(50.0, 20.0, 30.0);
+
+    float sphere = NONE;
+
+    sphere = sdSphere(p-vec3(90.0, 0.0, 0.0), 30.0);
+    scene = opU(scene, sphere, id, 3, id);
+
+    opRep1(p.x, 150.0);
+    /*opRep1(p.z, 200.0);*/
+
+    /*sphere = sdBox(p, vec3(40.0));*/
+    sphere = sdSphere(p, 40.0);
+    /*float box = sdBox(p+vec3(1.2, 0.0, 0.0), vec3(0.5));*/
+    scene = opU(scene, sphere, id, 2, id);
+
+#if 0
+    p -= vec3(0.0, 41.5, 0.0);
+
+    float plane = sdPlaneY(p+vec3(0.0, 1.0, 0.0));
+    opRep1(p.x, 4);
+    opRep1(p.z, 3);
+    float sphere = sdSphere(p+vec3(0.1, 0.2, 1.0), 0.5);
+    float box = sdBox(p+vec3(1.2, 0.0, 0.0), vec3(0.5));
+    float capsule = sdHexPrism(p-vec3(0.0, -0.3, 0.0), vec2(0.1, 0.2));
+
+    scene = opU(scene, plane, id, 0, id);
+    scene = opU(scene, box, id, 1, id);
+    scene = opU(scene, sphere, id, 2, id);
+    scene = opU(scene, capsule, id, 3, id);
+#endif
+
+    hitInfo.id = id;
+
+    return scene;
+}
+
+float map(vec3 p)
+{
+    HitInfo _;
+    return map(p, _);
+}
+
+// Compute normal by central differences on the distance field at the shading point
+// (gradient approximation)
+vec3 calcNormal(vec3 pos)
+{
+    vec3 eps = vec3(0.001, 0.0, 0.0);
+    vec3 normal = vec3(
+        map(pos+eps.xyy) - map(pos-eps.xyy),
+        map(pos+eps.yxy) - map(pos-eps.yxy),
+        map(pos+eps.yyx) - map(pos-eps.yyx)
+    );
+    return normalize(normal);
+}
+
+bool DirectLight = true;
+
+
+
+vec3 background(Ray ray, int depth, vec3 mask, vec3 direct, inout vec3 color)
+{
+    if(!DirectLight)
     {
-        color = color + sunsky(ray.direction);
+        return color * sunsky(ray.direction);
     }
     else
     {
-        color = color + (depth > 0 ? sky(ray.direction) : sunsky(ray.direction));
+        return direct + color * (depth > 0 ? sky(ray.direction) : sunsky(ray.direction));
     }
 }
 
-#if 0
+#if 1
 float trace(
     Ray ray,
     const float tmin, const float tmax,
@@ -262,12 +364,14 @@ float trace(
     vec3 rd = ray.direction;
     float t = tmin;
 
+    hitInfo.id = -1;
+
     // Raymarching using "sphere" tracing
     for(int i = 0; i < stepmax; i++)
     {
         float d = map(ro + t * rd, hitInfo);
-        t += d;
-        if(d < precis || t > tmax) break;
+        t += abs(d);
+        if(abs(d) < precis || t > tmax) break;
     }
 
     if(t > tmax)  // No hit
@@ -286,29 +390,72 @@ float trace(
 }
 #endif
 
-Material getMaterial(int id)
+Material getMaterial(HitInfo hitInfo)
 {
+    int id = hitInfo.id;
+    vec3 pos = hitInfo.pos;
+
+    #if RAYMARCHING
+    Material mat;
+    mat.type = DIFF;
+    mat.color = vec3(1.0);
+    mat.emissive = vec3(0.0);
+
+    // Checkerboard floor
+    if(id == 0)
+    {
+        mat.type = DIFF;
+        float f = mod(floor(2.0 * pos.z) + floor(2.0 * pos.x), 2.0);
+        mat.color = vec3(0.02 + 0.1 * f) * 10.5;
+        /*mat.color = mix(color, vec3(0.2 + 0.1 * f), 0.65);*/
+    }
+    else if(id == 1)
+    {
+        mat.type = DIFF;
+        mat.color = 5.0 * vec3(0.9, 0.5, 0.4);
+    }
+    else if(id == 2)
+    {
+        mat.type = DIFF;
+        mat.color = vec3(1.0, 1.0, 1.0);
+        mat.color = vec3(1.0, 0.0, 1.0);
+    }
+    else if(id == 3)
+    {
+        mat.type = DIFF;
+        mat.color = vec3(1.0, 1.0, 1.0);
+        mat.emissive = vec3(0.8, 1.5, 0.3);
+    }
+
+    return mat;
+    #else
     return spheres[id].material;
+    #endif
 }
 
-Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask)
+Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, inout vec3 direct,
+    inout vec3 C_O_L_O_R
+)
 {
     vec3 hit = hitInfo.pos;
     vec3 n   = hitInfo.normal;
     int id   = hitInfo.id;
     Sphere obj = hitInfo.obj;
 
-    Material mat = getMaterial(id);
+    Material mat = getMaterial(hitInfo);
 
     // Diffuse material
     if(mat.type == DIFF)
     {
+        C_O_L_O_R *= mat.color;
+
         // Make sure the normal of the surface points in the opposite direction
         // of the ray (in case we are inside the surface)
         vec3 normal = n * sign(-dot(n, ray.direction));
 
         // Check if current object is visible to any lights
         vec3 lightIntensity = vec3(0.0);
+        #if 0
         for(int i = 0; i < lightCount; ++i)
         {
             Light light = uLights[i];
@@ -330,10 +477,9 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask)
             Ray shadowRay = Ray(hit, l);
 
             // Check if the current hit point if visible from the light
-            #if 0
+            #if RAYMARCHING
             HitInfo _;
             float t = trace(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, _);
-            //t = abs(t);
             #else
             float t;
             HitInfo _;
@@ -350,14 +496,76 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask)
                 lightIntensity += (I * omega) / PI;
             }
         }
+        #endif
 
-        float E = 1.0;//float(depth==0);
-        color += mask * mat.emissive * E + mask * mat.color * lightIntensity;
-        mask *= mat.color;
+        float Albedo = 1.0;
 
+
+        #if 1
+        //TODO: think if this must be done before lights contributions
         // New ray direction: random vector on the normal-oriented hemisphere
         float r2 = rand();
         vec3 d = jitter(normal, 2.0 * PI * rand(), sqrt(r2), sqrt(1.0 - r2));
+
+        C_O_L_O_R *= 2.0 * Albedo * max(0.0, dot(d, hitInfo.normal));
+        #else
+        vec3 d;
+        if(BiasSampling)
+        {
+            // Biased sampling: cosine weighted
+            // Lambertian BRDF = Albedo / PI
+            // PDF = cos(angle) / PI
+            d = getBiasedSample(hitInfo.normal, 1.0);
+
+            // Modulate color with: BRDF * cos(angle) / PDF = Albedo
+            C_O_L_O_R *= Albedo;
+        }
+        else
+        {
+            // Unbiased sampling: uniform over normal-oriented hemisphere
+            // Lambertian BRDF = Albedo / PI
+            // PDF = 1 / (2 * PI)
+            d = getHemisphereSample(hitInfo.normal, 1.0);
+
+            // Modulate color with: BRDF * cos(angle) / PDF = 2 * Albedo * cos(angle)
+            C_O_L_O_R *= 2.0 * Albedo * max(0.0, dot(d, hitInfo.normal));
+        }
+        #endif
+
+
+        // Direct
+        if(DirectLight)
+        {
+            vec3 sunSampleDir = getConeSample(sunDirection, 1.0-sunAngularDiameterCos);
+            float sunLight = dot(hitInfo.normal, sunSampleDir);
+
+            if(sunLight > 0.0)
+            {
+                Ray shadowRay = Ray(hit, sunSampleDir);
+                #if RAYMARCHING
+                HitInfo hi;
+                float t = trace(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, hi);
+                int id = hi.id;
+                if(id < 0)
+                #else
+                float t;
+                HitInfo _;
+		        if(intersect(shadowRay, t, _, id) < 0)
+                #endif
+                {
+                    direct += C_O_L_O_R * sun(sunSampleDir) * sunLight * 1E-5;
+                }
+
+            }
+        }
+
+        float E = 1.0;//float(depth==0);
+
+        direct += C_O_L_O_R * mat.emissive * E;
+
+        color += mask * mat.emissive * E;
+        color += mask * mat.color * lightIntensity;
+        mask *= mat.color;
 
         ray = Ray(hit, d);
     }
@@ -367,6 +575,9 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask)
         color += mask * mat.emissive;
         mask *= mat.color;
         ray = Ray(hit, reflect(ray.direction, n));
+
+        C_O_L_O_R *= mat.color;
+        /*C_O_L_O_R *= max(0.0, dot(ray.direction, hitInfo.normal));*/
     }
     // Refractive material
     else
@@ -435,14 +646,18 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask)
             if(rand() < P) // Reflection
             {
                 mask *= R;
+                C_O_L_O_R *= mat.color; //R;
                 ray = Ray(hit, refl);
             }
             else // Refraction
             {
                 mask *= mat.color * T;
+                C_O_L_O_R *= mat.color * T;//max(0.0, dot(ray.direction, hitInfo.normal));
                 ray = Ray(hit, refr);
             }
         }
+
+        /*C_O_L_O_R *= mat.color;*/
     }
 
     return ray;
@@ -450,9 +665,12 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask)
 
 vec3 radiance(Ray ray)
 {
-	vec3 color = vec3(0.0);
-	vec3 mask  = vec3(1.0);
+	vec3 color  = vec3(0.0);
+	vec3 direct = vec3(0.0);
+	vec3 mask   = vec3(1.0);
 	int id = -1;
+
+	vec3 C_O_L_O_R  = vec3(1.0);
 
 	for(int depth = 0; depth < MAXDEPTH; ++depth)
     {
@@ -463,23 +681,21 @@ vec3 radiance(Ray ray)
         if(all(lessThan(mask, MASK_THRESHOLD))) break;
         #endif
 
-		float t;
         HitInfo hitInfo;
 
-        #if 0
+        #if RAYMARCHING
         float t = trace(ray, TMIN, TMAX, PRECISION, STEP_MAX, hitInfo);
         int id = hitInfo.id;
         if(id < 0) // No hit
         {
-            background(ray, depth, color);
-            break;
+            return background(ray, depth, mask, direct, C_O_L_O_R);
         }
         #else
+		float t;
         // If no hit, get sky color and exit
 		if((id = intersect(ray, t, hitInfo, id)) < 0)
         {
-            background(ray, depth, color);
-            break;
+            return background(ray, depth, mask, direct, C_O_L_O_R);
         }
 
 		Sphere obj = hitInfo.obj;
@@ -490,9 +706,11 @@ vec3 radiance(Ray ray)
         #endif
 
         // Compute lighting contribution and outgoing ray
-        ray = BRDFNextRay(ray, hitInfo, color, mask);
+        ray = BRDFNextRay(ray, hitInfo, color, mask, direct, C_O_L_O_R);
 	}
 
+    /*return C_O_L_O_R;*/
+    return direct;
 	return color;
 }
 
@@ -515,25 +733,28 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
     vec2 pixel = fragCoord;
     vec2 resolution = uResolution;
 
-    float npaths = SAMPLES;
-    float aa = float(npaths) / 2.0;
-    for(int i = 0; i < npaths; i++)
+    for(int k = 0; k < MULTIPLICITY; ++k)
     {
-        vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
+        float npaths = SAMPLES;
+        float aa = float(npaths) / 2.0;
+        for(int i = 0; i < npaths; ++i)
+        {
+            vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
 
-        SEED = pixel + offset;
+            SEED = pixel + offset;
 
-        // Screen coords with antialiasing
-        vec2 p = (2.0 * (pixel + offset) - resolution) / resolution.y;
+            // Screen coords with antialiasing
+            vec2 p = (2.0 * (pixel + offset) - resolution) / resolution.y;
 
-        #if DEBUG_NO_HIT
-        vec3 test = radiance(Ray(camPos, normalize(.53135 *(p.x * cx + p.y * cy) + cz)));
-        if(dot(test, test) > 0.0) color += vec3(1.0); else color += vec3(0.5, 0.0, 0.1);
-        #else
-        color += radiance(Ray(camPos, normalize(.53135 *(p.x * cx + p.y * cy) + cz)));
-        #endif
+            #if DEBUG_NO_HIT
+            vec3 test = radiance(Ray(camPos, normalize(.53135 *(p.x * cx + p.y * cy) + cz)));
+            if(dot(test, test) > 0.0) color += vec3(1.0); else color += vec3(0.5, 0.0, 0.1);
+            #else
+            color += radiance(Ray(camPos, normalize(.53135 *(p.x * cx + p.y * cy) + cz)));
+            #endif
+        }
+        color /= float(npaths);
     }
-    color /= float(npaths);
 
 	fragColor = vec4(pow(clamp(color, 0., 1.), vec3(1./2.2)), 1.);
 }
