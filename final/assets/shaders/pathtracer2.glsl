@@ -1,5 +1,5 @@
 #define MULTIPLICITY 1
-#define SAMPLES 4
+#define SAMPLES 512
 #define MAXDEPTH 8
 
 // Debug to see how many samples never reach a light source
@@ -31,10 +31,12 @@
 #include "ray.glsl"
 #include "distributions.glsl"
 
+#include "pathtracer/fresnel.glsl"
+
 #define RAYMARCHING 0
-const float NONE = 1e20;
+const float NONE = 1e5;
 const float PRECISION = 0.0001;
-const float TMIN = 0.1;
+const float TMIN = 10.0 * PRECISION;
 const float TMAX = 1000.0;
 const int STEP_MAX = 500;
 
@@ -170,9 +172,9 @@ vec3 getConeSample(vec3 dir, float extent)
 #endif
 
 
-float intersect(Sphere s, Ray ray)
+float distance(Sphere s, Ray ray)
 {
-    const float epsilon = 1e-3;
+    const float EPSILON = 1e-3;
 	vec3 op = s.pos - ray.origin;
     float b = dot(op, ray.direction);
     float det = b * b - dot(op, op) + s.radius * s.radius;
@@ -187,67 +189,59 @@ float intersect(Sphere s, Ray ray)
         det = sqrt(det);
     }
 
-	return (t = b - det) > epsilon ? t : ((t = b + det) > epsilon ? t : 0.0);
+	return (t = b - det) > EPSILON ? t : ((t = b + det) > EPSILON ? t : 0.0);
 }
 
-/*int intersect(Ray ray, out float t, out Sphere s, int avoid)*/
-int intersect(Ray ray, out float t, out HitInfo hitInfo, int avoid)
+bool raytrace(Ray ray, int avoid, out HitInfo hitInfo)
 {
-	int id = -1;
-	t = 1e5;
-	hitInfo.obj = spheres[0];
+	hitInfo.id   = -1;
+    hitInfo.dist = 1e5;
+
+    Sphere hit;
 	for(int i = 0; i < NUM_SPHERES; ++i)
     {
         if(i == avoid) continue;
-		Sphere S = spheres[i];
-		float d = intersect(S, ray);
-		if(d != 0.0 && d < t)
-        {
-            t = d;
-            id = i;
 
-            hitInfo.obj = S;
-            hitInfo.id  = i;
+		Sphere s = spheres[i];
+		float d = distance(s, ray);
+		if(d != 0.0 && d < hitInfo.dist)
+        {
+            hit = s;
             hitInfo.dist = d;
+            hitInfo.id = i;
         }
 	}
 
-	return id;
+    // The closest intersection has been found
+    if(hitInfo.id != -1)
+    {
+        hitInfo.pos    = ray.origin + hitInfo.dist * ray.direction;
+        hitInfo.normal = normalize(hitInfo.pos - hit.pos);
+        return true;
+    }
+
+    return false;
 }
 
-float intersect(Light light, Ray ray, out bool intersection)
+float distance(Light light, Ray ray)
 {
-    const float epsilon = 1e-3;
+    const float EPSILON = 1e-3;
+    const float INF = 1e5;
 	vec3 op = light.pos - ray.origin;
     float b = dot(op, ray.direction);
     float det = b * b - dot(op, op) + light.radius * light.radius;
 
-    intersection = true;
-	if(det < 0.0)
+	float t;
+	if(det < 0.0) // No intersection
     {
-        intersection = false;
-        return 0.0;
+        return INF;
     }
     else
     {
         det = sqrt(det);
     }
 
-	float t;
-
-	if((t = b - det) > epsilon)
-    {
-        return t;
-    }
-    else if((t = b + det) > epsilon)
-    {
-        return t;
-    }
-    else
-    {
-        intersection = false;
-        return 0.0;
-    }
+	return (t = b - det) > EPSILON ? t : ((t = b + det) > EPSILON ? t : INF);
 }
 
 vec3 jitter(vec3 d, float phi, float sina, float cosa)
@@ -259,42 +253,6 @@ vec3 jitter(vec3 d, float phi, float sina, float cosa)
 	return (u * cos(phi) + v * sin(phi)) * sina + w * cosa;
 }
 
-// Schlick's approximation
-// http://en.wikipedia.org/wiki/Schlick%27s_approximation
-float fresnelSchlick(float R0, float HoV, out float R, out float T)
-{
-    const float fresnelBias  = 0.25;
-    const float fresnelScale = 0.50;
-
-    // Schlick reflection coefficient
-    float RC = R0 + (1.0 - R0) * pow(1.0 - HoV, 5.0);
-
-    float P = fresnelBias + fresnelScale * RC;
-
-    // Reflection coefficient
-    R = RC / P;
-
-    // Transmission coefficient
-    T = (1.0 - RC) / (1.0 - P);
-
-    return P;
-}
-
-// http://http.developer.nvidia.com/CgTutorial/cg_tutorial_chapter07.html
-float fresnelApprox(float NoL, out float R, out float T)
-{
-    const float fresnelBias  = 0.25;
-    const float fresnelScale = 0.5;
-    const float fresnelPower = 5.0;
-
-    // Reflection coefficient
-    R = clamp(fresnelBias + fresnelScale * pow(1.0 + NoL, fresnelPower), 0.0, 1.0);
-
-    // Transmission coefficient
-    T = 1.0 - R;
-
-    return R;
-}
 
 float map(vec3 p, inout HitInfo hitInfo)
 {
@@ -302,6 +260,7 @@ float map(vec3 p, inout HitInfo hitInfo)
 
     int id = -1;
 
+#if 0
     p -= vec3(50.0, 20.0, 30.0);
 
     float sphere = NONE;
@@ -316,16 +275,16 @@ float map(vec3 p, inout HitInfo hitInfo)
     sphere = sdSphere(p, 40.0);
     /*float box = sdBox(p+vec3(1.2, 0.0, 0.0), vec3(0.5));*/
     scene = opU(scene, sphere, id, 2, id);
+#else
+    p -= vec3(50.0, 55.0, 30.0);
+    /*p -= vec3(0.0, 30.5, 0.0);*/
 
-#if 0
-    p -= vec3(0.0, 41.5, 0.0);
-
-    float plane = sdPlaneY(p+vec3(0.0, 1.0, 0.0));
-    opRep1(p.x, 4);
-    opRep1(p.z, 3);
-    float sphere = sdSphere(p+vec3(0.1, 0.2, 1.0), 0.5);
-    float box = sdBox(p+vec3(1.2, 0.0, 0.0), vec3(0.5));
-    float capsule = sdHexPrism(p-vec3(0.0, -0.3, 0.0), vec2(0.1, 0.2));
+    float plane = sdPlaneY(p);
+    opRep1(p.x, 6);
+    opRep1(p.z, 6);
+    float sphere = sdSphere(p-vec3(0.0, 0.5, 0.0), 0.5);
+    float box = sdBox(p-vec3(-1.2, 0.5, 0.0), vec3(0.5));
+    float capsule = sdHexPrism(p-vec3(1.0, 0.5, 0.0), vec2(0.2, 0.2));
 
     scene = opU(scene, plane, id, 0, id);
     scene = opU(scene, box, id, 1, id);
@@ -361,7 +320,7 @@ bool DirectLight = true;
 
 
 
-vec3 background(Ray ray, int depth, vec3 mask, vec3 direct, inout vec3 color)
+vec3 background(Ray ray, int depth, vec3 direct, inout vec3 color)
 {
     if(!DirectLight)
     {
@@ -373,8 +332,7 @@ vec3 background(Ray ray, int depth, vec3 mask, vec3 direct, inout vec3 color)
     }
 }
 
-#if 1
-float trace(
+bool raymarch(
     Ray ray,
     const float tmin, const float tmax,
     const float precis, const int stepmax,
@@ -395,9 +353,11 @@ float trace(
         if(abs(d) < precis || t > tmax) break;
     }
 
-    if(t > tmax)  // No hit
+    // No hit
+    if(t > tmax)
     {
         hitInfo.id = -1;
+        return false;
     }
     else
     {
@@ -405,11 +365,9 @@ float trace(
         hitInfo.dist   = t;
         hitInfo.pos    = ro + t * rd;
         hitInfo.normal = calcNormal(hitInfo.pos);
+        return true;
     }
-
-    return t;
 }
-#endif
 
 Material getMaterial(HitInfo hitInfo)
 {
@@ -432,8 +390,8 @@ Material getMaterial(HitInfo hitInfo)
     }
     else if(id == 1)
     {
-        mat.type = DIFF;
-        mat.color = 5.0 * vec3(0.9, 0.5, 0.4);
+        mat.type = SPEC;
+        mat.color = vec3(1.0);//vec3(0.9, 0.5, 0.4);
     }
     else if(id == 2)
     {
@@ -454,14 +412,18 @@ Material getMaterial(HitInfo hitInfo)
     #endif
 }
 
-Ray BRDFNextRay(Ray ray, HitInfo hitInfo, float depth, inout vec3 color, inout vec3 mask, inout vec3 direct,
+Ray BRDFNextRay(
+    Ray ray,
+    HitInfo hitInfo,
+    float depth,
+    inout vec3 color,
+    inout vec3 mask,
+    inout vec3 direct,
     inout vec3 C_O_L_O_R
 )
 {
     vec3 hit = hitInfo.pos;
     vec3 n   = hitInfo.normal;
-    int id   = hitInfo.id;
-    Sphere obj = hitInfo.obj;
 
     Material mat = getMaterial(hitInfo);
 
@@ -497,19 +459,21 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, float depth, inout vec3 color, inout v
             // Shadow ray
             Ray shadowRay = Ray(hit, l);
 
-            // Check if the current hit point if visible from the light
+            HitInfo shadowingInfo;
+
+            // Check if the current hit point is potentially shadowed
             #if RAYMARCHING
-            HitInfo _;
-            float t = trace(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, _);
+            bool ps = raymarch(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, shadowingInfo);
             #else
-            float t;
-            HitInfo _;
-            intersect(shadowRay, t, _, id);
+            bool ps = raytrace(shadowRay, hitInfo.id, shadowingInfo);
             #endif
+
+            float t = shadowingInfo.dist;
 
             // FIXME: not correct because refractive can block light completely
             bool intersection;
-            float lightDist = intersect(light, shadowRay, intersection);
+            float lightDist = distance(light, shadowRay);
+            // FIXME: intersection should always be true (the shadowRay is aimed towards the light)
             if(intersection && lightDist < t)
             {
                 vec3 I = light.power * light.color * clamp(dot(l, n), 0.0, 1.0);
@@ -559,7 +523,7 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, float depth, inout vec3 color, inout v
         #endif
 
 
-        // Direct
+        // Direct sun light
         if(DirectLight)
         {
             vec3 sunSampleDir = getConeSample(sunDirection, 1.0-sunAngularDiameterCos);
@@ -568,20 +532,16 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, float depth, inout vec3 color, inout v
             if(sunLight > 0.0)
             {
                 Ray shadowRay = Ray(hit, sunSampleDir);
-                #if RAYMARCHING
-                HitInfo hi;
-                float t = trace(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, hi);
-                int id = hi.id;
-                if(id < 0)
-                #else
-                float t;
                 HitInfo _;
-		        if(intersect(shadowRay, t, _, id) < 0)
+
+                #if RAYMARCHING
+                if(!raymarch(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, _))
+                #else
+		        if(!raytrace(shadowRay, hitInfo.id, _))
                 #endif
                 {
                     direct += C_O_L_O_R * sun(sunSampleDir) * sunLight * 1E-5;
                 }
-
             }
         }
 
@@ -671,11 +631,11 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, float depth, inout vec3 color, inout v
             // Reflection coefficient at normal incidence
             float R0 = pow((n1 - n2) / (n1 + n2), 2.0);
 
-            // cos(theta) = H.V
-            float HoV = mix(cosTheta1, dot(refr, n), inside);
+            // cos(theta) = H.L
+            float HoL = mix(cosTheta1, dot(refr, n), inside);
 
             // Fresnel: Schlick approximation
-            P = fresnelSchlick(R0, HoV, R, T);
+            P = fresnelSchlick(R0, HoL, R, T);
             #else
             // Fresnel: artist approximation
             P = fresnelApprox(NoL, R, T);
@@ -710,7 +670,9 @@ vec3 radiance(Ray ray)
 	vec3 color  = vec3(0.0);
 	vec3 direct = vec3(0.0);
 	vec3 mask   = vec3(1.0);
-	int id = -1;
+
+    HitInfo hitInfo;
+	hitInfo.id = -1;
 
 	vec3 C_O_L_O_R  = vec3(1.0);
 
@@ -723,37 +685,21 @@ vec3 radiance(Ray ray)
         if(all(lessThan(mask, MASK_THRESHOLD))) break;
         #endif
 
-        HitInfo hitInfo;
-
+        // If no hit, get background color and exit
         #if RAYMARCHING
-        float t = trace(ray, TMIN, TMAX, PRECISION, STEP_MAX, hitInfo);
-        int id = hitInfo.id;
-        if(id < 0) // No hit
-        {
-            return background(ray, depth, mask, direct, C_O_L_O_R);
-        }
+        if(!raymarch(ray, TMIN, TMAX, PRECISION, STEP_MAX, hitInfo))
         #else
-		float t;
-        // If no hit, get sky color and exit
-		if((id = intersect(ray, t, hitInfo, id)) < 0)
-        {
-            return background(ray, depth, mask, direct, C_O_L_O_R);
-        }
-
-		Sphere obj = hitInfo.obj;
-		vec3 hit = ray.origin + t * ray.direction;
-		vec3 n = normalize(hit - obj.pos);
-        hitInfo.pos    = hit;
-        hitInfo.normal = n;
+        if(!raytrace(ray, hitInfo.id, hitInfo))
         #endif
+        {
+            return background(ray, depth, direct, C_O_L_O_R);
+        }
 
         // Compute lighting contribution and outgoing ray
         ray = BRDFNextRay(ray, hitInfo, depth, color, mask, direct, C_O_L_O_R);
 	}
 
-    /*return C_O_L_O_R;*/
     return direct;
-	return color;
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord)
@@ -765,7 +711,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
 
 	vec2 uv = 2. * fragCoord.xy / uResolution.xy - 1.;
 
-	vec3 camPos = vec3((2. *(uMouse.xy==vec2(0.)?.5*uResolution.xy:uMouse.xy) / uResolution.xy - 1.) * vec2(48., 40.) + vec2(50., 40.8), 169.);
+    vec2 mo = (2.0 * (uMouse.xy == vec2(0.0) ? 0.5 * uResolution.xy : uMouse.xy) / uResolution.xy - 1.0);
+	vec3 camPos = vec3(mo * vec2(48., 40.) + vec2(50., 40.8), 169.);
 
 	vec3 cz = normalize(vec3(50., 40., 81.6) - camPos);
 	vec3 cx = vec3(1., 0., 0.);
