@@ -1,5 +1,5 @@
 #define MULTIPLICITY 1
-#define SAMPLES 512
+#define SAMPLES 5
 #define MAXDEPTH 8
 
 // Debug to see how many samples never reach a light source
@@ -25,32 +25,6 @@
 #define NO_SHADING 0
 
 
-#include "distance_fields.glsl"
-#include "fragmentarium/sunsky.glsl"
-#include "random.glsl"
-#include "ray.glsl"
-#include "distributions.glsl"
-
-#include "pathtracer/fresnel.glsl"
-
-#define RAYMARCHING 0
-const float NONE = 1e5;
-const float PRECISION = 0.0001;
-const float TMIN = 10.0 * PRECISION;
-const float TMAX = 1000.0;
-const int STEP_MAX = 500;
-
-
-float seed = 0.0;
-vec2 SEED = vec2(0.0);
-
-float rand()
-{
-    /*SEED += vec2(0.1, -0.1);*/
-    /*return hash2(SEED);*/
-    return fract(sin(seed++)*43758.5453123);
-}
-
 struct Light
 {
     vec3 pos;
@@ -58,6 +32,7 @@ struct Light
     vec3 color;
     float power;
 };
+
 
 const int LIGHT_COUNT = 2;
 uniform Light uLights[LIGHT_COUNT] = Light[](
@@ -69,80 +44,52 @@ uniform Light uLights[LIGHT_COUNT] = Light[](
 int lightCount = 0;
 
 
-struct Material
+
+#include "fragmentarium/sunsky.glsl"
+#include "random.glsl"
+#include "ray.glsl"
+#include "distributions.glsl"
+
+#include "pathtracer/fresnel.glsl"
+#include "pathtracer/material.glsl"
+#include "hitinfo.glsl"
+
+#define RAYMARCHING 1
+
+#include "pathtracer/settings.glsl"
+
+
+float distance(Ray ray, Light light)
 {
-	float type;
-    vec3  color;
-    vec3  emissive;
-    // TODO: add roughness
-    /*float roughness;*/
-};
+    const float EPSILON = 1e-3;
+    const float INF = 1e5;
+	vec3 op = light.pos - ray.origin;
+    float b = dot(op, ray.direction);
+    float det = b * b - dot(op, op) + light.radius * light.radius;
 
-struct Sphere
+	float t;
+	if(det < 0.0) // No intersection
+    {
+        return INF;
+    }
+    else
+    {
+        det = sqrt(det);
+    }
+
+	return (t = b - det) > EPSILON ? t : ((t = b + det) > EPSILON ? t : INF);
+}
+
+
+float seed = 0.0;
+vec2 SEED = vec2(0.0);
+
+float rand()
 {
-	float radius;
-	vec3 pos;
-    Material material;
-};
-
-struct HitInfo
-{
-    Sphere obj;
-    int id;
-    vec3 pos;
-    vec3 normal;
-    float dist;
-};
-
-
-const vec3 white  = vec3(1.0);
-const vec3 black  = vec3(0.0);
-const vec3 gray   = vec3(0.75);
-const vec3 red    = vec3(0.75, 0.25, 0.25);
-const vec3 green  = vec3(0.25, 0.75, 0.25);
-const vec3 blue   = vec3(0.25, 0.25, 0.75);
-const vec3 yellow = vec3(0.75, 0.75, 0.25);
-const vec3 lgreen = vec3(0.7, 1.0, 0.9);
-const vec3 lblue  = vec3(0.7, 0.8, 0.9);
-
-#define NUM_SPHERES 5
-Sphere spheres[NUM_SPHERES] = Sphere[](
-    // Red wall
-    /*Sphere(1e5, vec3(-1e5+1., 40.8, 81.6), Material(DIFF, red, black)),*/
-
-    // Blue wall
-    /*Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), Material(DIFF, blue, black)),*/
-
-    // Front wall
-    /*Sphere(1e5, vec3(50., 40.8, -1e5), Material(DIFF, gray, black)),*/
-
-    // Back wall
-    /*Sphere(1e5, vec3(50., 40.8,  1e5+170), Material(DIFF, green, black)),*/
-
-    // Floor
-    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFF, white, black)),
-
-    // Ceiling
-    /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFF, gray, black)),*/
-
-    // Plastic ball
-	Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFF, red, black)),
-
-    // Metallic ball
-	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, yellow, black)),
-
-    // Glass ball
-	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFR, lblue, black))
-
-
-    // First light
-    /*Sphere(600., vec3(50., 681.33, 81.6), 2.0*white, black, DIFF)*/
-    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFF, black, uLights[0].power*uLights[0].color))*/
-    ,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFF, uLights[0].color, uLights[0].color))
-
-    // Second light
-    /*,Sphere(uLights[1].radius, uLights[1].pos, Material(DIFF, black, 2.0*uLights[1].color)))*/
-);
+    /*SEED += vec2(0.1, -0.1);*/
+    /*return hash2(SEED);*/
+    return fract(sin(seed++)*43758.5453123);
+}
 
 #define RANDOM_SAMPLING 1
 #if RANDOM_SAMPLING
@@ -172,77 +119,7 @@ vec3 getConeSample(vec3 dir, float extent)
 #endif
 
 
-float distance(Sphere s, Ray ray)
-{
-    const float EPSILON = 1e-3;
-	vec3 op = s.pos - ray.origin;
-    float b = dot(op, ray.direction);
-    float det = b * b - dot(op, op) + s.radius * s.radius;
 
-	float t;
-	if(det < 0.0) // No intersection
-    {
-        return 0.0;
-    }
-    else
-    {
-        det = sqrt(det);
-    }
-
-	return (t = b - det) > EPSILON ? t : ((t = b + det) > EPSILON ? t : 0.0);
-}
-
-bool raytrace(Ray ray, int avoid, out HitInfo hitInfo)
-{
-	hitInfo.id   = -1;
-    hitInfo.dist = 1e5;
-
-    Sphere hit;
-	for(int i = 0; i < NUM_SPHERES; ++i)
-    {
-        if(i == avoid) continue;
-
-		Sphere s = spheres[i];
-		float d = distance(s, ray);
-		if(d != 0.0 && d < hitInfo.dist)
-        {
-            hit = s;
-            hitInfo.dist = d;
-            hitInfo.id = i;
-        }
-	}
-
-    // The closest intersection has been found
-    if(hitInfo.id != -1)
-    {
-        hitInfo.pos    = ray.origin + hitInfo.dist * ray.direction;
-        hitInfo.normal = normalize(hitInfo.pos - hit.pos);
-        return true;
-    }
-
-    return false;
-}
-
-float distance(Light light, Ray ray)
-{
-    const float EPSILON = 1e-3;
-    const float INF = 1e5;
-	vec3 op = light.pos - ray.origin;
-    float b = dot(op, ray.direction);
-    float det = b * b - dot(op, op) + light.radius * light.radius;
-
-	float t;
-	if(det < 0.0) // No intersection
-    {
-        return INF;
-    }
-    else
-    {
-        det = sqrt(det);
-    }
-
-	return (t = b - det) > EPSILON ? t : ((t = b + det) > EPSILON ? t : INF);
-}
 
 vec3 jitter(vec3 d, float phi, float sina, float cosa)
 {
@@ -254,70 +131,7 @@ vec3 jitter(vec3 d, float phi, float sina, float cosa)
 }
 
 
-float map(vec3 p, inout HitInfo hitInfo)
-{
-    float scene = NONE;
-
-    int id = -1;
-
-#if 0
-    p -= vec3(50.0, 20.0, 30.0);
-
-    float sphere = NONE;
-
-    sphere = sdSphere(p-vec3(90.0, 0.0, 0.0), 30.0);
-    scene = opU(scene, sphere, id, 3, id);
-
-    opRep1(p.x, 150.0);
-    /*opRep1(p.z, 200.0);*/
-
-    /*sphere = sdBox(p, vec3(40.0));*/
-    sphere = sdSphere(p, 40.0);
-    /*float box = sdBox(p+vec3(1.2, 0.0, 0.0), vec3(0.5));*/
-    scene = opU(scene, sphere, id, 2, id);
-#else
-    p -= vec3(50.0, 55.0, 30.0);
-    /*p -= vec3(0.0, 30.5, 0.0);*/
-
-    float plane = sdPlaneY(p);
-    opRep1(p.x, 6);
-    opRep1(p.z, 6);
-    float sphere = sdSphere(p-vec3(0.0, 0.5, 0.0), 0.5);
-    float box = sdBox(p-vec3(-1.2, 0.5, 0.0), vec3(0.5));
-    float capsule = sdHexPrism(p-vec3(1.0, 0.5, 0.0), vec2(0.2, 0.2));
-
-    scene = opU(scene, plane, id, 0, id);
-    scene = opU(scene, box, id, 1, id);
-    scene = opU(scene, sphere, id, 2, id);
-    scene = opU(scene, capsule, id, 3, id);
-#endif
-
-    hitInfo.id = id;
-
-    return scene;
-}
-
-float map(vec3 p)
-{
-    HitInfo _;
-    return map(p, _);
-}
-
-// Compute normal by central differences on the distance field at the shading point
-// (gradient approximation)
-vec3 calcNormal(vec3 pos)
-{
-    vec3 eps = vec3(0.001, 0.0, 0.0);
-    vec3 normal = vec3(
-        map(pos+eps.xyy) - map(pos-eps.xyy),
-        map(pos+eps.yxy) - map(pos-eps.yxy),
-        map(pos+eps.yyx) - map(pos-eps.yyx)
-    );
-    return normalize(normal);
-}
-
 bool DirectLight = true;
-
 
 
 vec3 background(Ray ray, int depth, vec3 direct, inout vec3 color)
@@ -330,86 +144,6 @@ vec3 background(Ray ray, int depth, vec3 direct, inout vec3 color)
     {
         return direct + color * (depth > 0 ? sky(ray.direction) : sunsky(ray.direction));
     }
-}
-
-bool raymarch(
-    Ray ray,
-    const float tmin, const float tmax,
-    const float precis, const int stepmax,
-    inout HitInfo hitInfo
-)
-{
-    vec3 ro = ray.origin;
-    vec3 rd = ray.direction;
-    float t = tmin;
-
-    hitInfo.id = -1;
-
-    // Raymarching using "sphere" tracing
-    for(int i = 0; i < stepmax; i++)
-    {
-        float d = map(ro + t * rd, hitInfo);
-        t += abs(d);
-        if(abs(d) < precis || t > tmax) break;
-    }
-
-    // No hit
-    if(t > tmax)
-    {
-        hitInfo.id = -1;
-        return false;
-    }
-    else
-    {
-        // Store hit info
-        hitInfo.dist   = t;
-        hitInfo.pos    = ro + t * rd;
-        hitInfo.normal = calcNormal(hitInfo.pos);
-        return true;
-    }
-}
-
-Material getMaterial(HitInfo hitInfo)
-{
-    int id = hitInfo.id;
-    vec3 pos = hitInfo.pos;
-
-    #if RAYMARCHING
-    Material mat;
-    mat.type = DIFF;
-    mat.color = vec3(1.0);
-    mat.emissive = vec3(0.0);
-
-    // Checkerboard floor
-    if(id == 0)
-    {
-        mat.type = DIFF;
-        float f = mod(floor(2.0 * pos.z) + floor(2.0 * pos.x), 2.0);
-        mat.color = vec3(0.02 + 0.1 * f) * 10.5;
-        /*mat.color = mix(color, vec3(0.2 + 0.1 * f), 0.65);*/
-    }
-    else if(id == 1)
-    {
-        mat.type = SPEC;
-        mat.color = vec3(1.0);//vec3(0.9, 0.5, 0.4);
-    }
-    else if(id == 2)
-    {
-        mat.type = DIFF;
-        mat.color = vec3(1.0, 1.0, 1.0);
-        mat.color = vec3(1.0, 0.0, 1.0);
-    }
-    else if(id == 3)
-    {
-        mat.type = DIFF;
-        mat.color = vec3(1.0, 1.0, 1.0);
-        mat.emissive = vec3(0.8, 1.5, 0.3);
-    }
-
-    return mat;
-    #else
-    return spheres[id].material;
-    #endif
 }
 
 Ray BRDFNextRay(
@@ -462,17 +196,13 @@ Ray BRDFNextRay(
             HitInfo shadowingInfo;
 
             // Check if the current hit point is potentially shadowed
-            #if RAYMARCHING
-            bool ps = raymarch(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, shadowingInfo);
-            #else
-            bool ps = raytrace(shadowRay, hitInfo.id, shadowingInfo);
-            #endif
+            bool ps = trace(shadowRay, hitInfo.id, shadowingInfo);
 
             float t = shadowingInfo.dist;
 
             // FIXME: not correct because refractive can block light completely
             bool intersection;
-            float lightDist = distance(light, shadowRay);
+            float lightDist = distance(shadowRay, light);
             // FIXME: intersection should always be true (the shadowRay is aimed towards the light)
             if(intersection && lightDist < t)
             {
@@ -533,12 +263,7 @@ Ray BRDFNextRay(
             {
                 Ray shadowRay = Ray(hit, sunSampleDir);
                 HitInfo _;
-
-                #if RAYMARCHING
-                if(!raymarch(shadowRay, TMIN, TMAX, PRECISION, STEP_MAX, _))
-                #else
-		        if(!raytrace(shadowRay, hitInfo.id, _))
-                #endif
+		        if(!trace(shadowRay, hitInfo.id, _))
                 {
                     direct += C_O_L_O_R * sun(sunSampleDir) * sunLight * 1E-5;
                 }
@@ -686,11 +411,7 @@ vec3 radiance(Ray ray)
         #endif
 
         // If no hit, get background color and exit
-        #if RAYMARCHING
-        if(!raymarch(ray, TMIN, TMAX, PRECISION, STEP_MAX, hitInfo))
-        #else
-        if(!raytrace(ray, hitInfo.id, hitInfo))
-        #endif
+        if(!trace(ray, hitInfo.id, hitInfo))
         {
             return background(ray, depth, direct, C_O_L_O_R);
         }
