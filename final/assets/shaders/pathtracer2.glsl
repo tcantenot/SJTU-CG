@@ -1,5 +1,5 @@
 #define MULTIPLICITY 1
-#define SAMPLES 512
+#define SAMPLES 4
 #define MAXDEPTH 8
 
 // Debug to see how many samples never reach a light source
@@ -16,9 +16,13 @@
 #define RUSSIAN_ROULETTE 0
 
 #define PI 3.14159265359
-#define DIFF 0
-#define SPEC 1
-#define REFR 2
+#define DIFF 1
+#define SPEC 2
+#define REFR 3
+//TODO: add emissive material
+//TODO: add no shading material
+#define EMIS 4
+#define NO_SHADING 0
 
 
 #include "distance_fields.glsl"
@@ -68,6 +72,7 @@ struct Material
 	float type;
     vec3  color;
     vec3  emissive;
+    // TODO: add roughness
     /*float roughness;*/
 };
 
@@ -98,7 +103,7 @@ const vec3 yellow = vec3(0.75, 0.75, 0.25);
 const vec3 lgreen = vec3(0.7, 1.0, 0.9);
 const vec3 lblue  = vec3(0.7, 0.8, 0.9);
 
-#define NUM_SPHERES 4
+#define NUM_SPHERES 5
 Sphere spheres[NUM_SPHERES] = Sphere[](
     // Red wall
     /*Sphere(1e5, vec3(-1e5+1., 40.8, 81.6), Material(DIFF, red, black)),*/
@@ -118,8 +123,11 @@ Sphere spheres[NUM_SPHERES] = Sphere[](
     // Ceiling
     /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFF, gray, black)),*/
 
+    // Plastic ball
+	Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFF, red, black)),
+
     // Metallic ball
-	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, gray, black)),
+	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, yellow, black)),
 
     // Glass ball
 	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFR, lblue, black))
@@ -226,7 +234,20 @@ float intersect(Light light, Ray ray, out bool intersection)
     }
 
 	float t;
-	return (t = b - det) > epsilon ? t :((t = b + det) > epsilon ? t : 0.0);
+
+	if((t = b - det) > epsilon)
+    {
+        return t;
+    }
+    else if((t = b + det) > epsilon)
+    {
+        return t;
+    }
+    else
+    {
+        intersection = false;
+        return 0.0;
+    }
 }
 
 vec3 jitter(vec3 d, float phi, float sina, float cosa)
@@ -433,7 +454,7 @@ Material getMaterial(HitInfo hitInfo)
     #endif
 }
 
-Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, inout vec3 direct,
+Ray BRDFNextRay(Ray ray, HitInfo hitInfo, float depth, inout vec3 color, inout vec3 mask, inout vec3 direct,
     inout vec3 C_O_L_O_R
 )
 {
@@ -507,7 +528,12 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, ino
         float r2 = rand();
         vec3 d = jitter(normal, 2.0 * PI * rand(), sqrt(r2), sqrt(1.0 - r2));
 
-        C_O_L_O_R *= 2.0 * Albedo * max(0.0, dot(d, hitInfo.normal));
+        C_O_L_O_R *= 2.0 * Albedo * max(0.0, dot(d, normal));
+
+        /*if(hitInfo.normal != normal)*/
+        /*{*/
+            /*C_O_L_O_R = 10000.0;*/
+        /*}*/
         #else
         vec3 d;
         if(BiasSampling)
@@ -515,7 +541,7 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, ino
             // Biased sampling: cosine weighted
             // Lambertian BRDF = Albedo / PI
             // PDF = cos(angle) / PI
-            d = getBiasedSample(hitInfo.normal, 1.0);
+            d = getBiasedSample(normal, 1.0);
 
             // Modulate color with: BRDF * cos(angle) / PDF = Albedo
             C_O_L_O_R *= Albedo;
@@ -525,10 +551,10 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, ino
             // Unbiased sampling: uniform over normal-oriented hemisphere
             // Lambertian BRDF = Albedo / PI
             // PDF = 1 / (2 * PI)
-            d = getHemisphereSample(hitInfo.normal, 1.0);
+            d = getHemisphereSample(normal, 1.0);
 
             // Modulate color with: BRDF * cos(angle) / PDF = 2 * Albedo * cos(angle)
-            C_O_L_O_R *= 2.0 * Albedo * max(0.0, dot(d, hitInfo.normal));
+            C_O_L_O_R *= 2.0 * Albedo * max(0.0, dot(d, normal));
         }
         #endif
 
@@ -537,7 +563,7 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, ino
         if(DirectLight)
         {
             vec3 sunSampleDir = getConeSample(sunDirection, 1.0-sunAngularDiameterCos);
-            float sunLight = dot(hitInfo.normal, sunSampleDir);
+            float sunLight = dot(normal, sunSampleDir);
 
             if(sunLight > 0.0)
             {
@@ -559,7 +585,20 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, ino
             }
         }
 
-        float E = 1.0;//float(depth==0);
+        // TODO: Lights: two approaches
+        // - indirect using the emissive property of the material
+        //  (the light color and power is encoded into the emissive color)
+        //  -> the emissive value is queried as intensity for lights
+        // - direct using extra rays sent towards the emitters
+        //  -> the material of the lights must not be emissive to avoid
+        //     gathering the emitted energy twice
+        //     However, non explicit emitters can still exists with the
+        //     emissive color of their materials
+        //
+        // => only gather emissive quantity of the first bounce?
+        /* float E = float(depth == 0);*/
+
+        float E = 1.0;
 
         direct += C_O_L_O_R * mat.emissive * E;
 
@@ -577,7 +616,7 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, ino
         ray = Ray(hit, reflect(ray.direction, n));
 
         C_O_L_O_R *= mat.color;
-        /*C_O_L_O_R *= max(0.0, dot(ray.direction, hitInfo.normal));*/
+        /*C_O_L_O_R *= max(0.0, dot(ray.direction, normal));*/
     }
     // Refractive material
     else
@@ -645,19 +684,22 @@ Ray BRDFNextRay(Ray ray, HitInfo hitInfo, inout vec3 color, inout vec3 mask, ino
             // Split ray: reflection + refraction
             if(rand() < P) // Reflection
             {
-                mask *= R;
-                C_O_L_O_R *= mat.color; //R;
+                mask *= /*mat.color **/ R;
+                C_O_L_O_R *= mat.color * R;
                 ray = Ray(hit, refl);
             }
             else // Refraction
             {
                 mask *= mat.color * T;
-                C_O_L_O_R *= mat.color * T;//max(0.0, dot(ray.direction, hitInfo.normal));
+                C_O_L_O_R *= mat.color * T;// * max(0.0, dot(ray.direction, -n));
                 ray = Ray(hit, refr);
             }
         }
-
-        /*C_O_L_O_R *= mat.color;*/
+        else
+        {
+            vec3 refl = reflect(ray.direction, n);
+            ray = Ray(hit, refl);
+        }
     }
 
     return ray;
@@ -706,7 +748,7 @@ vec3 radiance(Ray ray)
         #endif
 
         // Compute lighting contribution and outgoing ray
-        ray = BRDFNextRay(ray, hitInfo, color, mask, direct, C_O_L_O_R);
+        ray = BRDFNextRay(ray, hitInfo, depth, color, mask, direct, C_O_L_O_R);
 	}
 
     /*return C_O_L_O_R;*/

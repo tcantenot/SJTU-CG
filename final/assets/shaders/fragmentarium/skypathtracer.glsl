@@ -1,7 +1,7 @@
 #include "sunsky.glsl"
 
 #define MULTIPLICITY 1
-#define SAMPLES 5
+#define SAMPLES 4
 #define MAXDEPTH 8
 
 
@@ -125,7 +125,7 @@ bool trace(vec3 from, vec3 dir, inout vec3 hit, inout vec3 hitNormal)
 
 uniform float Reflectivity = 0.0; //slider[0,0.2,1.0]
 uniform bool DebugLast = false; //checkbox[false]
-uniform bool Stratify = false; //checkbox[false]
+uniform bool Stratify = true; //checkbox[false]
 uniform int RayDepth = 4; //slider[0,2,5] Locked
 uniform float Albedo = 1.0; //slider[0,1,1]
 
