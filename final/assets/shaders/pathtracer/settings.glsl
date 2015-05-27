@@ -13,13 +13,19 @@ const int RM_STEP_MAX = 500;
 #define trace(ray, previousHitId, hitInfo) \
     raymarch(ray, RM_TMIN, RM_TMAX, RM_PRECISION, RM_STEP_MAX, hitInfo)
 
+#define shadowtrace(ray, previousHitId, hitInfo) \
+    raymarch(ray, RM_TMIN, RM_TMAX, RM_PRECISION, RM_STEP_MAX, hitInfo)
+
 #else
 
 #include "raytracing_scene.glsl"
 #include "raytracing.glsl"
 
 #define trace(ray, previousHitId, hitInfo) \
-    raytrace(ray, previousHitId, hitInfo)
+    raytrace(ray, previousHitId, false, hitInfo)
+
+#define shadowtrace(ray, previousHitId, hitInfo) \
+    raytrace(ray, previousHitId, true, hitInfo)
 
 #endif
 

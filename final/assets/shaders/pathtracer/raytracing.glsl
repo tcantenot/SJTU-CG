@@ -7,6 +7,7 @@ struct Sphere
 	float radius;
 	vec3 pos;
     Material material;
+    bool collidable;
 };
 
 const vec3 white  = vec3(1.0);
@@ -21,7 +22,7 @@ const vec3 lblue  = vec3(0.7, 0.8, 0.9);
 
 // FIXME: dependency on uLights
 
-#define NUM_SPHERES 5
+#define NUM_SPHERES 6
 Sphere spheres[NUM_SPHERES] = Sphere[](
     // Red wall
     /*Sphere(1e5, vec3(-1e5+1., 40.8, 81.6), Material(DIFF, red, black)),*/
@@ -36,28 +37,30 @@ Sphere spheres[NUM_SPHERES] = Sphere[](
     /*Sphere(1e5, vec3(50., 40.8,  1e5+170), Material(DIFF, green, black)),*/
 
     // Floor
-    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFF, white, black)),
+    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFF, white, black), true),
 
     // Ceiling
     /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFF, gray, black)),*/
 
     // Plastic ball
-	Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFF, red, black)),
+	Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFF, yellow, black), true),
 
     // Metallic ball
-	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, yellow, black)),
+	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, gray, black), true),
 
     // Glass ball
-	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFR, lblue, black))
+	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFR, lblue, black), true)
 
 
     // First light
     /*Sphere(600., vec3(50., 681.33, 81.6), 2.0*white, black, DIFF)*/
     /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFF, black, uLights[0].power*uLights[0].color))*/
-    ,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFF, uLights[0].color, uLights[0].color))
+    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black), false)*/
+    ,Sphere(5.0, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black), false)
 
     // Second light
-    /*,Sphere(uLights[1].radius, uLights[1].pos, Material(DIFF, black, 2.0*uLights[1].color)))*/
+    /*,Sphere(uLights[1].radius, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black), false)*/
+    ,Sphere(5, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black), false)
 );
 
 
@@ -81,7 +84,7 @@ float distance(Ray ray, Sphere s)
 	return (t = b - det) > EPSILON ? t : ((t = b + det) > EPSILON ? t : 0.0);
 }
 
-bool raytrace(Ray ray, int avoid, out HitInfo hitInfo)
+bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
 {
 	hitInfo.id   = -1;
     hitInfo.dist = 1e5;
@@ -92,6 +95,9 @@ bool raytrace(Ray ray, int avoid, out HitInfo hitInfo)
         if(i == avoid) continue;
 
 		Sphere s = spheres[i];
+
+        if(!s.collidable && shadowTrace) continue;
+
 		float d = distance(ray, s);
 		if(d != 0.0 && d < hitInfo.dist)
         {
