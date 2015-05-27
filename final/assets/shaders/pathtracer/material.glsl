@@ -1,8 +1,15 @@
+// Material
 struct Material
 {
 	float type;
     vec3  color;
     vec3  emissive;
-    // TODO: add roughness
-    /*float roughness;*/
+    float roughness;
 };
+
+// Material type
+#define NO_SHADING 0
+#define DIFFUSE 1
+#define SPECULAR 2
+#define REFRACTIVE 3
+#define EMISSIVE 4

@@ -1,6 +1,6 @@
 #include "material.glsl"
-#include "../hitinfo.glsl"
-#include "../ray.glsl"
+#include "hitinfo.glsl"
+#include "ray.glsl"
 
 struct Sphere
 {
@@ -25,42 +25,43 @@ const vec3 lblue  = vec3(0.7, 0.8, 0.9);
 #define NUM_SPHERES 6
 Sphere spheres[NUM_SPHERES] = Sphere[](
     // Red wall
-    /*Sphere(1e5, vec3(-1e5+1., 40.8, 81.6), Material(DIFF, red, black)),*/
+    /*Sphere(1e5, vec3(-1e5+1., 40.8, 81.6), Material(DIFFUSE, red, black, 0.0)),*/
 
     // Blue wall
-    /*Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), Material(DIFF, blue, black)),*/
+    /*Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), Material(DIFFUSE, blue, black, 0.0)),*/
 
     // Front wall
-    /*Sphere(1e5, vec3(50., 40.8, -1e5), Material(DIFF, gray, black)),*/
+    /*Sphere(1e5, vec3(50., 40.8, -1e5), Material(DIFFUSE, gray, black, 0.0)),*/
 
     // Back wall
-    /*Sphere(1e5, vec3(50., 40.8,  1e5+170), Material(DIFF, green, black)),*/
+    /*Sphere(1e5, vec3(50., 40.8,  1e5+170), Material(DIFFUSE, green, black, 0.0)),*/
 
     // Floor
-    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFF, white, black), true),
+    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFFUSE, white, black, 0.1), true),
+    /*Sphere(1e5, vec3(50., -1e5, 81.6), Material(SPECULAR, white, black, 0.1), true),*/
 
     // Ceiling
-    /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFF, gray, black)),*/
+    /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFFUSE, gray, black, 0.0)),*/
 
     // Plastic ball
-	Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFF, yellow, black), true),
+	Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFFUSE, yellow, black, 0.0), true),
 
     // Metallic ball
-	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPEC, gray, black), true),
+	Sphere(16.5, vec3(27., 16.5, 47.), Material(SPECULAR, gray, black, 0.0), true),
 
     // Glass ball
-	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFR, lblue, black), true)
+	Sphere(16.5, vec3(73., 16.5, 78.), Material(REFRACTIVE, lblue, black, 0.0), true)
 
 
     // First light
-    /*Sphere(600., vec3(50., 681.33, 81.6), 2.0*white, black, DIFF)*/
-    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFF, black, uLights[0].power*uLights[0].color))*/
+    /*Sphere(600., vec3(50., 681.33, 81.6), 2.0*white, black, DIFFUSE)*/
+    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFFUSE, black, uLights[0].power*uLights[0].color))*/
     /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black), false)*/
-    ,Sphere(5.0, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black), false)
+    ,Sphere(5.0, uLights[0].pos, Material(NO_SHADING, 2.0*uLights[0].color, black, 0.0), false)
 
     // Second light
     /*,Sphere(uLights[1].radius, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black), false)*/
-    ,Sphere(5, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black), false)
+    ,Sphere(5, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black, 0.0), false)
 );
 
 

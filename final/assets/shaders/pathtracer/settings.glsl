@@ -1,3 +1,11 @@
+#include "fresnel.glsl"
+#include "hitinfo.glsl"
+#include "light.glsl"
+#include "material.glsl"
+#include "random.glsl"
+#include "ray.glsl"
+#include "sampling.glsl"
+#include "sunsky_background.glsl"
 
 
 #if RAYMARCHING
@@ -29,16 +37,32 @@ const int RM_STEP_MAX = 500;
 
 #endif
 
+
 #ifdef HOOK_MATERIAL
 #define getMaterial(hitInfo) HOOK_MATERIAL(hitInfo)
 #else
-#include "material.glsl"
 Material getMaterial(HitInfo _)
 {
     Material mat;
-    mat.type = DIFF;
+    mat.type = DIFFUSE;
     mat.color = vec3(1.0);
     mat.emissive = vec3(0.0);
     return mat;
 }
+#endif
+
+
+#ifdef HOOK_BACKGROUND
+#define background(ray, depth) HOOK_BACKGROUND(ray, depth)
+#else
+vec3 background(Ray ray, int depth)
+{
+    return vec3(0.0);
+}
+#endif
+
+#if 0
+#include "radiance1.glsl"
+#else
+#include "radiance2.glsl"
 #endif

@@ -1,6 +1,7 @@
 #include "../distance_fields.glsl"
-#include "../hitinfo.glsl"
+#include "hitinfo.glsl"
 #include "material.glsl"
+
 
 float map(vec3 p, inout HitInfo hitInfo)
 {
@@ -53,32 +54,32 @@ Material HookMaterial(HitInfo hitInfo)
     vec3 pos = hitInfo.pos;
 
     Material mat;
-    mat.type = DIFF;
+    mat.type = DIFFUSE;
     mat.color = vec3(1.0);
     mat.emissive = vec3(0.0);
 
     // Checkerboard floor
     if(id == 0)
     {
-        mat.type = DIFF;
+        mat.type = DIFFUSE;
         float f = mod(floor(2.0 * pos.z) + floor(2.0 * pos.x), 2.0);
         mat.color = vec3(0.02 + 0.1 * f) * 10.5;
         /*mat.color = mix(color, vec3(0.2 + 0.1 * f), 0.65);*/
     }
     else if(id == 1)
     {
-        mat.type = SPEC;
+        mat.type = SPECULAR;
         mat.color = vec3(1.0);//vec3(0.9, 0.5, 0.4);
     }
     else if(id == 2)
     {
-        mat.type = DIFF;
+        mat.type = DIFFUSE;
         mat.color = vec3(1.0, 1.0, 1.0);
         mat.color = vec3(1.0, 0.0, 1.0);
     }
     else if(id == 3)
     {
-        mat.type = DIFF;
+        mat.type = DIFFUSE;
         mat.color = vec3(1.0, 1.0, 1.0);
         mat.emissive = vec3(0.8, 1.5, 0.3);
     }

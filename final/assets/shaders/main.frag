@@ -27,7 +27,7 @@ out vec4 RenderTarget0;
 /*#include "scenes/canyon.glsl"*/
 /*#include "misc/smallpt.glsl"*/
 /*#include "smallpt.glsl"*/
-#include "pathtracer2.glsl"
+#include "pathtracer/pathtracer.glsl"
 /*#include "fragmentarium/skypathtracer.glsl"*/
 
 void main()

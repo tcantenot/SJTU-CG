@@ -64,6 +64,7 @@ class Shader(object):
     def __init__(self, stage):
         self.id = 0
         self.stage = stage
+        self.source = None
         self.timestamp = None
         self.filename = None
         self.compiled = False
@@ -115,6 +116,7 @@ class Shader(object):
 
     def setSource(self, source):
         """ Set the shader source """
+        self.source = source
         glShaderSource(self.id, source)
 
 
@@ -123,7 +125,10 @@ class Shader(object):
         glCompileShader(self.id)
         log = glGetShaderInfoLog(self.id)
         if log != "":
+            print "Shader source: {}".format(self.source)
             print "Shader log: {}".format(log)
+            with open("err.glsl", 'w') as f:
+                f.write(self.source)
             self.compiled = False
         else:
             self.compiled = True

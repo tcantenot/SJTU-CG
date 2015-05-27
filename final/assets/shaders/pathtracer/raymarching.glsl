@@ -1,5 +1,5 @@
-#include "../hitinfo.glsl"
-#include "../ray.glsl"
+#include "hitinfo.glsl"
+#include "ray.glsl"
 
 
 float map(vec3 p)
