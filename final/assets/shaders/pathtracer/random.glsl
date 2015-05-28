@@ -16,6 +16,7 @@ vec2 rand2(vec2 n)
 }
 
 vec2 rand2n() {
-	SEED+=vec2(-1,1);
-	return rand2(SEED);
+    return vec2(rand(), rand());
+    SEED+=vec2(-1,1);
+    return rand2(SEED);
 };

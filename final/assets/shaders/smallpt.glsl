@@ -1,4 +1,4 @@
-#define SAMPLES 64
+#define SAMPLES 1
 #define MAXDEPTH 20
 
 // Debug to see how many samples never reach a light source
@@ -27,7 +27,7 @@ vec2 SEED = vec2(0.0);
 
 float rand()
 {
-    return hash2(SEED + vec2(seed++, seed+1.0));
+    /*return hash2(SEED + vec2(seed++, seed+1.0));*/
     return fract(sin(seed++)*43758.5453123);
 }
 
@@ -69,19 +69,19 @@ const vec3 yellow = vec3(0.75, 0.75, 0.25);
 #define NUM_SPHERES 9
 Sphere spheres[NUM_SPHERES] = Sphere[](
     // Red wall
-	Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	black,  red, SPEC),
+	Sphere(1e5, vec3(-1e5+1., 40.8, 81.6),	black,  red, DIFF),
 
     // Blue wall
-	Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), black, blue, SPEC),
+	Sphere(1e5, vec3( 1e5+99., 40.8, 81.6), black, blue, DIFF),
 
     // Front wall
-	Sphere(1e5, vec3(50., 40.8, -1e5), black, gray, SPEC),
+	Sphere(1e5, vec3(50., 40.8, -1e5), black, gray, DIFF),
 
     // Back wall
 	Sphere(1e5, vec3(50., 40.8,  1e5+170), black, green, DIFF),
 
     // Floor
-	Sphere(1e5, vec3(50., -1e5, 81.6), black, gray, SPEC),
+	Sphere(1e5, vec3(50., -1e5, 81.6), black, gray, DIFF),
 
     // Ceiling
 	Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), black, gray, DIFF),

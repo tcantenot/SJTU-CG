@@ -27,7 +27,6 @@ vec3 ortho(vec3 v)
 
 
 // Generate random direction on unit hemisphere proportional to cosine-weighted solid angle
-/*vec3 hemisphereUniformSample(vec3 dir)*/
 vec3 cosineWeightedSample(vec3 dir)
 {
     const float TwoPi = 2.0 * 3.141592654;

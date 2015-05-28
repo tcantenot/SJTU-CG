@@ -36,7 +36,26 @@
 #define GLOSSY_REFRACTION 1
 #endif
 
+// Stop ray once the reflectance has gone too low
+// (the ray will probably not carry much energy)
+#ifndef LOW_REFLECTANCE_OPTIMIZATION
+#define LOW_REFLECTANCE_OPTIMIZATION 1
+#endif
 
+#ifndef MIN_REFLECTANCE
+#define MIN_REFLECTANCE 0.1
+#endif
+
+#define JITTER 0
+
+vec3 jitter(vec3 d, float phi, float sina, float cosa)
+{
+    /*return rHemisphereUniform(SEED);*/
+	vec3 w = normalize(d);
+    vec3 u = normalize(cross(w.yzx, w));
+    vec3 v = cross(w, u);
+	return (u * cos(phi) + v * sin(phi)) * sina + w * cosa;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Radiance:
@@ -79,6 +98,16 @@ vec3 radiance(Ray ray)
 
 	for(int depth = 0; depth < MAX_DEPTH; ++depth)
     {
+        #if LOW_REFLECTANCE_OPTIMIZATION
+        {
+            float f = max(F.x, max(F.y, F.z));
+            if(f < MIN_REFLECTANCE)
+            {
+                return L;
+            }
+        }
+        #endif
+
         // If no hit, get background color and exit
         if(!trace(ray, hitInfo.id, hitInfo))
         {
@@ -118,9 +147,6 @@ vec3 radiance(Ray ray)
             // of the ray (in case we are inside the surface)
             vec3 normal = n * sign(-dot(n, ray.direction));
 
-            // Choose a random sampling direction
-            vec3 d = hemisphereSample(normal);
-
             // Direct lighting
             {
                 // Direct sun light
@@ -151,11 +177,23 @@ vec3 radiance(Ray ray)
                     vec3 lightDir = light.pos - hit;
                     float r2 = light.radius * light.radius;
 
+                    #if JITTER
+                    // Cosine of the maximum angle to reach the light (cone of light rays)
+                    float cosThetaMax = sqrt(1.0 - clamp(r2 / dot(lightDir, lightDir), 0.0, 1.0));
+
+                    // Random cosine inside the cone of light
+                    float cosa = mix(cosThetaMax, 1.0, rand());
+
+                    // Light direction: random vector in the cone of light
+                    vec3 l = jitter(lightDir, 2.0 * PI * rand(), sqrt(1.0 - cosa * cosa), cosa);
+                    #else
                     // Cosine of the maximum angle to reach the light (cone of light rays)
                     float cosThetaMax = sqrt(1.0 - clamp(r2 / dot(lightDir, lightDir), 0.0, 1.0));
 
                     // Light direction: random vector in the cone of light
                     vec3 l = coneSample(lightDir, cosThetaMax);
+                    #endif
+
 
                     // Shadow ray
                     Ray shadowRay = Ray(hit, l);
@@ -178,6 +216,14 @@ vec3 radiance(Ray ray)
                 L += F * lightIntensity;
                 #endif
             }
+
+            #if JITTER
+			float r2 = rand();
+			vec3 d = jitter(normal, 2.0 * PI * rand(), sqrt(r2), sqrt(1.0 - r2));
+            #else
+            // Choose a random sampling direction
+            vec3 d = hemisphereSample(normal);
+            #endif
 
             ray = Ray(hit, d);
         }

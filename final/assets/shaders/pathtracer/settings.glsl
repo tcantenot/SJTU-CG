@@ -5,7 +5,6 @@
 #include "random.glsl"
 #include "ray.glsl"
 #include "sampling.glsl"
-#include "sunsky_background.glsl"
 
 
 #if RAYMARCHING
@@ -52,6 +51,7 @@ Material getMaterial(HitInfo _)
 }
 #endif
 
+#include "sunsky_background.glsl"
 
 #ifdef HOOK_BACKGROUND
 #define background(ray, depth) HOOK_BACKGROUND(ray, depth)

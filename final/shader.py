@@ -32,7 +32,7 @@ class ShaderDependency(object):
 def readShaderFile(filename):
     """ Read a shader file and return it along with its dependencies """
 
-    def _readShaderFile(filename, deps=[]):
+    def _readShaderFile(filename, deps):
         source = ""
         with open(filename) as f:
             for line in f.readlines():
@@ -41,7 +41,7 @@ def readShaderFile(filename):
                     end = line.find('"', beg+1)
                     inc = line[beg+1:end]
                     dirname = os.path.dirname(filename)
-                    include = os.path.join(dirname, inc)
+                    include = os.path.normpath(os.path.join(dirname, inc))
                     if include not in deps:
                         deps.append(include)
                         src = _readShaderFile(include, deps)
