@@ -5,6 +5,31 @@
 #include "random.glsl"
 #include "ray.glsl"
 #include "sampling.glsl"
+#include "sunsky.glsl"
+
+#ifndef PI
+#define PI 3.14159265359
+#endif
+
+// Max ray depth
+#ifndef MAX_DEPTH
+#define MAX_DEPTH 8
+#endif
+
+// Enable the sun and sky lighting
+#ifndef SUN_SKY
+#define SUN_SKY 1
+#endif
+
+// Use Schlick's approximation for Fresnel effect
+#ifndef FRESNEL_SCHLICK
+#define FRESNEL_SCHLICK 1
+#endif
+
+// Enable glossy refraction
+#ifndef GLOSSY_REFRACTION
+#define GLOSSY_REFRACTION 1
+#endif
 
 
 bool BRDFNextRay(
@@ -21,72 +46,75 @@ bool BRDFNextRay(
 
     Material mat = getMaterial(hitInfo);
 
+    color *= mat.color;
+
     // Diffuse material
     if(mat.type == DIFFUSE)
     {
-        color *= mat.color;
-
         // Make sure the normal of the surface points in the opposite direction
         // of the ray (in case we are inside the surface)
         vec3 normal = n * sign(-dot(n, ray.direction));
 
-        // Check if current object is visible to any lights
-        #if 1
-        vec3 lightIntensity = vec3(0.0);
-        for(int i = 0; i < lightCount; ++i)
-        {
-            Light light = uLights[i];
-
-            // Vector hit-light
-            vec3 lightDir = light.pos - hit;
-            float r2 = light.radius * light.radius;
-
-            // Cosine of the maximum angle to reach the light (cone of light rays)
-            float cosThetaMax = sqrt(1.0 - clamp(r2 / dot(lightDir, lightDir), 0.0, 1.0));
-
-            // Light direction: random vector in the cone of light
-            vec3 l = coneSampleCos(lightDir, cosThetaMax);
-
-            // Shadow ray
-            Ray shadowRay = Ray(hit, l);
-
-            HitInfo shadowingInfo;
-
-            // Check if the current hit point is potentially shadowed
-            // FIXME: not correct because refractive can block light completely
-            bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);
-
-            float lightDist = distance(shadowRay, light);
-            // FIXME: intersection should always be true (the shadowRay is aimed towards the light)
-            if(lightDist < shadowingInfo.dist)
-            {
-                vec3 I = light.power * light.color * clamp(dot(l, n), 0.0, 1.0);
-                float omega = 2.0 * PI * (1.0 - cosThetaMax);
-                lightIntensity += (I * omega) / PI;
-            }
-        }
-        direct += color * lightIntensity;
-        #endif
-
         // Choose a random sampling direction and update the accumulated color
         vec3 d = randomSampling(normal, color);
 
-        // Direct sun light
-        const bool SunLight = true;
-        if(SunLight)
+        // Direct lighting
         {
-            vec3 sunSampleDir = coneSample(sunDirection, 1.0-sunAngularDiameterCos);
-            float sunLight = dot(normal, sunSampleDir);
-
-            if(sunLight > 0.0)
+            // Direct sun light
+            #if SUN_SKY
             {
-                Ray shadowRay = Ray(hit, sunSampleDir);
-                HitInfo _;
-		        if(!shadowtrace(shadowRay, hitInfo.id, _))
+                vec3 sunSampleDir = coneSample(sunDirection, sunAngularDiameterCos);
+                float sunLight = dot(normal, sunSampleDir);
+
+                if(sunLight > 0.0)
                 {
-                    direct += color * sun(sunSampleDir) * sunLight * 1E-5;
+                    Ray shadowRay = Ray(hit, sunSampleDir);
+                    HitInfo _;
+                    if(!shadowtrace(shadowRay, hitInfo.id, _))
+                    {
+                        direct += color * sun(sunSampleDir) * sunLight * 1E-5;
+                    }
                 }
             }
+            #endif
+
+            // Check if current object is visible to any lights
+            #if LIGHTS
+            vec3 lightIntensity = vec3(0.0);
+            for(int i = 0; i < LIGHT_COUNT; ++i)
+            {
+                Light light = uLights[i];
+
+                // Vector hit-light
+                vec3 lightDir = light.pos - hit;
+                float r2 = light.radius * light.radius;
+
+                // Cosine of the maximum angle to reach the light (cone of light rays)
+                float cosThetaMax = sqrt(1.0 - clamp(r2 / dot(lightDir, lightDir), 0.0, 1.0));
+
+                // Light direction: random vector in the cone of light
+                vec3 l = coneSample(lightDir, cosThetaMax);
+
+                // Shadow ray
+                Ray shadowRay = Ray(hit, l);
+
+                HitInfo shadowingInfo;
+
+                // Check if the current hit point is potentially shadowed
+                // FIXME: not correct because refractive can block light completely
+                bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);
+
+                float lightDist = distance(shadowRay, light);
+                // FIXME: intersection should always be true (the shadowRay is aimed towards the light)
+                if(lightDist < shadowingInfo.dist)
+                {
+                    vec3 I = light.power * light.color * clamp(dot(l, n), 0.0, 1.0);
+                    float omega = 2.0 * PI * (1.0 - cosThetaMax);
+                    lightIntensity += (I * omega) / PI;
+                }
+            }
+            direct += color * lightIntensity;
+            #endif
         }
 
         /*float E = float(depth == 0);*/
@@ -101,10 +129,7 @@ bool BRDFNextRay(
     {
         vec3 refl = reflect(ray.direction, n);
         float alpha = 1.0 - mat.roughness * mat.roughness;
-        vec3 dir = coneSampleCos(refl, alpha);
-
-        color *= mat.color;
-        /*color *= max(0.0, dot(ray.direction, normal));*/
+        vec3 dir = coneSample(refl, alpha);
 
         nextRay = Ray(hit, dir);
     }
@@ -174,20 +199,18 @@ bool BRDFNextRay(
             // Split ray: reflection + refraction
             if(rand() < P) // Reflection
             {
-                /*color *= R;*/
-                color *= mat.color * R;
+                color *= R;
 
                 #if GLOSSY_REFRACTION
                 float alpha = 1.0 - mat.roughness * mat.roughness;
-                refl = coneSampleCos(refl, alpha);
+                refl = coneSample(refl, alpha);
                 #endif
 
                 nextRay = Ray(hit, refl);
             }
             else // Refraction
             {
-                /*color *= T;*/
-                color *= mat.color * T;// * max(0.0, dot(ray.direction, -n));
+                color *= T;
                 nextRay = Ray(hit, refr);
             }
         }
@@ -197,7 +220,7 @@ bool BRDFNextRay(
 
             #if GLOSSY_REFRACTION
             float alpha = 1.0 - mat.roughness * mat.roughness;
-            refl = coneSampleCos(refl, alpha);
+            refl = coneSample(refl, alpha);
             #endif
 
             nextRay = Ray(hit, refl);
@@ -221,7 +244,7 @@ vec3 radiance(Ray ray)
 
 	vec3 color  = vec3(1.0);
 
-	for(int depth = 0; depth < MAXDEPTH; ++depth)
+	for(int depth = 0; depth < MAX_DEPTH; ++depth)
     {
         // If no hit, get background color and exit
         if(!trace(ray, hitInfo.id, hitInfo))

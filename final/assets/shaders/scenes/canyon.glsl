@@ -283,6 +283,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 		vec4 mate = vec4(0.5,0.5,0.5,0.0);
 
         //if(tmat.z<0.5)
+        if(false)
 		{
 			vec3 uvw = 1.0*pos;
 
@@ -313,6 +314,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 			mate.xyz *= 1.5;
 		}
 
+        #if 0
 		vec3 blig = normalize(vec3(-klig.x,0.0,-klig.z));
 		vec3 slig = vec3(0.0, 1.0, 0.0);
 
@@ -350,9 +352,16 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 		// fog
         bcol = 0.7*mix(vec3(0.2,0.5,1.0)*0.82, bcol, 0.15+0.8*sun);
         col = mix(col, bcol, 1.0-exp(-0.02*tmat.x));
+        #endif
+		vec3 lin = vec3(0.0);
+		/*float dif = Diffuse(klig, nor, -rd, 1.0);*/
+		/*float sha = 0.0; if(dif>0.001) sha=softshadow(pos+0.01*nor, klig, 0.005, 64.0);*/
+        lin += dot(klig, nor);//7.0*dif*vec3(1.40,0.50,0.25)*vec3(sha,sha*0.5+0.5*sha*sha, sha*sha);
+        col = mate.rgb * lin;
 	}
 
 
+#if 1
 	col += 0.15*vec3(1.0,0.9,0.6)*pow(sun, 6.0);
 
 	//-----------------------------------------------------
@@ -372,6 +381,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 	col *= 0.3 + 0.7*pow(16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), 0.1);
 
     col *= smoothstep(0.0,2.5,iGlobalTime);
+#endif
 
 	fragColor = vec4(col, 1.0);
 }

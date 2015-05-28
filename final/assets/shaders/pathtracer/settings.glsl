@@ -16,6 +16,7 @@ const float RM_TMAX = 1000.0;
 const int RM_STEP_MAX = 500;
 
 #include "raymarching_scene.glsl"
+/*#include "scenes/canyon.glsl"*/
 #include "raymarching.glsl"
 
 #define trace(ray, previousHitId, hitInfo) \

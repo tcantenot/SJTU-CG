@@ -73,9 +73,9 @@ Material HookMaterial(HitInfo hitInfo)
     }
     else if(id == 2)
     {
-        mat.type = DIFFUSE;
+        mat.type = REFRACTIVE;
         mat.color = vec3(1.0, 1.0, 1.0);
-        mat.color = vec3(1.0, 0.0, 1.0);
+        /*mat.color = vec3(1.0, 0.0, 1.0);*/
     }
     else if(id == 3)
     {

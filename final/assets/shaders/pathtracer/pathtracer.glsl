@@ -1,6 +1,6 @@
 #define MULTIPLICITY 1
-#define SAMPLES 4096
-#define MAXDEPTH 50
+#define SAMPLES 512
+#define MAX_DEPTH 8
 
 // Debug to see how many samples never reach a light source
 #define DEBUG_NO_HIT 0
@@ -8,27 +8,14 @@
 // Use Schlick's approximation for Fresnel effect
 #define FRESNEL_SCHLICK 1
 
-#define PI 3.14159265359
-
+// Enable glossy refraction
 #define GLOSSY_REFRACTION 1
 
-#include "light.glsl"
-
-const int LIGHT_COUNT = 2;
-uniform Light uLights[LIGHT_COUNT] = Light[](
-    Light(vec3(105.0, 50., 30.6), 10.0, vec3(0.65, 1.0, 0.2), 13.0)
-    /*Light(vec3(155.0, 30., 30.6), 10.0, vec3(0.8, 1.5, 0.3), 13.0)*/
-    ,
-    Light(vec3(5.0, 30., -30.6), 12.0, vec3(0.9, 0.4, 0.8), 10.0)
-    /*Light(vec3(50.0, 81.6, 81.6), 20.0, vec3(1.0), 3.0)*/
-);
-
-int lightCount = 2;
-
+#define SUN_SKY 1
 #define RAYMARCHING 0
 
-/*#include "sampling.glsl"*/
 #include "settings.glsl"
+
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord)
 {
@@ -41,6 +28,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
 
     vec2 mo = (2.0 * (uMouse.xy == vec2(0.0) ? 0.5 * uResolution.xy : uMouse.xy) / uResolution.xy - 1.0);
 	vec3 camPos = vec3(mo * vec2(48., 40.) + vec2(50., 40.8), 169.);
+
+    /*camPos.y = terrain2(camPos.xz) - 0.5;*/
 
 	vec3 cz = normalize(vec3(50., 40., 81.6) - camPos);
 	vec3 cx = vec3(1., 0., 0.);

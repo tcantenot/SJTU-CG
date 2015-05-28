@@ -4,6 +4,7 @@
 const bool Stratify = false;
 const bool BiasSampling = true;
 
+
 int subframe = 0;
 
 vec2 strat=
@@ -57,48 +58,18 @@ vec3 cosineWeightedSample(vec3 dir)
 	return p.x * o1 + p.y * o2 + p.z * o3;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief Generate random direction on unit oriented hemisphere proportional
 /// to solid angle in [0, thetaMax].
 /// PDF = 1 / (2pi * (1 - cos(thetaMax)),
 ///
-/// \param dir      Orientation of the sampled hemisphere.
-/// \param thetaMax Maximum angle to the sample vector.
+/// \param dir         Orientation of the sampled hemisphere.
+/// \param cosThetaMax Cosine of the maximum angle to the sample vector.
 ///
 /// \return The randomly generated unit vector.
 ////////////////////////////////////////////////////////////////////////////////
-vec3 coneSample(vec3 dir, float thetaMax)
-{
-    const float TwoPi = 2.0 * 3.141592654;
-
-	vec2 r = rand2n();
-
-    if(Stratify)
-    {
-        r *= 0.1;
-        r += strat;
-    }
-
-    float cosThetaMax = cos(thetaMax);
-
-    float phi = TwoPi * r.x;
-    float cosTheta = 1.0 - r.y * (1.0 - cosThetaMax);
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-
-    vec3 p;
-    p.x = cos(phi) * sinTheta;
-    p.y = sin(phi) * sinTheta;
-    p.z = cosTheta;
-
-	// Create an orthogonal basis
-	vec3 o3 = normalize(dir);
-	vec3 o1 = normalize(ortho(o3));
-	vec3 o2 = normalize(cross(o3, o1));
-
-	return p.x * o1 + p.y * o2 + p.z * o3;
-}
-
-vec3 coneSampleCos(vec3 dir, float cosThetaMax)
+vec3 coneSample(vec3 dir, float cosThetaMax)
 {
     const float TwoPi = 2.0 * 3.141592654;
 
@@ -152,30 +123,10 @@ vec3 hemisphereSample(vec3 dir)
 	return p.x * o1 + p.y * o2 + p.z * o3;
 }
 
-vec3 jitter(vec3 d, float phi, float sina, float cosa)
-{
-    /*return rHemisphereUniform(SEED);*/
-	vec3 w = normalize(d);
-    vec3 u = normalize(cross(w.yzx, w));
-    vec3 v = cross(w, u);
-	return (u * cos(phi) + v * sin(phi)) * sina + w * cosa;
-}
-
 vec3 randomSampling(vec3 normal, inout vec3 color)
 {
-    float Albedo = 1.0;
+    const float Albedo = 1.0;
 
-    #if 1
-    // New ray direction: random vector on the normal-oriented hemisphere
-    vec3 d = hemisphereSample(normal);
-
-    color *= 2.0 * Albedo * max(0.0, dot(d, normal));
-
-    /*if(hitInfo.normal != normal)*/
-    /*{*/
-        /*color = 10000.0;*/
-    /*}*/
-    #else
     vec3 d;
     if(BiasSampling)
     {
@@ -197,7 +148,6 @@ vec3 randomSampling(vec3 normal, inout vec3 color)
         // Modulate color with: BRDF * cos(angle) / PDF = 2 * Albedo * cos(angle)
         color *= 2.0 * Albedo * max(0.0, dot(d, normal));
     }
-    #endif
 
     return d;
 }

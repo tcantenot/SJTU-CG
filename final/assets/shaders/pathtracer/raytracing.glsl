@@ -2,6 +2,22 @@
 #include "hitinfo.glsl"
 #include "ray.glsl"
 
+
+#include "light.glsl"
+
+#define LIGHTS 1
+#define LIGHT_COUNT 2
+
+uniform Light uLights[] = Light[](
+
+    Light(vec3(105.0, 50., 30.6), 10.0, vec3(0.2, 0.65, 1.0), 13.0)
+    /*Light(vec3(155.0, 30., 30.6), 10.0, vec3(0.8, 1.5, 0.3), 13.0)*/
+    ,
+    Light(vec3(5.0, 30., -30.6), 12.0, vec3(0.9, 0.4, 0.8), 10.0)
+    /*Light(vec3(50.0, 81.6, 81.6), 20.0, vec3(1.0), 3.0)*/
+);
+
+
 struct Sphere
 {
 	float radius;
@@ -20,10 +36,9 @@ const vec3 yellow = vec3(0.75, 0.75, 0.25);
 const vec3 lgreen = vec3(0.7, 1.0, 0.9);
 const vec3 lblue  = vec3(0.7, 0.8, 0.9);
 
-// FIXME: dependency on uLights
 
-#define NUM_SPHERES 6
-Sphere spheres[NUM_SPHERES] = Sphere[](
+#define SPHERE_COUNT 6
+Sphere spheres[] = Sphere[](
     // Red wall
     /*Sphere(1e5, vec3(-1e5+1., 40.8, 81.6), Material(DIFFUSE, red, black, 0.0)),*/
 
@@ -37,8 +52,8 @@ Sphere spheres[NUM_SPHERES] = Sphere[](
     /*Sphere(1e5, vec3(50., 40.8,  1e5+170), Material(DIFFUSE, green, black, 0.0)),*/
 
     // Floor
-    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFFUSE, white, black, 0.1), true),
-    /*Sphere(1e5, vec3(50., -1e5, 81.6), Material(SPECULAR, white, black, 0.1), true),*/
+    /*Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFFUSE, white, black, 0.1), true),*/
+    Sphere(1e5, vec3(50., -1e5, 81.6), Material(SPECULAR, white, black, 0.6), true),
 
     // Ceiling
     /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFFUSE, gray, black, 0.0)),*/
@@ -91,7 +106,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
     hitInfo.dist = 1e5;
 
     Sphere hit;
-	for(int i = 0; i < NUM_SPHERES; ++i)
+	for(int i = 0; i < SPHERE_COUNT; ++i)
     {
         if(i == avoid) continue;
 

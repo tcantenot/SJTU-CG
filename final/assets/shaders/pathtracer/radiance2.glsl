@@ -5,31 +5,88 @@
 #include "random.glsl"
 #include "ray.glsl"
 #include "sampling.glsl"
+#include "sunsky.glsl"
+
+#ifndef PI
+#define PI 3.14159265359
+#endif
+
+// Max ray depth
+#ifndef MAX_DEPTH
+#define MAX_DEPTH 8
+#endif
+
+// Min depth for Russian Roulette
+#ifndef RUSSIAN_ROULETTE_DEPTH
+#define RUSSIAN_ROULETTE_DEPTH 5
+#endif
+
+// Enable the sun and sky lighting
+#ifndef SUN_SKY
+#define SUN_SKY 1
+#endif
+
+// Use Schlick's approximation for Fresnel effect
+#ifndef FRESNEL_SCHLICK
+#define FRESNEL_SCHLICK 1
+#endif
+
+// Enable glossy refraction
+#ifndef GLOSSY_REFRACTION
+#define GLOSSY_REFRACTION 1
+#endif
 
 
+
+////////////////////////////////////////////////////////////////////////////////
+/// Radiance:
+///
+/// L0  = Le0 + f0*L1
+/// L1  = Le1 + f1*L2
+/// ...
+/// LN  = Le(N-1) + fN*L(N-1)
+///
+///
+/// L0 = Le0 + f0*(Le1 + f1*L2)
+///    = Le0 + f0*(Le1 + f1*(Le2 + f2*L3)
+///    = ...
+///    = Le0 + f0*Le1 + f0*f1*Le2 + f0*f1*f2*Le3 + ...
+///
+///
+/// Pseudo-code:
+///
+///     L = 0 // Accumulated light (color)
+///     F = 1 // Accumulated reflectance
+///
+///     for(int depth = 0; depth < MAX_DEPTH; ++depth)
+///     {
+///          L += F * Lei
+///          F *= fi
+///     }
+///
+///     return L
+///
+////////////////////////////////////////////////////////////////////////////////
 vec3 radiance(Ray ray)
 {
     HitInfo hitInfo;
 	hitInfo.id = -1;
 
     int depth = 0;
-    vec3 cl = vec3(0.0); // Accumulated color
-    vec3 cf = vec3(1.0); // Accumulated reflectance
 
-	for(int depth = 0; depth < MAXDEPTH; ++depth)
+    vec3 L = vec3(0.0); // Accumulated color
+    vec3 F = vec3(1.0); // Accumulated reflectance
+
+	for(int depth = 0; depth < MAX_DEPTH; ++depth)
     {
         // If no hit, get background color and exit
         if(!trace(ray, hitInfo.id, hitInfo))
         {
-            return cl + cf * background(ray, depth);
+            return L + F * background(ray, depth);
         }
 
         vec3 hit = hitInfo.pos;
         vec3 n   = hitInfo.normal;
-
-        // Make sure the normal of the surface points in the opposite direction
-        // of the ray (in case we are inside the surface)
-        vec3 normal = n * sign(-dot(n, ray.direction));
 
         Material mat = getMaterial(hitInfo);
 
@@ -37,10 +94,10 @@ vec3 radiance(Ray ray)
 
         float p = max(f.x, max(f.y, f.z));
 
-        cl += cf * mat.emissive;
+        L += F * mat.emissive;
 
         // Russian Roulette
-        if(depth > 5)
+        if(depth > RUSSIAN_ROULETTE_DEPTH)
         {
             if(rand() < p)
             {
@@ -48,25 +105,28 @@ vec3 radiance(Ray ray)
             }
             else
             {
-                return cl;
+                return L;
             }
         }
 
-        cf *= f;
+        F *= f;
 
         // Diffuse material
         if(mat.type == DIFFUSE)
         {
+            // Make sure the normal of the surface points in the opposite direction
+            // of the ray (in case we are inside the surface)
+            vec3 normal = n * sign(-dot(n, ray.direction));
+
             // Choose a random sampling direction
             vec3 d = hemisphereSample(normal);
 
             // Direct lighting
             {
                 // Direct sun light
-                const bool SunLight = true;
-                if(SunLight)
+                #if SUN_SKY
                 {
-                    vec3 sunSampleDir = coneSample(sunDirection, 1.0-sunAngularDiameterCos);
+                    vec3 sunSampleDir = coneSample(sunDirection, sunAngularDiameterCos);
                     float sunLight = dot(normal, sunSampleDir);
 
                     if(sunLight > 0.0)
@@ -75,14 +135,15 @@ vec3 radiance(Ray ray)
                         HitInfo _;
                         if(!shadowtrace(shadowRay, hitInfo.id, _))
                         {
-                            cl += cf * sun(sunSampleDir) * sunLight * 1E-5;
+                            L += F * sun(sunSampleDir) * sunLight * 1E-5;
                         }
                     }
                 }
+                #endif
 
-                #if 1
+                #if LIGHTS
                 vec3 lightIntensity = vec3(0.0);
-                for(int i = 0; i < lightCount; ++i)
+                for(int i = 0; i < LIGHT_COUNT; ++i)
                 {
                     Light light = uLights[i];
 
@@ -94,7 +155,7 @@ vec3 radiance(Ray ray)
                     float cosThetaMax = sqrt(1.0 - clamp(r2 / dot(lightDir, lightDir), 0.0, 1.0));
 
                     // Light direction: random vector in the cone of light
-                    vec3 l = coneSampleCos(lightDir, cosThetaMax);
+                    vec3 l = coneSample(lightDir, cosThetaMax);
 
                     // Shadow ray
                     Ray shadowRay = Ray(hit, l);
@@ -114,7 +175,7 @@ vec3 radiance(Ray ray)
                         lightIntensity += (I * omega) / PI;
                     }
                 }
-                cl += cf * lightIntensity;
+                L += F * lightIntensity;
                 #endif
             }
 
@@ -125,7 +186,7 @@ vec3 radiance(Ray ray)
         {
             vec3 refl = reflect(ray.direction, n);
             float alpha = 1.0 - mat.roughness * mat.roughness;
-            vec3 dir = coneSampleCos(refl, alpha);
+            vec3 dir = coneSample(refl, alpha);
             ray = Ray(hit, dir);
         }
         // Refractive material
@@ -194,16 +255,16 @@ vec3 radiance(Ray ray)
                 // Split ray: reflection + refraction
                 if(rand() < P) // Reflection
                 {
-                    cf *= R;
+                    F *= R;
                     #if GLOSSY_REFRACTION
                     float alpha = 1.0 - mat.roughness * mat.roughness;
-                    refl = coneSampleCos(refl, alpha);
+                    refl = coneSample(refl, alpha);
                     #endif
                     ray = Ray(hit, refl);
                 }
                 else // Refraction
                 {
-                    cf *= T;
+                    F *= T;
                     ray = Ray(hit, refr);
                 }
             }
@@ -212,18 +273,18 @@ vec3 radiance(Ray ray)
                 vec3 refl = reflect(ray.direction, n);
                 #if GLOSSY_REFRACTION
                 float alpha = 1.0 - mat.roughness * mat.roughness;
-                refl = coneSampleCos(refl, alpha);
+                refl = coneSample(refl, alpha);
                 #endif
                 ray = Ray(hit, refl);
             }
         }
         else if(mat.type == NO_SHADING || mat.type == EMISSIVE)
         {
-            return cl + cf * mat.color;
+            return L + F * mat.color;
         }
 
         ++depth;
     }
 
-    return cl;
+    return L;
 }

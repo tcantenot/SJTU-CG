@@ -41,6 +41,9 @@ bool raymarch(
         float d = map(ro + t * rd, hitInfo);
         t += abs(d);
         if(abs(d) < precis || t > tmax) break;
+
+        /*t += d;*/
+        /*if(d < precis || t > tmax) break;*/
     }
 
     // No hit
