@@ -125,8 +125,8 @@ class Shader(object):
         glCompileShader(self.id)
         log = glGetShaderInfoLog(self.id)
         if log != "":
-            print "Shader source: {}".format(self.source)
-            print "Shader log: {}".format(log)
+            print >> sys.stderr, "Shader source: {}".format(self.source)
+            print >> sys.stderr, "Shader log: {}".format(log)
             with open("err.glsl", 'w') as f:
                 f.write(self.source)
             self.compiled = False

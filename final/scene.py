@@ -75,12 +75,16 @@ class Demo(Scene):
         """ Initialize the scene """
 
         if not self.initialized:
+
+            # Must be first because other commands take time
+            # and init would be re-entered otherwise
+            self.initialized = True
+
             if size: self.size = size
             self._createProgram()
             self._createBuffer()
             self._createWorkFBO()
             self._loadTextures()
-            self.initialized = True
             self.startTime = time.time()
 
 
