@@ -1,4 +1,4 @@
-#include "../distance_fields.glsl"
+#include "distance_fields.glsl"
 #include "hitinfo.glsl"
 #include "material.glsl"
 

@@ -1,6 +1,6 @@
 #define MULTIPLICITY 1
-#define SAMPLES 512
-#define MAX_DEPTH 20
+#define SAMPLES 4096
+#define MAX_DEPTH 50
 
 // Debug to see how many samples never reach a light source
 #define DEBUG_NO_HIT 0
@@ -81,11 +81,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
     }
 
 #else
-
-    const float shutterAperture = 0.6;
-    const float fov = 1.5;
-    float focusDistance = 150.;
-    const float blurAmount = 1;
+    const float pi = 3.141592645;
 
 	vec3 color = vec3(0.0);
 
@@ -95,8 +91,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
     float z = 99.0;
     vec3 ro = vec3(0.0, 0.0, z);
 
-    const float pi = 3.141592645;
-
     float theta = mapping(vec2(0.0, 1.0), vec2(-pi, pi), uMouse.x / uResolution.x);
     float c = cos(theta);
     float s = sin(theta);
@@ -105,17 +99,22 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
     ro.z = ro.z * c - ro.x * s;
     ro.y = mapping(vec2(0.0, 1.0), vec2(0.0, 100.0), uMouse.y / uResolution.y);
 
-
     vec3 target = vec3(0.0);
 
     mat3 cam = lookAt(ro, target, 0.0);
+
+    const float fov = 1.5;
+
+#if 0
+    const float shutterAperture = 0.6;
+    float focusDistance = 150.;
+    const float blurAmount = 1;
+
 
     vec3 uu = cam[0];
     vec3 vv = cam[1];
     vec3 ww = cam[2];
 
-
-#if 0
     vec3 e = ro; // Eye position in world space
     float d = abs(ro.z); // Perpendicular distance from eye to image plane
     float dd = ; // Distance from eye to pixel
@@ -128,8 +127,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
 
     for(int k = 0; k < MULTIPLICITY; ++k)
     {
-        float npaths = SAMPLES;
-        float aa = float(npaths) / 2.0;
+        const float npaths = SAMPLES;
+        const float aa = float(npaths) / 2.0;
         for(int i = 0; i < npaths; ++i)
         {
             vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;

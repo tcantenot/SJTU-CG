@@ -226,7 +226,7 @@ bool BRDFNextRay(
             nextRay = Ray(hit, refl);
         }
     }
-    else if(mat.type == NO_SHADING || mat.type == EMISSIVE)
+    else if(mat.type == NO_SHADING)
     {
         direct = mat.color;
         return false;

@@ -39,14 +39,14 @@
 // Stop ray once the reflectance has gone too low
 // (the ray will probably not carry much energy)
 #ifndef LOW_REFLECTANCE_OPTIMIZATION
-#define LOW_REFLECTANCE_OPTIMIZATION 1
+#define LOW_REFLECTANCE_OPTIMIZATION 0
 #endif
 
 #ifndef MIN_REFLECTANCE
 #define MIN_REFLECTANCE 0.1
 #endif
 
-#define JITTER 0
+#define JITTER 1
 
 vec3 jitter(vec3 d, float phi, float sina, float cosa)
 {
@@ -119,11 +119,10 @@ vec3 radiance(Ray ray)
 
         Material mat = getMaterial(hitInfo);
 
-        vec3 f = mat.color;
-
-        float p = max(f.x, max(f.y, f.z));
-
         L += F * mat.emissive;
+
+        vec3 f = mat.color;
+        float p = max(f.x, max(f.y, f.z));
 
         // Russian Roulette
         if(depth > RUSSIAN_ROULETTE_DEPTH)
@@ -198,11 +197,9 @@ vec3 radiance(Ray ray)
                     // Shadow ray
                     Ray shadowRay = Ray(hit, l);
 
-                    HitInfo shadowingInfo;
-
-                    // Check if the current hit point is potentially shadowed
-
                     // FIXME: not correct because refractive can block light completely
+                    // Check if the current hit point is potentially shadowed
+                    HitInfo shadowingInfo;
                     bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);
 
                     float lightDist = distance(shadowRay, light);
@@ -213,7 +210,9 @@ vec3 radiance(Ray ray)
                         lightIntensity += (I * omega) / PI;
                     }
                 }
+
                 L += F * lightIntensity;
+
                 #endif
             }
 
@@ -225,15 +224,25 @@ vec3 radiance(Ray ray)
             vec3 d = hemisphereSample(normal);
             #endif
 
+            // Next ray
             ray = Ray(hit, d);
         }
         // Specular (reflective) material
         else if(mat.type == SPECULAR)
         {
+            // Direction of reflection for a perfect mirror
             vec3 refl = reflect(ray.direction, n);
+
+            // Glossiness
             float alpha = 1.0 - mat.roughness * mat.roughness;
-            vec3 dir = coneSample(refl, alpha);
-            ray = Ray(hit, dir);
+
+            // If the roughness is 0 the material is a perfect mirror and
+            // the output cone will be reduce to a single direction:
+            // the reflection one
+            refl = coneSample(refl, alpha);
+
+            // Next ray
+            ray = Ray(hit, refl);
         }
         // Refractive material
         else if(mat.type == REFRACTIVE)
@@ -261,10 +270,24 @@ vec3 radiance(Ray ray)
             // http://en.wikipedia.org/wiki/Snell%27s_law#Derivations_and_formula
             float cosTheta2 = 1.0 - r * r * (1.0 - cosTheta1 * cosTheta1);
 
-            // If no total internal reflection
-            // => total internal reflection <-> cosTheta2 <= 0.0
+            // Total internal reflection
             // http://en.wikipedia.org/wiki/Total_internal_reflection
-            if(cosTheta2 > 0.0)
+            if(cosTheta2 <= 0.0)
+            {
+                // Direction of reflection for a perfect mirror
+                vec3 refl = reflect(ray.direction, n);
+
+                // Glossiness
+                float alpha = 1.0 - mat.roughness * mat.roughness;
+
+                // If the roughness is 0 the material is a perfect mirror and
+                // the output cone will be reduce to a single direction:
+                // the reflection one
+                refl = coneSample(refl, alpha);
+
+                ray = Ray(hit, refl);
+            }
+            else
             {
                 // /!\ The light path is inverted in path tracing.
                 // For this reason, we arrive either from the reflection or
@@ -272,7 +295,9 @@ vec3 radiance(Ray ray)
                 // This is not an issue because the propagation is reversible.
 
 
-                // Direction of incidence of light (surface -> light source)
+                // Direction of reflection for a perfect mirror
+                // (which is also the direction of incidence of light:
+                // surface -> light source)
                 vec3 refl = reflect(ray.direction, n);
 
                 // Refraction direction
@@ -301,30 +326,33 @@ vec3 radiance(Ray ray)
                 // Split ray: reflection + refraction
                 if(rand() < P) // Reflection
                 {
+                    // Modulate reflectance by the reflection coefficient
                     F *= R;
+
                     #if GLOSSY_REFRACTION
+                    // Glossiness
                     float alpha = 1.0 - mat.roughness * mat.roughness;
+
+                    // If the roughness is 0 the material is a perfect
+                    // refractive material and the output cone will be reduce to
+                    // a single direction: the refraction one
                     refl = coneSample(refl, alpha);
                     #endif
+
+                    // Next ray
                     ray = Ray(hit, refl);
                 }
                 else // Refraction
                 {
+                    // Modulate reflectance by the transmission coefficient
                     F *= T;
+
+                    // Next ray
                     ray = Ray(hit, refr);
                 }
             }
-            else // Total internal reflection
-            {
-                vec3 refl = reflect(ray.direction, n);
-                #if GLOSSY_REFRACTION
-                float alpha = 1.0 - mat.roughness * mat.roughness;
-                refl = coneSample(refl, alpha);
-                #endif
-                ray = Ray(hit, refl);
-            }
         }
-        else if(mat.type == NO_SHADING || mat.type == EMISSIVE)
+        else if(mat.type == NO_SHADING)
         {
             return L + F * mat.color;
         }

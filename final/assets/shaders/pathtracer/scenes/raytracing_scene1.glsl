@@ -12,9 +12,9 @@ uniform Light uLights[] = Light[](
     Light(vec3(5.0, 30., -30.6), 12.0, vec3(0.9, 0.4, 0.8), 10.0)
     /*Light(vec3(50.0, 81.6, 81.6), 20.0, vec3(1.0), 3.0)*/
 
-    , Light(vec3(0.000, 1.0, 60.0), 2.0, vec3(1.0, 0.0, 0.0), 10.0)
-    , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 10.0)
-    , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 10.0)
+    , Light(vec3(0.000, 1.0, 60.0), 2.0, vec3(1.0)/*vec3(1.0, 0.0, 0.0)*/, 10.0)
+    , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(1.0)/*vec3(0.0, 1.0, 0.0)*/, 10.0)
+    , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(1.0)/*vec3(0.0, 0.0, 1.0)*/, 10.0)
 );
 
 
@@ -52,8 +52,8 @@ Sphere spheres[] = Sphere[](
     /*Sphere(1e5, vec3(50., 40.8,  1e5+170), Material(DIFFUSE, green, black, 0.0)),*/
 
     // Floor
-    /*Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFFUSE, white, black, 0.1), true),*/
-    Sphere(1e5, vec3(50., -1e5, 81.6), Material(SPECULAR, white, black, 0.1), true),
+    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFFUSE, white, black, 0.1), true),
+    /*Sphere(1e5, vec3(50., -1e5, 81.6), Material(SPECULAR, white, black, 0.1), true),*/
 
     // Ceiling
     /*Sphere(1e5, vec3(50.,  1e5+81.6, 81.6), Material(DIFFUSE, gray, black, 0.0)),*/

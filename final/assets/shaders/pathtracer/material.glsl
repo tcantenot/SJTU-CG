@@ -12,4 +12,3 @@ struct Material
 #define DIFFUSE 1
 #define SPECULAR 2
 #define REFRACTIVE 3
-#define EMISSIVE 4
