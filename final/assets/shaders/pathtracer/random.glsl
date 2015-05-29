@@ -1,9 +1,14 @@
 float seed = 0.0;
 vec2 SEED = vec2(0.0);
 
+float rand(float seed)
+{
+    return fract(sin(seed)*43758.5453123);
+}
+
 float rand()
 {
-    return fract(sin(seed++)*43758.5453123);
+    return rand(seed++);
 }
 
 vec2 rand2(vec2 n)

@@ -35,6 +35,7 @@ const vec3 blue   = vec3(0.25, 0.25, 0.75);
 const vec3 yellow = vec3(0.75, 0.75, 0.25);
 const vec3 lgreen = vec3(0.7, 1.0, 0.9);
 const vec3 lblue  = vec3(0.7, 0.8, 0.9);
+const vec3 lred   = vec3(0.7, 0.5, 0.4);
 
 
 #define SPHERE_COUNT 10
@@ -61,6 +62,7 @@ Sphere spheres[] = Sphere[](
     // Plastic ball
 	/*Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFFUSE, yellow, black, 0.0), true),*/
 	Sphere(8.5, vec3(0., 8.5, 0.), Material(DIFFUSE, yellow, black, 0.0), true),
+	Sphere(8.5, vec3(15., 8.5, 15.), Material(DIFFUSE, red, black, 0.0), true),
 
     // Metallic ball
 	/*Sphere(16.5, vec3(27., 16.5, 47.), Material(SPECULAR, gray, black, 0.0), true),*/
@@ -70,7 +72,7 @@ Sphere spheres[] = Sphere[](
 	/*Sphere(16.5, vec3(73., 16.5, 78.), Material(REFRACTIVE, lblue, black, 0.0), true)*/
 	Sphere(16.5, vec3(35., 16.5, 0), Material(REFRACTIVE, lblue, black, 0.0), true),
 
-	Sphere(50.5, vec3(0., 50.5, -30.0), Material(REFRACTIVE, lblue, black, 0.0), true)
+	Sphere(5.0, vec3(15., 5.0, 35.0), Material(REFRACTIVE, lgreen, black, 0.0), true)
 
 
     // First light
@@ -88,4 +90,31 @@ Sphere spheres[] = Sphere[](
     ,Sphere(2, uLights[4].pos, Material(NO_SHADING, uLights[4].color, black, 0.0), false)
 );
 
+void HookCamera(inout Camera camera, Params params)
+{
+    const float Pi = 3.141592645;
 
+    vec4 mouse = params.mouse;
+    vec2 resolution = params.resolution;
+
+    float z = 100.0;
+    float ymin = 0.0;
+    float ymax = 100.0;
+
+    vec3 pos = vec3(0.0, 0.0, z);
+
+    float theta = mapping(vec2(0.0, 1.0), vec2(-Pi, Pi), mouse.x / resolution.x);
+    float c = cos(theta);
+    float s = sin(theta);
+
+    pos.x = pos.x * c + pos.z * s;
+    pos.z = pos.z * c - pos.x * s;
+    pos.y = mapping(vec2(0.0, 1.0), vec2(ymin, ymax), mouse.y / resolution.y);
+
+    camera.position = pos;
+    camera.target = vec3(0.0);
+    camera.fov = 1.5;
+    camera.roll = 0.0;
+}
+
+#define HOOK_CAMERA(camera, params) HookCamera(camera, params)

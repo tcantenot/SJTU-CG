@@ -187,8 +187,6 @@ class Demo(Scene):
 
                 for iteration, k in enumerate(indices):
 
-                    glUniform1f(glGetUniformLocation(self.program.id, "uSeed"), random.uniform(0.0, 100000.0));
-
                     i = k % fragCountX
                     j = k / fragCountX
 

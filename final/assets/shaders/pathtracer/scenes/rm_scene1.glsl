@@ -1,6 +1,9 @@
+#include "../camera.glsl"
 #include "../distance_fields.glsl"
 #include "../hitinfo.glsl"
 #include "../material.glsl"
+#include "../random.glsl"
+#include "../utils.glsl"
 
 
 float map(vec3 p, inout HitInfo hitInfo)
@@ -27,12 +30,12 @@ float map(vec3 p, inout HitInfo hitInfo)
     /*float box = sdBox(p+vec3(1.2, 0.0, 0.0), vec3(0.5));*/
     scene = opU(scene, sphere, id, 2, id);
 #else
-    p -= vec3(50.0, 55.0, 30.0);
+    p -= vec3(50.0, 0.0, 30.0);
     /*p -= vec3(0.0, 30.5, 0.0);*/
 
     float plane = sdPlaneY(p);
-    opRep1(p.x, 6);
-    opRep1(p.z, 6);
+    float cx = opRep1(p.x, 6);
+    float cz = opRep1(p.z, 6);
     float sphere = sdSphere(p-vec3(0.0, 0.5, 0.0), 0.5);
     float box = sdBox(p-vec3(-1.2, 0.5, 0.0), vec3(0.5));
     float capsule = sdHexPrism(p-vec3(1.0, 0.5, 0.0), vec2(0.2, 0.2));
@@ -41,6 +44,8 @@ float map(vec3 p, inout HitInfo hitInfo)
     scene = opU(scene, box, id, 1, id);
     scene = opU(scene, sphere, id, 2, id);
     scene = opU(scene, capsule, id, 3, id);
+
+    hitInfo.cell.xz = vec2(cx, cz);
 #endif
 
     hitInfo.id = id;
@@ -81,10 +86,41 @@ Material HookMaterial(HitInfo hitInfo)
     {
         mat.type = DIFFUSE;
         mat.color = vec3(1.0, 1.0, 1.0);
-        mat.emissive = vec3(0.8, 1.5, 0.3);
+        /*mat.emissive = vec3(0.8, 1.5, 0.3);*/
+        vec3 c = hitInfo.cell;
+        mat.emissive = vec3(rand(c.z + c.x), rand(c.x * c.z), rand(c.x - c.z));
+        mat.emissive = clamp(mat.emissive, 0.0, 1.0);
     }
 
     return mat;
 }
 
+void HookCamera(inout Camera camera, Params params)
+{
+    const float Pi = 3.141592645;
+
+    vec4 mouse = params.mouse;
+    vec2 resolution = params.resolution;
+
+    float z = 100.0;
+    float ymin = 0.0;
+    float ymax = 10.0;
+
+    vec3 pos = vec3(0.0, 0.0, z);
+
+    float theta = mapping(vec2(0.0, 1.0), vec2(-Pi, Pi), mouse.x / resolution.x);
+    float c = cos(theta);
+    float s = sin(theta);
+
+    pos.x = pos.x * c + pos.z * s;
+    pos.z = pos.z * c - pos.x * s;
+    pos.y = mapping(vec2(0.0, 1.0), vec2(ymin, ymax), mouse.y / resolution.y);
+
+    camera.position = pos;
+    camera.target = vec3(0.0);
+    camera.fov = 1.5;
+    camera.roll = 0.0;
+}
+
 #define HOOK_MATERIAL(hitInfo) HookMaterial(hitInfo)
+#define HOOK_CAMERA(camera, params) HookCamera(camera, params)

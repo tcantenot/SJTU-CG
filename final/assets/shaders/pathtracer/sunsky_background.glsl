@@ -14,4 +14,4 @@ vec3 skyBackground(Ray ray, int depth)
     #endif
 }
 
-#define HOOK_BACKGROUND skyBackground
+#define HOOK_BACKGROUND(ray, depth) skyBackground(ray, depth)

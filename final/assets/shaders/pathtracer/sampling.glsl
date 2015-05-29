@@ -139,3 +139,47 @@ vec3 randomSampling(vec3 normal, inout vec3 color)
 
     return d;
 }
+
+
+// Generate a random point on unit disk with probability density rho = 1/pi
+// using a concentric mapping
+vec2 diskConcentricSample()
+{
+    vec2 h = rand2();
+    float r1 = h.x;
+    float r2 = h.y;
+
+    float r;   // [0, 1]
+    float phi; // [0, 2pi]
+
+    // First triangular region
+    if(r1 > -r2 && r1 > r2)
+    {
+        r = r1;
+        phi = (PI / 4.0) * (r2 / r1);
+    }
+    // Second triangular region
+    else if(r1 < r2 && r1 > -r2)
+    {
+        r = r2;
+        phi = (PI / 4.0) * (2.0 - r1 / r2);
+    }
+    // Third triangular region
+    else if(r1 < -r2 && r1 < r2)
+    {
+        r = -r1;
+        phi = (PI / 4.0) * (4.0 + r2 / r1);
+    }
+    // Fourth triangular region
+    else if(r1 > r2 && r1 < -r2)
+    {
+        r = -r2;
+        phi = (PI / 4.0) * (6.0 - r1 / r2);
+    }
+
+    vec2 p;
+    p.x = r * cos(phi);
+    p.y = r * sin(phi);
+
+    return p;
+}

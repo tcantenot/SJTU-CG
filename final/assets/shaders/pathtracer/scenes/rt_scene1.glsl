@@ -86,4 +86,31 @@ Sphere spheres[] = Sphere[](
     ,Sphere(2, uLights[4].pos, Material(NO_SHADING, uLights[4].color, black, 0.0), false)
 );
 
+void HookCamera(inout Camera camera, Params params)
+{
+    const float Pi = 3.141592645;
 
+    vec4 mouse = params.mouse;
+    vec2 resolution = params.resolution;
+
+    float z = 100.0;
+    float ymin = 0.0;
+    float ymax = 100.0;
+
+    vec3 pos = vec3(0.0, 0.0, z);
+
+    float theta = mapping(vec2(0.0, 1.0), vec2(-Pi, Pi), mouse.x / resolution.x);
+    float c = cos(theta);
+    float s = sin(theta);
+
+    pos.x = pos.x * c + pos.z * s;
+    pos.z = pos.z * c - pos.x * s;
+    pos.y = mapping(vec2(0.0, 1.0), vec2(ymin, ymax), mouse.y / resolution.y);
+
+    camera.position = pos;
+    camera.target = vec3(0.0);
+    camera.fov = 1.5;
+    camera.roll = 0.0;
+}
+
+#define HOOK_CAMERA(camera, params) HookCamera(camera, params)
