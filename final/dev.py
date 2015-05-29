@@ -53,8 +53,8 @@ class GLFrame(wx.Frame):
         self.timer.Start(dt)
 
         # Mouse positions
-        self.clickx = self.lastx = self.x = 30
-        self.clicky = self.lasty = self.y = 30
+        self.clickx = self.lastx = self.x = size[0] / 2.0
+        self.clicky = self.lasty = self.y = size[1] / 2.0
 
         # Frame size
         self.size = size

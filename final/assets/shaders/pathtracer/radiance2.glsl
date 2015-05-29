@@ -46,7 +46,7 @@
 #define MIN_REFLECTANCE 0.1
 #endif
 
-#define JITTER 1
+#define JITTER 0
 
 vec3 jitter(vec3 d, float phi, float sina, float cosa)
 {

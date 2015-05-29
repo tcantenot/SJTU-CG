@@ -45,36 +45,36 @@ const vec3 lblue  = vec3(0.7, 0.8, 0.9);
 #define SPHERE_COUNT 10
 Sphere spheres[] = Sphere[](
     // Red wall
-    Sphere(1e5, vec3(-1e5-100.0, 0.0, 0.0), Material(DIFFUSE, red, black, 0.0), true),
+    Sphere(1e5, vec3(-1e5-50.0, 0.0, 0.0), Material(SPECULAR, red, black, 0.0), true),
 
     // Blue wall
-    Sphere(1e5, vec3(1e5+100.0, 0.0, 0.0), Material(DIFFUSE, blue, black, 0.0), true),
+    Sphere(1e5, vec3(1e5+50.0, 0.0, 0.0), Material(SPECULAR, blue, black, 0.0), true),
 
     // Front wall
-    Sphere(1e5, vec3(0.0, 0.0, -1e5-100.0), Material(DIFFUSE, gray, black, 0.0), true),
+    Sphere(1e5, vec3(0.0, 0.0, -1e5-85.0), Material(SPECULAR, gray, black, 0.0), true),
 
     // Back wall
-    Sphere(1e5, vec3(0.0, 0.0, +1e5+100), Material(DIFFUSE, green, black, 0.0), true),
+    Sphere(1e5, vec3(0.0, 0.0, +1e5+85.0), Material(DIFFUSE, green, black, 0.0), true),
 
     // Floor
-    Sphere(1e5, vec3(0.0, -1e5, 0.0), Material(DIFFUSE, gray, black, 0.0), true),
+    Sphere(1e5, vec3(0.0, -1e5, 0.0), Material(SPECULAR, gray, black, 0.0), true),
     /*Sphere(1e5, vec3(0.0, -1e5, 0.0), Material(SPECULAR, white, black, 0.0), true),*/
 
     // Ceiling
-    Sphere(1e5, vec3(0.0, -1e5+100, 0.0), Material(DIFFUSE, gray, black, 0.0), true),
+    Sphere(1e5, vec3(0.0, -1e5+81.6, 0.0), Material(DIFFUSE, gray, black, 0.0), true),
 
     // Plastic ball
     Sphere(8.5, vec3(0., 8.5, 0.0), Material(DIFFUSE, yellow, black, 0.0), true),
 
     // Metallic ball
-    Sphere(16.5, vec3(-35., 16.5, 0.0), Material(SPECULAR, gray, black, 0.0), true),
+    Sphere(16.5, vec3(-35., 16.5, -35), Material(SPECULAR, gray, black, 0.0), true),
 
     // Glass ball
-    Sphere(16.5, vec3(35., 16.5, 0.0), Material(REFRACTIVE, lblue, black, 0.0), true),
+    Sphere(16.5, vec3(24., 16.5, 35), Material(REFRACTIVE, lblue, black, 0.0), true),
 
 
     // First light
-    Sphere(600.0, vec3(0.0, 600.0 + 99.5, 0.0), Material(NO_SHADING, 2.0*white, white, 0.0), true)
+    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), Material(NO_SHADING, 3.0*white, white, 0.0), true)
     /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFFUSE, black, uLights[0].power*uLights[0].color))*/
     /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black), false)*/
     /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black, 0.0), false)*/

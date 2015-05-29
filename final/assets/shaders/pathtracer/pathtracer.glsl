@@ -1,5 +1,5 @@
 #define MULTIPLICITY 1
-#define SAMPLES 4096
+#define SAMPLES 64
 #define MAX_DEPTH 50
 
 // Debug to see how many samples never reach a light source
@@ -13,10 +13,9 @@
 
 #define RAYMARCHING 0
 
+#include "camera.glsl"
 #include "settings.glsl"
 
-
-#include "../camera.glsl"
 
 float mapping(vec2 from, vec2 to, float x)
 {
@@ -89,6 +88,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
     vec2 resolution = uResolution;
 
     float z = 99.0;
+    z = 84.0;
     vec3 ro = vec3(0.0, 0.0, z);
 
     float theta = mapping(vec2(0.0, 1.0), vec2(-pi, pi), uMouse.x / uResolution.x);
@@ -131,10 +131,34 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
         const float aa = float(npaths) / 2.0;
         for(int i = 0; i < npaths; ++i)
         {
+            #define RANDOM_METHOD 1
+            #if RANDOM_METHOD == 0
             vec2 offset = vec2(mod(float(i), aa), mod(float(i/2), aa)) / aa;
+            #elif RANDOM_METHOD == 1
+            vec2 offset = vec2(rand(), rand());
+            #elif RANDOM_METHOD == 2
+            vec2 offset;
+            if(bool(1))
+            {
+                vec2 p = pixel / resolution * 2.0 - 1.0;
+                float phi = 2.0 * PI * rand();
+                float cosa = rand();
+                float sina = sqrt(1.0 - cosa * cosa);
+                vec3 d = vec3(p.xy, 0.0);
+                vec3 w = normalize(d);
+                vec3 u = normalize(cross(w.yzx, w));
+                vec3 v = cross(w, u);
+                d = (u * cos(phi) + v * sin(phi)) * sina + w * cosa;
+                offset = d.xy;
+            }
+            #elif RANDOM_METHOD == 3
+            vec2 offset = hammersley2d(uint(k * SAMPLES + i), uint(MULTIPLICITY * SAMPLES));
+            #endif
 
             SEED = pixel + offset;
+
             /*seed = uResolution.y * SEED.x / uResolution.x + SEED.y / uResolution.y;*/
+            /*seed = rand();*/
 
             // Screen coords with antialiasing
             vec2 p = (2.0 * (pixel + offset) - resolution) / resolution.y;
@@ -152,7 +176,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord)
             #endif
 
             rd = normalize(rd);
-
 
             Ray ray = Ray(ro, rd);
             #if DEBUG_NO_HIT

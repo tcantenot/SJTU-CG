@@ -69,3 +69,77 @@ mat3 randomTBN(vec3 normal, vec2 seed)
     vec3 bitangent = cross(normal, tangent);
     return mat3(tangent, bitangent, normal);
 }
+
+// From: http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html
+// Requires GLSL 330
+uint hash(uint x) {
+    x += (x << 10u);
+    x ^= (x >>  6u);
+    x += (x <<  3u);
+    x ^= (x >> 11u);
+    x += (x << 15u);
+    return x;
+}
+
+uint hash(uvec2 v) {
+    return hash(v.x ^ hash(v.y));
+}
+
+uint hash(uvec3 v) {
+    return hash(v.x ^ hash(v.y) ^ hash(v.z));
+}
+
+uint hash(uvec4 v) {
+    return hash(v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w));
+}
+
+float random(float f) {
+    const uint mantissaMask = 0x007FFFFFu;
+    const uint one          = 0x3F800000u;
+
+    uint h = hash(floatBitsToUint(f));
+    h &= mantissaMask;
+    h |= one;
+
+    float r2 = uintBitsToFloat(h);
+    return r2 - 1.0;
+}
+
+float random(vec2 v)
+{
+    const uint mantissaMask = 0x007FFFFFu;
+    const uint one          = 0x3F800000u;
+
+    uint h = hash(floatBitsToUint(v));
+    h &= mantissaMask;
+    h |= one;
+
+    float r2 = uintBitsToFloat(h);
+    return r2 - 1.0;
+}
+
+float random(vec3 v)
+{
+    const uint mantissaMask = 0x007FFFFFu;
+    const uint one          = 0x3F800000u;
+
+    uint h = hash(floatBitsToUint(v));
+    h &= mantissaMask;
+    h |= one;
+
+    float r2 = uintBitsToFloat(h);
+    return r2 - 1.0;
+}
+
+float random(vec4 v)
+{
+    const uint mantissaMask = 0x007FFFFFu;
+    const uint one          = 0x3F800000u;
+
+    uint h = hash(floatBitsToUint(v));
+    h &= mantissaMask;
+    h |= one;
+
+    float r2 = uintBitsToFloat(h);
+    return r2 - 1.0;
+}

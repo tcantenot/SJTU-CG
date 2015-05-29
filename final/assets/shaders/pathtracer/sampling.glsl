@@ -1,5 +1,13 @@
 #include "random.glsl"
 
+#ifndef PI
+#define PI 3.14159265359
+#endif
+
+#ifndef TWO_PI
+#define TWO_PI 6.283185307
+#endif
+
 
 const bool Stratify = false;
 const bool BiasSampling = true;
@@ -29,9 +37,7 @@ vec3 ortho(vec3 v)
 // Generate random direction on unit hemisphere proportional to cosine-weighted solid angle
 vec3 cosineWeightedSample(vec3 dir)
 {
-    const float TwoPi = 2.0 * 3.141592654;
-
-	vec2 r = rand2n();
+	vec2 r = rand2();
 
 	if(Stratify)
     {
@@ -40,21 +46,16 @@ vec3 cosineWeightedSample(vec3 dir)
         strat = mod(strat + vec2(0.1, 0.9), 1.0);
     }
 
-    float phi = TwoPi * r.x;
+    float phi = TWO_PI * r.x;
     float cosTheta = r.y;
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-    vec3 p;
-    p.x = cos(phi) * sinTheta;
-    p.y = sin(phi) * sinTheta;
-    p.z = cosTheta;
-
 	// Create an orthogonal basis
-	vec3 o3 = normalize(dir);
-	vec3 o1 = normalize(ortho(o3));
-	vec3 o2 = normalize(cross(o3, o1));
+	vec3 w = normalize(dir);
+	vec3 u = normalize(ortho(w));
+	vec3 v = normalize(cross(w, u));
 
-	return p.x * o1 + p.y * o2 + p.z * o3;
+	return (cos(phi) * u + sin(phi) * v) * sinTheta + cosTheta * w;
 }
 
 
@@ -70,9 +71,7 @@ vec3 cosineWeightedSample(vec3 dir)
 ////////////////////////////////////////////////////////////////////////////////
 vec3 coneSample(vec3 dir, float cosThetaMax)
 {
-    const float TwoPi = 2.0 * 3.141592654;
-
-	vec2 r = rand2n();
+	vec2 r = rand2();
 
     if(Stratify)
     {
@@ -80,46 +79,36 @@ vec3 coneSample(vec3 dir, float cosThetaMax)
         r += strat;
     }
 
-    float phi = TwoPi * r.x;
+    float phi = TWO_PI * r.x;
     float cosTheta = 1.0 - r.y * (1.0 - cosThetaMax);
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-    vec3 p;
-    p.x = cos(phi) * sinTheta;
-    p.y = sin(phi) * sinTheta;
-    p.z = cosTheta;
-
 	// Create an orthogonal basis
-	vec3 o3 = normalize(dir);
-	vec3 o1 = normalize(ortho(o3));
-	vec3 o2 = normalize(cross(o3, o1));
+	vec3 w = normalize(dir);
+	vec3 u = normalize(ortho(w));
+	vec3 v = normalize(cross(w, u));
 
-	return p.x * o1 + p.y * o2 + p.z * o3;
+	return (cos(phi) * u + sin(phi) * v) * sinTheta + cosTheta * w;
 }
 
 // Generate uniform random direction on unit hemisphere
 // with probability density rho = 1/2pi
 vec3 hemisphereSample(vec3 dir)
 {
-    const float TwoPi = 2.0 * 3.141592654;
+    vec2 r = rand2();
+    /*r.x = rand();*/
+    /*r.y = rand();*/
 
-    vec2 r = rand2n();
-
-    float phi = TwoPi * r.x;
+    float phi = TWO_PI * r.x;
     float cosTheta = r.y;
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-    vec3 p;
-    p.x = cos(phi) * sinTheta;
-    p.y = sin(phi) * sinTheta;
-    p.z = cosTheta;
-
 	// Create an orthogonal basis
-	vec3 o3 = normalize(dir);
-	vec3 o1 = normalize(ortho(o3));
-	vec3 o2 = normalize(cross(o3, o1));
+	vec3 w = normalize(dir);
+	vec3 u = normalize(ortho(w));
+	vec3 v = normalize(cross(w, u));
 
-	return p.x * o1 + p.y * o2 + p.z * o3;
+	return (cos(phi) * u + sin(phi) * v) * sinTheta + cosTheta * w;
 }
 
 vec3 randomSampling(vec3 normal, inout vec3 color)

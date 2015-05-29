@@ -1,4 +1,4 @@
-#version 140
+#version 330
 
 in vec2 vTexCoord;
 
@@ -6,6 +6,8 @@ uniform float uTime;
 uniform vec2 uResolution;
 uniform vec4 uMouse;
 uniform vec4 uTweaks;
+
+uniform float uSeed;
 
 uniform sampler2D uTexture0;
 uniform sampler2D uTexture1;
