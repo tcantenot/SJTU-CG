@@ -23,11 +23,12 @@ class Texture(object):
         self.size = (0, 0)
         self.format = None
 
-    def create(self, size, internalFormat=GL_RGB, format=GL_RGB):
+    def create(self, size, internalFormat=GL_RGB, format=GL_RGB, type=GL_UNSIGNED_BYTE):
         self.destroy()
         self.size = size
         self.internalFormat = internalFormat;
         self.format = format;
+        self.type = type;
         self.id = glGenTextures(1)
         glPixelStorei(GL_UNPACK_ALIGNMENT,1)
         glBindTexture(GL_TEXTURE_2D, self.id)
@@ -36,20 +37,20 @@ class Texture(object):
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexImage2D(GL_TEXTURE_2D, 0, self.internalFormat, size[0], size[1], 0,
-            self.format, GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
+            self.format, self.type, ctypes.c_void_p(0))
 
     def bind(self):
         if self.id != 0: glBindTexture(GL_TEXTURE_2D, self.id)
 
-    def resize(self, size, internalFormat=GL_RGB, format=GL_RGB):
+    def resize(self, size, internalFormat=GL_RGB, format=GL_RGB, type=GL_UNSIGNED_BYTE):
         if self.id != 0:
             self.size = size
             self.bind()
             glTexImage2D(GL_TEXTURE_2D, 0, self.internalFormat, size[0], size[1], 0,
-                self.format, GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
+                self.format, self.type, ctypes.c_void_p(0))
             return False
         else:
-            self.create(size, internalFormat, format)
+            self.create(size, internalFormat, format, type)
             return True
 
 

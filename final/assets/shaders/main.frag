@@ -1,4 +1,4 @@
-#version 140
+#version 330
 
 in vec2 vTexCoord;
 
@@ -29,8 +29,9 @@ out vec4 RenderTarget0;
 /*#include "scenes/canyon.glsl"*/
 /*#include "misc/smallpt.glsl"*/
 /*#include "smallpt.glsl"*/
-#include "pathtracer/pathtracer.glsl"
 /*#include "fragmentarium/skypathtracer.glsl"*/
+#include "pathtracer/pathtracer.glsl"
+/*#include "test_random.glsl"*/
 
 void main()
 {

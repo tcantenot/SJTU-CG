@@ -1,9 +1,5 @@
-float gSeed = 0.0;
+/*#include "pathtracer/random.glsl"*/
 
-float rand(float seed)
-{
-    return fract(sin(seed)*43758.5453123);
-}
 
 #if 1
 // A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.
@@ -47,19 +43,61 @@ float random( vec3  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
 float random( vec4  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
 #endif
 
+float gSeed = 0.0;
+
+float rand(float seed)
+{
+    return fract(sin(seed)*43758.5453123);
+}
+
+float rn(float xx)
+{
+    float x0=floor(xx);
+    float x1=x0+1;
+    float v0 = fract(sin (x0*.014686)*31718.927+x0);
+    float v1 = fract(sin (x1*.014686)*31718.927+x1);
+    return (v0*(1-fract(xx))+v1*(fract(xx)))*2-1*sin(xx);
+}
+
 float rand()
 {
-    return random(gSeed++);
+    /*return rn(gSeed++);*/
+    /*return random(gSeed++);*/
     return rand(gSeed++);
 }
 
-vec2 rand2(vec2 n)
-{
-	float x = dot(n, vec2(1.0, 113.00));
-    return fract(sin(vec2(x, x+1.0)) * vec2(13.5453123, 31.1459123));
-}
 
-vec2 rand2()
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
-    return vec2(rand(), rand());
+    gSeed = uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
+    gSeed *= float(uIterations);
+
+    /*gSeed = uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;*/
+    /*gSeed += float(WangHash(uint(uIterations)));*/
+
+    float r = rand();
+
+    /*for(int i = 0; i < 10000; i++)*/
+    /*{*/
+        /*r = rand();*/
+    /*}*/
+
+    vec3 color = vec3(0.0);
+
+    if(r < 0.33)
+    {
+        color.x = 1.0;
+    }
+    else if(r < 0.66)
+    {
+        color.y = 1.0;
+    }
+    else
+    {
+        color.z = 1.0;
+    }
+
+    fragColor = vec4(color, 1.0);
+    float x = fragCoord.x / uResolution.x;
+    if(x > 0.5) fragColor = vec4(0.33, 0.33, 0.33, 1.0);
 }

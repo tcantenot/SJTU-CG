@@ -9,7 +9,8 @@ try:
 except ImportError:
     raise ImportError, "Required dependency OpenGL not present"
 
-from scene import Scene, Demo
+import time
+from scene import Scene, Demo, ThreadScene
 from utils import now
 from mouse import Mouse
 from tweaker import SceneTweaker
@@ -33,7 +34,10 @@ class GLFrame(wx.Frame):
                       glcanvas.WX_GL_DEPTH_SIZE, 24) # 24 bit
 
         # Create the canvas
+
         self.canvas = glcanvas.GLCanvas(self, attribList=attribList)
+        self.ctx = glcanvas.GLContext(self.canvas)
+        self.ctx.SetCurrent(self.canvas)
 
         # Set the event handlers
         self.canvas.Bind(wx.EVT_ERASE_BACKGROUND, self.onEraseBackground)
@@ -62,8 +66,13 @@ class GLFrame(wx.Frame):
         # Scene
         self._scene = None
 
+        self.threadScene = None
+
+        # Pause rendering
+        self.pause = False
+
         # Scene tweaker dialog
-        self.sceneTweaker = SceneTweaker(parent=self, scene=None, title='Scene parameters')
+        self.sceneTweaker = None #SceneTweaker(parent=self, scene=None, title='Scene parameters')
 
         # Give the focus to the canvsas
         self.canvas.SetFocus()
@@ -97,7 +106,7 @@ class GLFrame(wx.Frame):
             self.Show()
             self.canvas.SetCurrent()
             self.canvas.Refresh(False)
-        event.Skip()
+        #event.Skip()
 
 
     def onPaint(self, event):
@@ -107,17 +116,21 @@ class GLFrame(wx.Frame):
         # Initialize Scene if required
         if self.scene and not self.scene.initialized:
             self.scene.init(self.size)
-        event.Skip()
+        #event.Skip()
 
 
     def onFrame(self, event):
         """Generate a frame."""
-        #print "On Frame"
+        print "On Frame"
         if event.GetId() == self.timer.GetId():
-            mouse = Mouse(self.x, self.y, self.clickx, self.clicky)
-            for updated, fragIndex in self.scene.render(mouse=mouse):
-                if updated: self.swapBuffers()
-        event.Skip()
+            if not self.pause:
+                mouse = Mouse(self.x, self.y, self.clickx, self.clicky)
+                #if not self.threadScene or not self.threadScene.isAlive():
+                    #self.threadScene = ThreadScene(self.scene, mouse)
+                    #self.threadScene.start()
+                for updated, fragIndex in self.scene.render(mouse=mouse):
+                    if updated: self.swapBuffers()
+        #event.Skip()
 
     def onMouseDown(self, event):
         self.canvas.CaptureMouse()
@@ -149,14 +162,30 @@ class GLFrame(wx.Frame):
     @scene.setter
     def scene(self, s):
         self._scene = s
-        self.sceneTweaker.scene = s
+        if self.sceneTweaker:
+            self.sceneTweaker.scene = s
 
 
     def onKeyDown(self, e):
         key = e.GetKeyCode()
+
         if key == wx.WXK_ESCAPE:
             self.timer.Stop()
             self.Close()
+
+        elif key == ord('P'):
+            if not self.pause:
+                print "Pause"
+            else:
+                print "Resume"
+            self.pause = not self.pause;
+
+
+#class ThreadGL(threading.Thread):
+
+    #def __init__(self, parent):
+        #threading.Thread.__init__(self)
+        #self.parent = parent
 
 
 if __name__ == "__main__":

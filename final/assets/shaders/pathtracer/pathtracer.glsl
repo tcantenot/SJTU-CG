@@ -1,5 +1,5 @@
 #define MULTIPLICITY 1
-#define SAMPLES 1
+#define SAMPLES 64
 #define MAX_DEPTH 50
 
 // Debug to see how many samples never reach a light source
@@ -9,12 +9,14 @@
 #define FRESNEL_SCHLICK 1
 #define GLOSSY_REFRACTION 1
 
-#define RAYMARCHING 1
+#define RAYMARCHING 0
 
 #include "camera.glsl"
 #include "dof.glsl"
 #include "params.glsl"
 #include "settings.glsl"
+
+uniform int uSamples;
 
 //TODO:
 // - HookCameraSetup
@@ -28,6 +30,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     gSeed = uResolution.y * float(uIterations) * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
 
     gSeed = float(uIterations) * 1000.0 + uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
+    gSeed = uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
+    gSeed *= float(uIterations);
 
     // Initialize params
     Params params = Params(gl_FragCoord.xy, uResolution, uMouse, uTime);
@@ -41,7 +45,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     int samples = 0;
     for(int k = 0; k < MULTIPLICITY; ++k)
     {
-        for(int i = 0; i < SAMPLES; ++i)
+        for(int i = 0; i < uSamples; ++i)
         {
             // Get jittered ray with depth of field
             Ray ray = getDOFRay(camera, params);
@@ -61,6 +65,6 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     color /= float(samples);
 
     /*fragColor = vec4(pow(clamp(color, 0.0, 1.0), vec3(1.0/2.2)), 1.0);*/
-    fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
-    /*fragColor = vec4(color, 1.0);*/
+    /*fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);*/
+    fragColor = vec4(color, 1.0);
 }

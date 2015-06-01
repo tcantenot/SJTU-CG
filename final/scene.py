@@ -10,6 +10,7 @@ except ImportError:
 
 
 import ctypes, time, random
+import threading
 from mouse import Mouse
 from utils import enum, now
 from shader import *
@@ -172,34 +173,28 @@ class Demo(Scene):
                 # Check if we need to reset the accumulator
                 if self.iterations == 0 or mouseMoved or self.resized \
                     or newProgram or self.tweaked:
-                    print "Reset accumulator"
                     self._resetAccumulator()
 
 
-                if True and self.iterations < 300:
-
-# TODO: add
-# - self.iterations (to be reset in resetAccumulator)
-# - self.workTexture : floating point texture RGB32F
-# - self.accProgram : accumulator ptProgram
-# - self.accFBO : accumulator FBO
-# - self.accTexture: accumulator texture
-# - self.finalProgram: final ptProgram used to tonemap and display scene
-# - self._drawFullscreenQuad() : method to draw a fullscreen NDC quad
-# - self._resetAccumulator(): fill the accTexture with 0 and set self.iterations to 0
+                if True and self.iterations < 6000:
 
                     # Draw: cast one ray per pixel, accumulate it and eventually display the merge result
 
                     self.iterations += 1
 
-                    print self.iterations
+                    samples = 1
+                    #if self.iterations > 10:
+                        #samples = 4
+
+                    glUniform1i(glGetUniformLocation(self.ptProgram.id, "uSamples"), int(samples))
+
 
                     # Cast one ray pixel and draw result in work texture
 
                     glUniform1i(glGetUniformLocation(self.ptProgram.id, "uIterations"), self.iterations)
                     self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
                     fragCount = 1
-                    for fragIndex in self._splitDraw(fragCount, False):
+                    for fragIndex in self._splitDraw(fragCount, True):
                         #yield True, fragIndex
                         pass
 
@@ -237,11 +232,10 @@ class Demo(Scene):
     def resize(self, size):
         """ Resize hook """
         self.size = size
-        self.workTexture.resize(size)
-        self.accTexture.resize(size)
+        if self.workTexture: self.workTexture.resize(size)
+        if self.accTexture: self.accTexture.resize(size)
         self.resized = True
-        w, h = size
-        glViewport(0, 0, w, h)
+        glViewport(0, 0, size[0], size[1])
 
 
     def addTexture(self, texture):
@@ -309,7 +303,7 @@ class Demo(Scene):
         """ Create the work framebuffer and work texture """
         self.workFBO = Framebuffer()
         self.workTexture = Texture()
-        self.workTexture.create((1, 1), GL_RGB16F, GL_RGB)
+        self.workTexture.create((1, 1), GL_RGB32F, GL_RGB, GL_FLOAT)
         self.workFBO.create()
         self.workFBO.attachTexture(GL_COLOR_ATTACHMENT0, self.workTexture)
         if self.size:
@@ -320,7 +314,7 @@ class Demo(Scene):
         """ Create the accumulator framebuffer and accumulator texture """
         self.accFBO = Framebuffer()
         self.accTexture = Texture()
-        self.accTexture.create((1, 1), GL_RGB16F, GL_RGB)
+        self.accTexture.create((1, 1), GL_RGB32F, GL_RGB, GL_FLOAT)
         self.accFBO.create()
         self.accFBO.attachTexture(GL_COLOR_ATTACHMENT0, self.accTexture)
         if self.size:
@@ -436,3 +430,19 @@ class Demo(Scene):
         self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClearColor(0, 0, 0, 0)
         glClear(GL_COLOR_BUFFER_BIT)
+
+
+
+class ThreadScene(threading.Thread):
+
+    def __init__(self, scene, mouse):
+        threading.Thread.__init__(self)
+        self.scene = scene
+        self.mouse = mouse
+
+    def run(self):
+        if self.scene:
+            pass
+            #for updated, fragIndex in self.scene.render(mouse=self.mouse):
+                #print "Render"
+                #if updated: self.swapBuffers()

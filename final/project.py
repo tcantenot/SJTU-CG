@@ -16,7 +16,7 @@ def display(scene):
     def _display():
         scene.init()
         mouse = Mouse(0.5, 0.5, 0.5, 0.5)
-        for updated, fragIndex in self.scene.render(mouse=mouse):
+        for updated, fragIndex in scene.render(mouse=mouse):
             if updated: glut.glutSwapBuffers()
 
     return _display
@@ -41,7 +41,7 @@ def nextFrame(fps):
 def reshape(scene):
 
     def _reshape(width, height):
-        scene.resize((width, height))
+        if scene: scene.resize((width, height))
         gl.glViewport(0, 0, width, height)
 
     return _reshape
