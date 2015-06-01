@@ -9,7 +9,7 @@
 #define FRESNEL_SCHLICK 1
 #define GLOSSY_REFRACTION 1
 
-#define RAYMARCHING 0
+#define RAYMARCHING 1
 
 #include "camera.glsl"
 #include "dof.glsl"
@@ -25,7 +25,9 @@
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
     // Initialize random seed
-    gSeed = uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
+    gSeed = uResolution.y * float(uIterations) * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
+
+    gSeed = float(uIterations) * 1000.0 + uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
 
     // Initialize params
     Params params = Params(gl_FragCoord.xy, uResolution, uMouse, uTime);
@@ -58,6 +60,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
     color /= float(samples);
 
-    // TODO: tonemap
-    fragColor = vec4(pow(clamp(color, 0.0, 1.0), vec3(1.0/2.2)), 1.0);
+    /*fragColor = vec4(pow(clamp(color, 0.0, 1.0), vec3(1.0/2.2)), 1.0);*/
+    fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    /*fragColor = vec4(color, 1.0);*/
 }

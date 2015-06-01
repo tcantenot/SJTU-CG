@@ -86,7 +86,7 @@ float SunIntensity(float zenithAngleCos)
 // Ad-hoc values
 float turbidity = 1.76;
 vec2 SunPos = vec2(1.58, 1.64);
-float SkyFactor = 0.5;
+float SkyFactor = 1.0;
 
 
 vec3 fromSpherical(vec2 p) {

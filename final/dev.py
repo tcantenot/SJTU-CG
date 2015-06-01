@@ -48,7 +48,7 @@ class GLFrame(wx.Frame):
         FRAME_ID = 0x42
         self.timer = wx.Timer(self.canvas, FRAME_ID)
         self.canvas.Bind(wx.EVT_TIMER, self.onFrame, id=FRAME_ID)
-        fps = 10
+        fps = 60
         dt = 1000.0 / fps
         self.timer.Start(dt)
 

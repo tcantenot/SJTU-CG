@@ -7,6 +7,8 @@ uniform vec2 uResolution;
 uniform vec4 uMouse;
 uniform vec4 uTweaks;
 
+uniform int uIterations;
+
 uniform sampler2D uTexture0;
 uniform sampler2D uTexture1;
 uniform sampler2D uTexture2;
