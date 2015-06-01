@@ -19,7 +19,7 @@ struct Light
 /// \return The distance between the ray origin and the light if the ray hit the
 /// volume, INF otherwise.
 ////////////////////////////////////////////////////////////////////////////////
-float distance(Ray ray, Light light)
+float distanceTo(Ray ray, Light light)
 {
     const float INF = 1e5;
     const float EPSILON = 1e-3;

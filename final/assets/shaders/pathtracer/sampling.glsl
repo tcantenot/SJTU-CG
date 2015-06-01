@@ -30,7 +30,7 @@ vec2(
 ////////////////////////////////////////////////////////////////////////////////
 vec3 ortho(vec3 v)
 {
-	return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0)  : vec3(0.0, -v.z, v.y);
+	return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y);
 }
 
 
@@ -96,8 +96,6 @@ vec3 coneSample(vec3 dir, float cosThetaMax)
 vec3 hemisphereSample(vec3 dir)
 {
     vec2 r = rand2();
-    /*r.x = rand();*/
-    /*r.y = rand();*/
 
     float phi = TWO_PI * r.x;
     float cosTheta = r.y;

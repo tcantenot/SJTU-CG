@@ -2,7 +2,7 @@
 #include "hitinfo.glsl"
 #include "ray.glsl"
 
-float distance(Ray ray, Sphere s)
+float distanceTo(Ray ray, Sphere s)
 {
     const float EPSILON = 1e-3;
 	vec3 op = s.pos - ray.origin;
@@ -36,7 +36,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
 
         if(!s.collidable && shadowTrace) continue;
 
-		float d = distance(ray, s);
+		float d = distanceTo(ray, s);
 		if(d != 0.0 && d < hitInfo.dist)
         {
             hit = s;

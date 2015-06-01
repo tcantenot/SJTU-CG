@@ -43,7 +43,7 @@
 #endif
 
 #ifndef MIN_REFLECTANCE
-#define MIN_REFLECTANCE 0.05
+#define MIN_REFLECTANCE 0.1
 #endif
 
 
@@ -181,7 +181,7 @@ vec3 radiance(Ray ray)
                     HitInfo shadowingInfo;
                     bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);
 
-                    float lightDist = distance(shadowRay, light);
+                    float lightDist = distanceTo(shadowRay, light);
                     if(lightDist < shadowingInfo.dist)
                     {
                         vec3 I = light.power * light.color * clamp(dot(l, n), 0.0, 1.0);

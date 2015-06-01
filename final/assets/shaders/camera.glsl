@@ -10,6 +10,10 @@ struct Camera
     float fov;
     vec3 target;
     float roll;
+    vec3 up;
+    float focal;
+    float aperture;
+    vec2 fov;
 };
 
 mat3 lookAt(vec3 origin, vec3 target, float roll)

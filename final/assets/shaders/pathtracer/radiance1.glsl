@@ -104,7 +104,7 @@ bool BRDFNextRay(
                 // FIXME: not correct because refractive can block light completely
                 bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);
 
-                float lightDist = distance(shadowRay, light);
+                float lightDist = distanceTo(shadowRay, light);
                 // FIXME: intersection should always be true (the shadowRay is aimed towards the light)
                 if(lightDist < shadowingInfo.dist)
                 {

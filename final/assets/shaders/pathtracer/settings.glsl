@@ -74,8 +74,10 @@ void SetupCamera(inout Camera camera, Params params)
 
     camera.position = pos;
     camera.target = vec3(0.0);
-    camera.fov = 1.5;
     camera.roll = 0.0;
+    camera.fov = vec2(45.0, 45.0);
+    camera.aperture = 0.0;
+    camera.focal = 35.0;
 }
 #endif
 
