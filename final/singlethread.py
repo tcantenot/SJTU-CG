@@ -10,13 +10,13 @@ except ImportError:
     raise ImportError, "Required dependency OpenGL not present"
 
 import time
-from scene import Scene, Demo
+from pathtracer import PathTracer
 from utils import now
 from mouse import Mouse
-from tweaker import SceneTweaker
+from tweaker import PathTracerTweaker
 
 
-class GLFrame(wx.Frame):
+class OpenGLApp(wx.Frame):
     """A simple class for using OpenGL with wxPython."""
 
     # TODO: improve construction
@@ -26,7 +26,7 @@ class GLFrame(wx.Frame):
 
         style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE
 
-        super(GLFrame, self).__init__(parent, id, title, pos, size, style, name)
+        super(OpenGLApp, self).__init__(parent, id, title, pos, size, style, name)
 
         # Canvas attributes
         attribList = (glcanvas.WX_GL_RGBA, # RGBA
@@ -63,14 +63,15 @@ class GLFrame(wx.Frame):
         # Frame size
         self.size = size
 
-        # Scene
-        self._scene = None
+        # PathTracer
+        self._pathtracer = None
 
         # Pause rendering
         self.pause = False
 
-        # Scene tweaker dialog
-        self.sceneTweaker = None#SceneTweaker(parent=self, scene=None, title='Scene parameters')
+        # PathTracer tweaker dialog
+        self._tweaker = None
+        #self._tweaker = PathTracerTweaker(self._parent, None, 'PathTracer params')
 
         # Give the focus to the canvsas
         self.canvas.SetFocus()
@@ -113,7 +114,7 @@ class GLFrame(wx.Frame):
 
         if self.canvas.GetContext():
             # Make sure the frame is shown before calling SetCurrent.
-            if self.scene: self.scene.resize(size)
+            if self.pathtracer: self.pathtracer.resize(size)
             self.Show()
             self.canvas.SetCurrent()
             self.canvas.Refresh(False)
@@ -124,9 +125,9 @@ class GLFrame(wx.Frame):
         """Process the paint event."""
         # Activate the OpenGL context of the canvas
         self.canvas.SetCurrent()
-        # Initialize Scene if required
-        if self.scene and not self.scene.initialized:
-            self.scene.init(self.size)
+        # Initialize PathTracer if required
+        if self.pathtracer and not self.pathtracer.initialized:
+            self.pathtracer.init(self.size)
         event.Skip()
 
 
@@ -135,7 +136,7 @@ class GLFrame(wx.Frame):
         if event.GetId() == self.timer.GetId():
             if not self.pause:
                 mouse = Mouse(self.x, self.y, self.clickx, self.clicky)
-                for updated, fragIndex in self.scene.render(mouse=mouse):
+                for updated, fragIndex in self.pathtracer.render(mouse=mouse):
                     if updated: self.swapBuffers()
         #event.Skip()
 
@@ -163,14 +164,14 @@ class GLFrame(wx.Frame):
             #print "Mouse motion ({}, {})".format(self.x, self.y)
 
     @property
-    def scene(self):
-        return self._scene
+    def pathtracer(self):
+        return self._pathtracer
 
-    @scene.setter
-    def scene(self, s):
-        self._scene = s
-        if self.sceneTweaker:
-            self.sceneTweaker.scene = s
+    @pathtracer.setter
+    def pathtracer(self, p):
+        self._pathtracer = p
+        if self._tweaker:
+            self._tweaker.pathtracer = p
 
 
     def onKeyDown(self, e):
@@ -188,9 +189,9 @@ class GLFrame(wx.Frame):
             self.pause = not self.pause;
 
 
-if __name__ == "__main__":
+def pathtracing(size):
     app = wx.App()
-    frame = GLFrame(None, -1, 'GL Window', size=(600, 480))
-    frame.scene = Demo()
+    frame = OpenGLApp(None, -1, 'Relatime GLSL pathtracer (single thread)', size=size)
+    frame.pathtracer = PathTracer()
     frame.Show()
     app.MainLoop()

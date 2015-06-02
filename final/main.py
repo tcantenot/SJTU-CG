@@ -1,6 +1,4 @@
-from threaded import *
+#from singlethread import *
+from multithread import *
 
-app = wx.App()
-pathtracer = OpenGLApp(None, -1, 'Realtime GLSL pathtracer', size=(600, 480))
-pathtracer.Show()
-app.MainLoop()
+pathtracing((600, 480))

@@ -12,9 +12,11 @@ except ImportError:
 import time, threading
 from command import CommandWorker, CommandQueue
 from mouse import Mouse
-from scene import Scene, Demo
-from tweaker import SceneTweaker
+from pathtracer import PathTracer
+from tweaker import PathTracerTweaker
 
+
+################################################################################
 
 # Frame event
 EVT_FRAME_TYPE = wx.NewEventType()
@@ -29,9 +31,12 @@ class FrameEvent(wx.PyCommandEvent):
         self.number = -1
         self.fragIndex = -1
 
+################################################################################
 
 
 class RenderThread(threading.Thread):
+    """ Rendering thread """
+
     def __init__(self, parent):
 
         threading.Thread.__init__(self)
@@ -39,86 +44,100 @@ class RenderThread(threading.Thread):
         # OpenGLApp parent
         self._parent = parent
 
-        # wx._glcontext
+        # wx.GLContext
         self._glcontext = None
 
-        # Scene
-        self._scene = None
+        # PathTracer
+        self._pathtracer = None
 
-        # Scene tweaker dialog
-        self._sceneTweaker = None #SceneTweaker(parent=self._parent, scene=None, title='Scene parameters')
-
-        # FIXME:
-        self.initialized = False
-
-        # TODO: make property
-        # Pause/Resume
-        self.paused = False
-
-        # FIXME: find a better way
-        self._stop = False
+        # PathTracer tweaker dialog
+        self._tweaker = None
+        #self._tweaker = PathTracerTweaker(self._parent, None, 'PathTracer params')
 
         # Queue containing the commands sent by the main app
         self._commandQueue = CommandQueue()
 
+        # Is the rendering thread paused?
+        self._paused = False
+
+        # Should the rendering thread stop?
+        self._stop = False
+
 
     def run(self):
+        """ Run the rendering thread (called by RenderThread.start()) """
 
-        self.initialized = True
-
+        # Create a thread local GL context and set it to the main app's canvas
         self._glcontext = glcanvas.GLContext(self._parent.canvas)
         self._glcontext.SetCurrent(self._parent.canvas)
 
-        self.scene = Demo()
-        self.scene.init(self._parent.size)
+        # Create the pathtracer
+        self.pathtracer = PathTracer()
+        self.pathtracer.init(self._parent.size)
 
+        # Infinite rendering loop
         while True:
 
             # Process commands sent by the main app
             self._processCommands()
 
+            if self._stop: break
+
             # Render
-            if not self.paused:
+            if not self._paused:
                 mouse = self._parent.getMouse()
-                for updated, fragIndex in self.scene.render(mouse=mouse):
+                for updated, fragIndex in self.pathtracer.render(mouse=mouse):
                     if not updated: continue
                     frame = FrameEvent(EVT_FRAME_TYPE, -1)
-                    frame.number = self.scene.iterations
+                    frame.number = self.pathtracer.iterations
                     frame.fragIndex = fragIndex
                     wx.PostEvent(self._parent, frame)
 
-            if self._stop: break
-
 
     def resize(self, size):
+        """ Resize the pathtracer """
+        if self.pathtracer: self.pathtracer.resize(size)
         print "Resize: {}".format(size)
-        if self.scene: self.scene.resize(size)
+
 
     def pause(self):
-        self.paused = not self.paused
-        print "{}".format("Pause" if self.paused else "Resume")
+        """ Pause/Resume the rendering thread """
+        self._paused = not self._paused
+        print "{}".format("Pause" if self._paused else "Resume")
+
 
     def stop(self):
+        """ Stop the rendering thread """
         self._stop = True
 
+
     def sendCommand(self, func, args=[], kwargs={}):
+        """ Send a command to the rendering thread """
         self._commandQueue.enqueue(func, args, kwargs)
 
-    @property
-    def scene(self):
-        return self._scene
 
-    @scene.setter
-    def scene(self, s):
-        self._scene = s
-        if self._sceneTweaker:
-            self._sceneTweaker.scene = s
+    @property
+    def pathtracer(self):
+        """ PathTracer getter """
+        return self._pathtracer
+
+
+    @pathtracer.setter
+    def pathtracer(self, p):
+        """ PathTracer setter """
+        self._pathtracer = p
+        if self._tweaker:
+            self._tweaker.pathtracer = p
+
 
     def _processCommands(self):
+        """ Process the queued commands """
         if not self._commandQueue.empty():
             worker = CommandWorker(self._commandQueue)
             worker.run()
 
+
+################################################################################
 
 class OpenGLApp(wx.Frame):
     """ OpenGL application with wxPython """
@@ -213,7 +232,7 @@ class OpenGLApp(wx.Frame):
 
 
     def onPaint(self, event):
-        """ Paint event handler used to perform the scene initialization """
+        """ Paint event handler used to initialize the rendering thread """
         if not self.initialized:
             self.initialized = True
             self.renderThread.start()
@@ -222,7 +241,7 @@ class OpenGLApp(wx.Frame):
 
 
     def onFrame(self, event):
-        """ Scene frame handler """
+        """ Rendered frame handler """
         self.swapBuffers()
         #print "Frame {}".format(event.number)
 
@@ -280,3 +299,10 @@ class OpenGLApp(wx.Frame):
         """ Get the current mouse status """
         return Mouse(self.x, self.y, self.clickx, self.clicky)
 
+
+
+def pathtracing(size):
+    app = wx.App()
+    pathtracer = OpenGLApp(None, -1, 'Realtime GLSL pathtracer', size=size)
+    pathtracer.Show()
+    app.MainLoop()

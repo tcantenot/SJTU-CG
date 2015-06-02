@@ -4,12 +4,12 @@ except ImportError:
     raise ImportError, "Required dependency wx not present"
 
 
-class SceneTweaker(wx.Dialog):
+class PathTracerTweaker(wx.Dialog):
 
-    def __init__(self, scene=None, *args, **kwargs):
-        super(SceneTweaker, self).__init__(*args, **kwargs)
+    def __init__(self, pathtracer=None, *args, **kwargs):
+        super(PathTracerTweaker, self).__init__(*args, **kwargs)
 
-        self.scene = kwargs["scene"] if "scene" in kwargs else None
+        self.pathtracer = kwargs["pathtracer"] if "pathtracer" in kwargs else None
 
         self.InitUI()
 
@@ -81,16 +81,15 @@ class SceneTweaker(wx.Dialog):
         val = obj.GetValue()
 
         if(obj == self.slider1):
-            if self.scene: self.scene.setTweakValue(val/100.0, 0)
+            if self.pathtracer: self.pathtracer.setTweakValue(val/100.0, 0)
             self.txt1.SetLabel(str(val/100.0))
         elif(obj == self.slider2):
-            if self.scene: self.scene.setTweakValue(val/100.0, 1)
+            if self.pathtracer: self.pathtracer.setTweakValue(val/100.0, 1)
             self.txt2.SetLabel(str(val/100.0))
         elif(obj == self.slider3):
-            if self.scene: self.scene.setTweakValue(val/100.0, 2)
+            if self.pathtracer: self.pathtracer.setTweakValue(val/100.0, 2)
             self.txt3.SetLabel(str(val/100.0))
         elif(obj == self.slider4):
-            if self.scene: self.scene.setTweakValue(val/100.0, 3)
+            if self.pathtracer: self.pathtracer.setTweakValue(val/100.0, 3)
             self.txt4.SetLabel(str(val/100.0))
-
 

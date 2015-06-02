@@ -22,22 +22,10 @@ from grid import *
 
 FRAME_SCHEME = enum('ON_DEMAND', 'CONTINUOUS')
 
-class Scene(object):
-
-    def __init__(self):
-        pass
-
-    def init(self):
-        pass
-
-    def render(self, *args, **kwargs):
-        pass
-
-class Demo(Scene):
-    """ Small demo class used to render a scene """
+class PathTracer:
+    """ GLSL PathTracer """
 
     def __init__(self, size=(0, 0)):
-        Scene.__init__(self)
 
         self.initialized = False
         self.vertexbuffer = None
@@ -68,7 +56,7 @@ class Demo(Scene):
         self.finalProgram = None
 
 
-        # Scene tweak values
+        # PathTracer tweak values
         self.tweaks = [1.0 for _ in xrange(4)]
         self.tweaked = False
 
@@ -77,7 +65,7 @@ class Demo(Scene):
 
 
     def init(self, size=None):
-        """ Initialize the scene """
+        """ Initialize the pathtracer """
 
         if not self.initialized:
 
@@ -440,3 +428,4 @@ class Demo(Scene):
         glClear(GL_COLOR_BUFFER_BIT)
         self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClear(GL_COLOR_BUFFER_BIT)
+
