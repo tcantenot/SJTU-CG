@@ -70,7 +70,7 @@ class GLFrame(wx.Frame):
         self.pause = False
 
         # Scene tweaker dialog
-        self.sceneTweaker = #SceneTweaker(parent=self, scene=None, title='Scene parameters')
+        self.sceneTweaker = None#SceneTweaker(parent=self, scene=None, title='Scene parameters')
 
         # Give the focus to the canvsas
         self.canvas.SetFocus()

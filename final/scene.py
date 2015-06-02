@@ -223,7 +223,12 @@ class Demo(Scene):
                     self._drawFullscreenQuad()
 
                     yield True, -1
+
+                    # Required to make sure the OpenGL commands are done before
+                    # performing the next iteration because the rendering is
+                    # running in a separate thread
                     glFinish()
+
 
             self.resized = False
             self.tweaked = False

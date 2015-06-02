@@ -41,8 +41,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
     SetupCamera(camera, params);
 
-    camera.aperture = uTweaks.x;
-    camera.focal = uTweaks.y * 100.0;
+    /*camera.aperture = uTweaks.x;*/
+    /*camera.focal = uTweaks.y * 100.0;*/
 
     vec3 color = vec3(0.0);
     int samples = 0;
