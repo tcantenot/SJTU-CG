@@ -106,7 +106,7 @@ void HookCamera(inout Camera camera, Params params)
     camera.target = vec3(0.0);
     camera.roll = 0.0;
     camera.fov = vec2(45.0, 45.0);
-    camera.aperture = 0.2;
+    camera.aperture = 0.0;
     camera.focal = 50.0;
 }
 

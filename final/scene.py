@@ -232,10 +232,13 @@ class Demo(Scene):
     def resize(self, size):
         """ Resize hook """
         self.size = size
+        self.resized = True
         if self.workTexture: self.workTexture.resize(size)
         if self.accTexture: self.accTexture.resize(size)
-        self.resized = True
-        glViewport(0, 0, size[0], size[1])
+        w, h = size
+        glViewport(0, 0, w, h)
+        glScissor(0, 0, w, h)
+
 
 
     def addTexture(self, texture):
@@ -427,22 +430,8 @@ class Demo(Scene):
 
     def _resetAccumulator(self):
         self.iterations = 0
-        self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClearColor(0, 0, 0, 0)
+        self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClear(GL_COLOR_BUFFER_BIT)
-
-
-
-class ThreadScene(threading.Thread):
-
-    def __init__(self, scene, mouse):
-        threading.Thread.__init__(self)
-        self.scene = scene
-        self.mouse = mouse
-
-    def run(self):
-        if self.scene:
-            pass
-            #for updated, fragIndex in self.scene.render(mouse=self.mouse):
-                #print "Render"
-                #if updated: self.swapBuffers()
+        self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
+        glClear(GL_COLOR_BUFFER_BIT)

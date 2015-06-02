@@ -9,11 +9,125 @@ try:
 except ImportError:
     raise ImportError, "Required dependency OpenGL not present"
 
-import time
+import time, threading
 from scene import Scene, Demo
 from utils import now
 from mouse import Mouse
 from tweaker import SceneTweaker
+from command import CommandWorker, CommandQueue
+
+
+# Frame event
+_EVT_FRAME = wx.NewEventType()
+EVT_FRAME = wx.PyEventBinder(_EVT_FRAME, 1)
+
+# TODO: update FrameEvent to hold relevant info about the frame
+class FrameEvent(wx.PyCommandEvent):
+    """Event to signal that a frame has been rendered"""
+
+    def __init__(self, etype, eid, value=None):
+        """Creates the event object"""
+        wx.PyCommandEvent.__init__(self, etype, eid)
+        self._value = value
+
+    def GetValue(self):
+        """Returns the value from the event.
+        @return: the value of this event
+        """
+        return self._value
+
+
+class SceneThread(threading.Thread):
+
+    def __init__(self, parent):
+
+        threading.Thread.__init__(self)
+
+        # GLFrame parent
+        self._parent = parent
+
+        # wx._glcontext
+        self._glcontext = None
+
+        # Scene
+        self._scene = None
+
+        # Scene tweaker dialog
+        self._sceneTweaker = SceneTweaker(parent=self._parent, scene=None, title='Scene parameters')
+
+        # FIXME:
+        self.initialized = False
+
+        # TODO: make property
+        # Pause/Resume
+        self._pause = False
+
+        # FIXME: find a better way
+        self._stop = False
+
+        # Queue containing the commands sent by the main app
+        self._commandQueue = CommandQueue()
+
+
+    def run(self):
+
+        self.initialized = True
+
+        self._glcontext = glcanvas._glcontext(self._parent.canvas)
+        self._glcontext.SetCurrent(self._parent.canvas)
+
+        self.scene = Demo()
+        self.scene.init(self._parent.size)
+
+        while True:
+            if not self._pause:
+                mouse = Mouse(
+                    self._parent.x, self._parent.y,
+                    self._parent.clickx, self._parent.clicky
+                )
+                for updated, fragIndex in self.scene.render(mouse=mouse):
+                    if updated:
+                        if not self._stop:
+                            evt = FrameEvent(_EVT_FRAME, -1, fragIndex)
+                            wx.PostEvent(self._parent, evt)
+
+
+            # Process commands sent by the main app
+            self._processCommands()
+
+            # FIXME
+            #time.sleep(0.1)
+
+            if self._stop: break
+
+    def resize(self, size):
+        print "Resize: {}".format(size)
+        if self.scene: self.scene.resize(size)
+
+    def pause(self):
+        self._pause = not self._pause
+        print "{}".format("Pause" if self._pause else "Resume")
+
+    def stop(self):
+        self._stop = True
+
+    def sendCommand(self, func, args=[], kwargs={}):
+        self._commandQueue.enqueue(func, args, kwargs)
+
+    @property
+    def scene(self):
+        return self._scene
+
+    @scene.setter
+    def scene(self, s):
+        self._scene = s
+        if self._sceneTweaker:
+            self._sceneTweaker.scene = s
+
+    def _processCommands(self):
+        if not self._commandQueue.empty():
+            worker = CommandWorker(self._commandQueue)
+            worker.run()
 
 
 class GLFrame(wx.Frame):
@@ -24,7 +138,7 @@ class GLFrame(wx.Frame):
                  size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE,
                  name='frame'):
 
-        style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE
+        style = wx.DEFAULT_FRAME_STYLE #| wx.NO_FULL_REPAINT_ON_RESIZE
 
         super(GLFrame, self).__init__(parent, id, title, pos, size, style, name)
 
@@ -34,10 +148,7 @@ class GLFrame(wx.Frame):
                       glcanvas.WX_GL_DEPTH_SIZE, 24) # 24 bit
 
         # Create the canvas
-
         self.canvas = glcanvas.GLCanvas(self, attribList=attribList)
-        self.ctx = glcanvas.GLContext(self.canvas)
-        self.ctx.SetCurrent(self.canvas)
 
         # Set the event handlers
         self.canvas.Bind(wx.EVT_ERASE_BACKGROUND, self.onEraseBackground)
@@ -48,13 +159,11 @@ class GLFrame(wx.Frame):
         self.canvas.Bind(wx.EVT_MOTION, self.onMouseMotion)
         self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyDown)
 
-        # Timer
-        FRAME_ID = 0x42
-        self.timer = wx.Timer(self.canvas, FRAME_ID)
-        self.canvas.Bind(wx.EVT_TIMER, self.onFrame, id=FRAME_ID)
-        fps = 60
-        dt = 1000.0 / fps
-        self.timer.Start(dt)
+        # Frame event produced by the scene thread
+        self.Bind(EVT_FRAME, self.onFrame)
+
+        # Close event
+        self.Bind(wx.EVT_CLOSE, self.onClose)
 
         # Mouse positions
         self.clickx = self.lastx = self.x = size[0] / 2.0
@@ -63,14 +172,11 @@ class GLFrame(wx.Frame):
         # Frame size
         self.size = size
 
-        # Scene
-        self._scene = None
+        # Scene thread
+        self.sceneThread = SceneThread(self)
 
         # Pause rendering
         self.pause = False
-
-        # Scene tweaker dialog
-        self.sceneTweaker = #SceneTweaker(parent=self, scene=None, title='Scene parameters')
 
         # Give the focus to the canvsas
         self.canvas.SetFocus()
@@ -95,6 +201,7 @@ class GLFrame(wx.Frame):
         pass # Do nothing, to avoid flashing on MSWin
 
 
+    # FIXME
     def onResize(self, event):
         """Process the resize event."""
 
@@ -110,34 +217,32 @@ class GLFrame(wx.Frame):
 
         self.size = size
 
-
         if self.canvas.GetContext():
-            # Make sure the frame is shown before calling SetCurrent.
-            if self.scene: self.scene.resize(size)
+
+            # Send resize command to the scene thread
+            self.sceneThread.sendCommand(self.sceneThread.resize, args=[size])
+
+            # FIXME: check lines below
             self.Show()
-            self.canvas.SetCurrent()
             self.canvas.Refresh(False)
         event.Skip()
 
 
+    # FIXME
     def onPaint(self, event):
         """Process the paint event."""
-        # Activate the OpenGL context of the canvas
-        self.canvas.SetCurrent()
-        # Initialize Scene if required
-        if self.scene and not self.scene.initialized:
-            self.scene.init(self.size)
+        # Start scene thread if not done yet
+        if not self.sceneThread.initialized:
+            self.sceneThread.start()
+            time.sleep(0.1)
         event.Skip()
 
 
+    # FIXME
     def onFrame(self, event):
-        """Generate a frame."""
-        if event.GetId() == self.timer.GetId():
-            if not self.pause:
-                mouse = Mouse(self.x, self.y, self.clickx, self.clicky)
-                for updated, fragIndex in self.scene.render(mouse=mouse):
-                    if updated: self.swapBuffers()
-        #event.Skip()
+        """A frame has been generated"""
+        self.swapBuffers()
+
 
     def onMouseDown(self, event):
         self.canvas.CaptureMouse()
@@ -162,30 +267,24 @@ class GLFrame(wx.Frame):
             self.canvas.Refresh(False)
             #print "Mouse motion ({}, {})".format(self.x, self.y)
 
-    @property
-    def scene(self):
-        return self._scene
-
-    @scene.setter
-    def scene(self, s):
-        self._scene = s
-        if self.sceneTweaker:
-            self.sceneTweaker.scene = s
-
 
     def onKeyDown(self, e):
         key = e.GetKeyCode()
 
+        # Close the GLFrame
         if key == wx.WXK_ESCAPE:
-            self.timer.Stop()
             self.Close()
 
+        # Send pause command to the scene thread
         elif key == wx.WXK_SPACE:
-            if not self.pause:
-                print "Pause"
-            else:
-                print "Resume"
-            self.pause = not self.pause;
+            self.sceneThread.sendCommand(self.sceneThread.pause)
+
+
+    def onClose(self, e):
+        """ Stop the scene thread and close the GLFrame """
+        self.sceneThread.stop()
+        self.sceneThread.join()
+        self.Destroy()
 
 
 if __name__ == "__main__":
