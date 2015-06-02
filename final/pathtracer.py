@@ -9,8 +9,7 @@ except ImportError:
     raise ImportError, "Required dependency Numpy not present"
 
 
-import ctypes, time, random
-import threading
+import ctypes, random, threading, time
 from framebuffer import Framebuffer
 from mouse import Mouse
 from program import Program
@@ -21,8 +20,9 @@ from utils import enum, now
 
 FRAME_SCHEME = enum('ON_DEMAND', 'CONTINUOUS')
 
+
 class PathTracer:
-    """ GLSL PathTracer """
+    """ GLSL path tracer """
 
     def __init__(self):
 
@@ -39,18 +39,12 @@ class PathTracer:
         self.size = None
         self.resized = True
 
-        # Fullscreen quad vertex buffer
-        self.fullscreenQuadVertexBuffer = None
-
         # Path tracer program
         self.ptProgram = None
 
         # Work framebuffer and work texture
         self.workFBO = None
         self.workTexture = None
-
-        # Number of iterations since last reset
-        self.iterations = 0
 
         # Accumulator program, FBO and texture
         self.accProgram = None
@@ -62,11 +56,17 @@ class PathTracer:
         self.finalFBO = None
         self.finalTexture = None
 
-        # Last program update time
-        self.lastProgramUpdateTime = 0
+        # Fullscreen quad vertex buffer
+        self.fullscreenQuadVertexBuffer = None
 
         # Textures
         self.textures = []
+
+        # Number of iterations since last reset
+        self.iterations = 0
+
+        # Last program update time
+        self.lastProgramUpdateTime = 0
 
         # Last mouse state
         self.mouse = Mouse(-1, -1, -1, -1)
@@ -92,7 +92,7 @@ class PathTracer:
             self._createWorkFBO()
             self._createAccFBO()
             self._createFinalFBO()
-            self._createBuffer()
+            self._createQuadBuffer()
             self._loadTextures()
             self.startTime = time.time()
 
@@ -116,16 +116,17 @@ class PathTracer:
                 # Accumulate radiance
                 self._accumulate()
 
-                # Average and tonemap radiance
+                # Average radiance and tonemap
                 self._tonemap()
 
                 # Display
                 self._display()
 
                 # Give control to the path tracer owner
-                # in order for him to call swapBuffers()
+                # in order for it to call swapBuffers()
                 yield self.iterations
 
+                # Post-frame handler
                 # Must be performed after swapBuffers()
                 self._postFrame()
 
@@ -222,7 +223,7 @@ class PathTracer:
         self.finalFBO.finalize()
 
 
-    def _createBuffer(self):
+    def _createQuadBuffer(self):
         """ Create the fullscreen quad vertex buffer """
 
         # NDC fullscreen quad
@@ -274,8 +275,7 @@ class PathTracer:
         """ Update the programs and return if there was any update """
         newProgram = False
         n = now()
-        t = float(n - self.lastProgramUpdateTime)
-        if t > 1.0:
+        if float(n - self.lastProgramUpdateTime) > 1.0:
             self.lastProgramUpdateTime = n
             newProgram |= self.ptProgram.reloadIfNewer()
             newProgram |= self.accProgram.reloadIfNewer()
@@ -315,7 +315,7 @@ class PathTracer:
         else:
             print "Unknown frame scheme: {}".format(self.frameScheme)
 
-        # Check if we need to reset the path tracing
+        # Check if we need to reset the path tracing data
         reset = self.resized or mouseMoved or newProgram or self.tweaked
         if self.iterations == 0 or reset: self._reset()
 
@@ -328,8 +328,8 @@ class PathTracer:
     def _postFrame(self, *args, **kwargs):
         """ Post frame handler """
         # /!\ Required to make sure the OpenGL commands are done before
-        # performing the next iteration because the rendering is
-        # running in a separate thread
+        #     performing the next iteration
+        #     (because the rendering is running in a separate thread)
         glFinish()
 
 
@@ -379,7 +379,6 @@ class PathTracer:
         samples = 1 #if self.iterations < 10 else 4
         glUniform1i(glGetUniformLocation(self.ptProgram.id, "uSamples"), int(samples))
 
-
         ### Path trace ###
         self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
         self._drawFullscreenQuad()
@@ -414,25 +413,21 @@ class PathTracer:
 
 
     def _display(self):
+        """ Display the final image to the screen """
         w, h = self.size
         self.finalFBO.bind(GL_READ_FRAMEBUFFER)
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
         glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR)
 
 
-
     def _reset(self):
-        """ Reset the path tracer """
-
+        """ Reset the path tracing data """
         self.iterations = 0
-
         glClearColor(0, 0, 0, 0)
-
-        # Clear the work texture
         self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClear(GL_COLOR_BUFFER_BIT)
-
-        # Clear the accumulator texture
         self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
+        glClear(GL_COLOR_BUFFER_BIT)
+        self.finalFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClear(GL_COLOR_BUFFER_BIT)
 
