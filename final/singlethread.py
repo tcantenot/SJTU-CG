@@ -136,9 +136,9 @@ class OpenGLApp(wx.Frame):
         if event.GetId() == self.timer.GetId():
             if not self.pause:
                 mouse = Mouse(self.x, self.y, self.clickx, self.clicky)
-                for updated, fragIndex in self.pathtracer.render(mouse=mouse):
-                    if updated: self.swapBuffers()
-        #event.Skip()
+                for iteration in self.pathtracer.render(mouse=mouse):
+                    self.swapBuffers()
+
 
     def onMouseDown(self, event):
         self.canvas.CaptureMouse()

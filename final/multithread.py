@@ -25,11 +25,11 @@ EVT_FRAME = wx.PyEventBinder(EVT_FRAME_TYPE, 1)
 class FrameEvent(wx.PyCommandEvent):
     """ Event to signal that a frame has been rendered """
 
-    def __init__(self, etype, eid):
+    def __init__(self, etype, eid, number):
         """Creates the event object"""
         wx.PyCommandEvent.__init__(self, etype, eid)
-        self.number = -1
-        self.fragIndex = -1
+        self.number = number
+
 
 ################################################################################
 
@@ -83,14 +83,11 @@ class RenderThread(threading.Thread):
 
             if self._stop: break
 
-            # Render
+            # Render a frame and post a frame event
             if not self._paused:
                 mouse = self._parent.getMouse()
-                for updated, fragIndex in self.pathtracer.render(mouse=mouse):
-                    if not updated: continue
-                    frame = FrameEvent(EVT_FRAME_TYPE, -1)
-                    frame.number = self.pathtracer.iterations
-                    frame.fragIndex = fragIndex
+                for iteration in self.pathtracer.render(mouse=mouse):
+                    frame = FrameEvent(EVT_FRAME_TYPE, -1, iteration)
                     wx.PostEvent(self._parent, frame)
 
 

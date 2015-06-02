@@ -9,7 +9,7 @@ uniform bool uPrintIterationCount = true;
 
 uniform int uIterations;
 uniform vec2 uResolution;
-uniform sampler2D uSceneTexture;
+uniform sampler2D uAccumulator;
 
 out vec4 RenderTarget0;
 
@@ -20,7 +20,7 @@ vec3 tonemap(vec3 color)
 
 void main()
 {
-    vec3 color = texture(uSceneTexture, vTexCoord).rgb;
+    vec3 color = texture(uAccumulator, vTexCoord).rgb;
     color /= float(uIterations);
     color = tonemap(color);
 

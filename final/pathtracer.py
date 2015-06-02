@@ -11,13 +11,12 @@ except ImportError:
 
 import ctypes, time, random
 import threading
+from framebuffer import Framebuffer
 from mouse import Mouse
+from program import Program
+from shader import Shader, SHADER_STAGE
+from texture import Texture
 from utils import enum, now
-from shader import *
-from program import *
-from texture import *
-from framebuffer import *
-from grid import *
 
 
 FRAME_SCHEME = enum('ON_DEMAND', 'CONTINUOUS')
@@ -25,46 +24,59 @@ FRAME_SCHEME = enum('ON_DEMAND', 'CONTINUOUS')
 class PathTracer:
     """ GLSL PathTracer """
 
-    def __init__(self, size=(0, 0)):
+    def __init__(self):
 
+        # Has the path tracer been initialized?
         self.initialized = False
-        self.vertexbuffer = None
-        self.size = size
+
+        # Creation time of the path tracer
         self.startTime = 0
 
-        self.mouse = Mouse(-1, -1, -1, -1)
-        #self.frameScheme = FRAME_SCHEME.ON_DEMAND
+        # Frame update scheme: on demand or continuous
         self.frameScheme = FRAME_SCHEME.CONTINUOUS
 
-        self.ptProgram = None
-
+        # Path tracer target size
+        self.size = None
         self.resized = True
 
-        # Textures
-        self.textures = []
+        # Fullscreen quad vertex buffer
+        self.fullscreenQuadVertexBuffer = None
+
+        # Path tracer program
+        self.ptProgram = None
 
         # Work framebuffer and work texture
         self.workFBO = None
         self.workTexture = None
 
+        # Number of iterations since last reset
         self.iterations = 0
 
+        # Accumulator program, FBO and texture
         self.accProgram = None
         self.accFBO = None
         self.accTexture = None
 
+        # Final program, FBO and texture(averaging and tonemapping)
         self.finalProgram = None
+        self.finalFBO = None
+        self.finalTexture = None
 
+        # Last program update time
+        self.lastProgramUpdateTime = 0
+
+        # Textures
+        self.textures = []
+
+        # Last mouse state
+        self.mouse = Mouse(-1, -1, -1, -1)
 
         # PathTracer tweak values
         self.tweaks = [1.0 for _ in xrange(4)]
         self.tweaked = False
 
-        # TODO
-        self.camera = None
 
-
-    def init(self, size=None):
+    def init(self, size):
         """ Initialize the pathtracer """
 
         if not self.initialized:
@@ -73,12 +85,13 @@ class PathTracer:
             # and init would be re-entered otherwise
             self.initialized = True
 
-            if size: self.size = size
+            self.size = size
             self._createPathTracingProgram()
             self._createAccumulatorProgram()
             self._createFinalProgram()
             self._createWorkFBO()
             self._createAccFBO()
+            self._createFinalFBO()
             self._createBuffer()
             self._loadTextures()
             self.startTime = time.time()
@@ -87,238 +100,149 @@ class PathTracer:
     def render(self, *args, **kwargs):
         """ Render a frame if necessary """
 
-        needsFrame = False
-
-
         if self.initialized:
 
-            if self.resized:
-                needsFrame = True
-
-            if self.tweaked:
-                needsFrame = True
-
-            # TODO: add check interval to save resources
-            # Check if the ptProgram needs to be newProgram
-            newProgram = False
-            newProgram |= self.ptProgram.reloadIfNewer()
-            newProgram |= self.accProgram.reloadIfNewer()
-            newProgram |= self.finalProgram.reloadIfNewer()
-
-            # Mouse
-            mouseMoved = False
-            if 'mouse' in kwargs:
-                mouse = kwargs['mouse']
-                if mouse.x != self.mouse.x or mouse.y != self.mouse.y:
-                    self.mouse = mouse
-                    mouseMoved = True
-
-            if self.frameScheme == FRAME_SCHEME.CONTINUOUS:
-                needsFrame |= True
-            elif self.frameScheme == FRAME_SCHEME.ON_DEMAND:
-                needsFrame |= newProgram or mouseMoved
-            else:
-                print "Unknown frame scheme: {}".format(self.frameScheme)
+            # Pre-frame handler
+            needsFrame = self._preFrame(*args, **kwargs)
 
             # Render a frame if required
             if needsFrame:
 
-                ### Send uniforms ###
+                self.iterations += 1
 
-                self.ptProgram.bind()
+                # Take one or several samples per pixel
+                self._pathtrace()
 
-                # Current time
-                t = float(now() - self.startTime)
-                glUniform1f(glGetUniformLocation(self.ptProgram.id, "uTime"), t)
+                # Accumulate radiance
+                self._accumulate()
 
-                # Resolution
-                w, h = self.size
-                glUniform2f(glGetUniformLocation(self.ptProgram.id, "uResolution"), w, h)
+                # Average and tonemap radiance
+                self._tonemap()
 
-                # Mouse
-                glUniform4f(
-                    glGetUniformLocation(self.ptProgram.id, "uMouse"),
-                    self.mouse.x, self.mouse.y, self.mouse.clickx, self.mouse.clicky
-                )
+                # Display
+                self._display()
 
-                # Textures
-                for i, tex in enumerate(self.textures):
-                    glUniform1i(glGetUniformLocation(self.ptProgram.id, "uTexture{}".format(i)), i)
-                    glActiveTexture(GL_TEXTURE0 + i)
-                    glBindTexture(GL_TEXTURE_2D, tex.id)
+                # Give control to the path tracer owner
+                # in order for him to call swapBuffers()
+                yield self.iterations
 
-                # Tweaks
-                glUniform4f(
-                    glGetUniformLocation(self.ptProgram.id, "uTweaks"),
-                    self.tweaks[0], self.tweaks[1], self.tweaks[2], self.tweaks[3]
-                )
-
-                ### Draw ###
-                #fragCount = 1
-                #for fragIndex in self._splitDraw(fragCount):
-                    #yield True, fragIndex
-
-                # Check if we need to reset the accumulator
-                if self.iterations == 0 or mouseMoved or self.resized \
-                    or newProgram or self.tweaked:
-                    self._resetAccumulator()
-
-
-                if True and self.iterations < 6000:
-
-                    # Draw: cast one ray per pixel, accumulate it and eventually display the merge result
-
-                    self.iterations += 1
-
-                    samples = 1
-                    #if self.iterations > 10:
-                        #samples = 4
-
-                    glUniform1i(glGetUniformLocation(self.ptProgram.id, "uSamples"), int(samples))
-
-
-                    # Cast one ray pixel and draw result in work texture
-
-                    glUniform1i(glGetUniformLocation(self.ptProgram.id, "uIterations"), self.iterations)
-                    self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
-                    fragCount = 1
-                    for fragIndex in self._splitDraw(fragCount, True):
-                        #yield True, fragIndex
-                        pass
-
-                    # Add current iteration to accumulator
-                    self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
-
-                    self.accProgram.bind()
-                    glUniform1i(glGetUniformLocation(self.accProgram.id, "uWorkTexture"), 8)
-                    glActiveTexture(GL_TEXTURE0 + 8)
-                    glBindTexture(GL_TEXTURE_2D, self.workTexture.id)
-
-                    glEnable(GL_BLEND)
-                    glBlendFunc(GL_ONE, GL_ONE)
-                    self._drawFullscreenQuad()
-                    glDisable(GL_BLEND)
-
-                    # Tonemap and display on screen
-                    self.finalProgram.bind()
-                    w, h = self.size
-                    glUniform2f(glGetUniformLocation(self.finalProgram.id, "uResolution"), w, h)
-                    glUniform1i(glGetUniformLocation(self.finalProgram.id, "uSceneTexture"), 10)
-                    glActiveTexture(GL_TEXTURE0 + 10)
-                    glBindTexture(GL_TEXTURE_2D, self.accTexture.id)
-                    glUniform1i(glGetUniformLocation(self.finalProgram.id, "uIterations"), self.iterations)
-                    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
-                    self._drawFullscreenQuad()
-
-                    yield True, -1
-
-                    # Required to make sure the OpenGL commands are done before
-                    # performing the next iteration because the rendering is
-                    # running in a separate thread
-                    glFinish()
-
-
-            self.resized = False
-            self.tweaked = False
+                # Must be performed after swapBuffers()
+                self._postFrame()
 
 
     def resize(self, size):
-        """ Resize hook """
+        """ Resize the path tracer """
         self.size = size
         self.resized = True
         if self.workTexture: self.workTexture.resize(size)
         if self.accTexture: self.accTexture.resize(size)
+        if self.finalTexture: self.finalTexture.resize(size)
         w, h = size
         glViewport(0, 0, w, h)
         glScissor(0, 0, w, h)
 
 
-
     def addTexture(self, texture):
+        """ Add a texture """
         self.textures.append(texture)
+
 
     def setTweakValue(self, value, i):
         """ Set a tweak value """
-        if i < 4:
-            self.tweaks[i] = value
-            self.tweaked = True
+        self.tweaks[i] = value
+        self.tweaked = True
+
+
+    ############################### Initialization #############################
+
+    def _createProgram(self, vertex, fragment):
+        """ Create an OpenGL program """
+        program = Program()
+        vs = Shader(SHADER_STAGE.VERTEX)
+        fs = Shader(SHADER_STAGE.FRAGMENT)
+        vs.loadFromFile(vertex)
+        fs.loadFromFile(fragment)
+        program.attachShader(vs)
+        program.attachShader(fs)
+        program.link()
+        return program
+
 
     def _createPathTracingProgram(self):
         """ Create the pathtracing program """
-        self.ptProgram = Program()
-        vs = Shader(SHADER_STAGE.VERTEX)
-        fs = Shader(SHADER_STAGE.FRAGMENT)
-        vs.loadFromFile("assets/shaders/main.vert")
-        fs.loadFromFile("assets/shaders/main.frag")
-        self.ptProgram.attachShader(vs)
-        self.ptProgram.attachShader(fs)
-        self.ptProgram.link()
+        self.ptProgram = self._createProgram(
+            "assets/shaders/main.vert",
+            "assets/shaders/main.frag"
+        )
+
 
     def _createAccumulatorProgram(self):
         """ Create the accumulator program """
-        self.accProgram = Program()
-        vs = Shader(SHADER_STAGE.VERTEX)
-        fs = Shader(SHADER_STAGE.FRAGMENT)
-        vs.loadFromFile("assets/shaders/pathtracer/accumulator.vert")
-        fs.loadFromFile("assets/shaders/pathtracer/accumulator.frag")
-        self.accProgram.attachShader(vs)
-        self.accProgram.attachShader(fs)
-        self.accProgram.link()
+        self.accProgram = self._createProgram(
+            "assets/shaders/pathtracer/accumulator.vert",
+            "assets/shaders/pathtracer/accumulator.frag"
+        )
+
 
     def _createFinalProgram(self):
         """ Create the final (tonemap) program """
-        self.finalProgram = Program()
-        vs = Shader(SHADER_STAGE.VERTEX)
-        fs = Shader(SHADER_STAGE.FRAGMENT)
-        vs.loadFromFile("assets/shaders/pathtracer/final.vert")
-        fs.loadFromFile("assets/shaders/pathtracer/final.frag")
-        self.finalProgram.attachShader(vs)
-        self.finalProgram.attachShader(fs)
-        self.finalProgram.link()
+        self.finalProgram = self._createProgram(
+            "assets/shaders/pathtracer/final.vert",
+            "assets/shaders/pathtracer/final.frag"
+        )
+
+
+    def _createWorkFBO(self):
+        """ Create the work framebuffer and work texture """
+        self.workTexture = Texture()
+        self.workTexture.create(self.size, GL_RGB32F, GL_RGB, GL_FLOAT)
+        self.workFBO = Framebuffer()
+        self.workFBO.create()
+        self.workFBO.attachTexture(GL_COLOR_ATTACHMENT0, self.workTexture)
+        self.workFBO.finalize()
+
+
+    def _createAccFBO(self):
+        """ Create the accumulator framebuffer and accumulator texture """
+        self.accTexture = Texture()
+        self.accTexture.create(self.size, GL_RGB32F, GL_RGB, GL_FLOAT)
+        self.accFBO = Framebuffer()
+        self.accFBO.create()
+        self.accFBO.attachTexture(GL_COLOR_ATTACHMENT0, self.accTexture)
+        self.accFBO.finalize()
+
+
+    def _createFinalFBO(self):
+        """ Create the final framebuffer and final texture """
+        self.finalTexture = Texture()
+        self.finalTexture.create(self.size, GL_RGB32F, GL_RGB, GL_FLOAT)
+        self.finalFBO = Framebuffer()
+        self.finalFBO.create()
+        self.finalFBO.attachTexture(GL_COLOR_ATTACHMENT0, self.finalTexture)
+        self.finalFBO.finalize()
 
 
     def _createBuffer(self):
         """ Create the fullscreen quad vertex buffer """
 
         # NDC fullscreen quad
-        ndcQuad = np.array([(-1, -1), (-1, +1), (+1, -1), (+1, +1)], dtype=np.float32)
+        ndcQuad = np.array([(-1,-1), (-1,1), (1,-1), (1,1)], dtype=np.float32)
 
         # Create and fill vertex buffer of the NDC quad
-        self.vertexbuffer = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertexbuffer)
+        self.fullscreenQuadVertexBuffer = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, self.fullscreenQuadVertexBuffer)
         glBufferData(GL_ARRAY_BUFFER, ndcQuad.nbytes, ndcQuad, GL_STATIC_DRAW)
 
         # Set buffer layout
-        location = glGetAttribLocation(self.ptProgram.id, "VertexPosition")
-        glEnableVertexAttribArray(location)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertexbuffer)
-        glVertexAttribPointer(location, 2, GL_FLOAT, False, 0, ctypes.c_void_p(0))
-
-
-    def _createWorkFBO(self):
-        """ Create the work framebuffer and work texture """
-        self.workFBO = Framebuffer()
-        self.workTexture = Texture()
-        self.workTexture.create((1, 1), GL_RGB32F, GL_RGB, GL_FLOAT)
-        self.workFBO.create()
-        self.workFBO.attachTexture(GL_COLOR_ATTACHMENT0, self.workTexture)
-        if self.size:
-            self.workTexture.resize(self.size)
-            self.workFBO.finalize()
-
-    def _createAccFBO(self):
-        """ Create the accumulator framebuffer and accumulator texture """
-        self.accFBO = Framebuffer()
-        self.accTexture = Texture()
-        self.accTexture.create((1, 1), GL_RGB32F, GL_RGB, GL_FLOAT)
-        self.accFBO.create()
-        self.accFBO.attachTexture(GL_COLOR_ATTACHMENT0, self.accTexture)
-        if self.size:
-            self.accTexture.resize(self.size)
-            self.accFBO.finalize()
+        loc = glGetAttribLocation(self.ptProgram.id, "VertexPosition")
+        glEnableVertexAttribArray(loc)
+        glBindBuffer(GL_ARRAY_BUFFER, self.fullscreenQuadVertexBuffer)
+        glVertexAttribPointer(loc, 2, GL_FLOAT, False, 0, ctypes.c_void_p(0))
 
 
     def _loadTextures(self):
+        """ Load some textures used by the shaders """
+
         textures = [
             "assets/textures/noise_1.jpg",
             "assets/textures/noise_2.jpg",
@@ -333,99 +257,182 @@ class PathTracer:
                 self.addTexture(texture)
 
 
+    ################################# Runtime ##################################
+
+    def _updateMouse(self, mouse):
+        """ Update the mouse and return if there was any movement """
+        if mouse.x != self.mouse.x or \
+           mouse.y != self.mouse.y or \
+           mouse.clickx != self.mouse.clickx or \
+           mouse.clicky != self.mouse.clicky:
+            self.mouse = mouse
+            return True
+        return False
+
+
+    def _updatePrograms(self):
+        """ Update the programs and return if there was any update """
+        newProgram = False
+        n = now()
+        t = float(n - self.lastProgramUpdateTime)
+        if t > 1.0:
+            self.lastProgramUpdateTime = n
+            newProgram |= self.ptProgram.reloadIfNewer()
+            newProgram |= self.accProgram.reloadIfNewer()
+            newProgram |= self.finalProgram.reloadIfNewer()
+        return newProgram
+
+
+    def _preFrame(self, *args, **kwargs):
+        """
+            Pre frame handler: update mouse, programs and textures.
+            Return if we need to generate a new frame.
+        """
+
+        needsFrame = False
+
+        # Resized
+        if self.resized:
+            needsFrame = True
+
+        # Mouse
+        mouseMoved = False
+        if 'mouse' in kwargs:
+            mouseMoved = self._updateMouse(kwargs['mouse'])
+
+        # Check if some programs have been updated
+        newProgram = self._updatePrograms()
+
+        # Tweaks
+        if self.tweaked:
+            needsFrame = True
+
+        # Frame scheme
+        if self.frameScheme == FRAME_SCHEME.CONTINUOUS:
+            needsFrame |= True
+        elif self.frameScheme == FRAME_SCHEME.ON_DEMAND:
+            needsFrame |= newProgram or mouseMoved
+        else:
+            print "Unknown frame scheme: {}".format(self.frameScheme)
+
+        # Check if we need to reset the path tracing
+        reset = self.resized or mouseMoved or newProgram or self.tweaked
+        if self.iterations == 0 or reset: self._reset()
+
+        self.resized = False
+        self.tweaked = False
+
+        return needsFrame
+
+
+    def _postFrame(self, *args, **kwargs):
+        """ Post frame handler """
+        # /!\ Required to make sure the OpenGL commands are done before
+        # performing the next iteration because the rendering is
+        # running in a separate thread
+        glFinish()
+
+
+
     def _drawFullscreenQuad(self):
         """ Draw a fullscreen quad in NDC """
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
 
 
-    def _splitDraw(self, fragCount, display=True):
-        """ Split the rendering process into multiple fragments """
+    def _pathtrace(self):
+        """ Perform one iteration of path tracing """
 
+        ### Send uniforms ###
+
+        self.ptProgram.bind()
+
+        # Current time
+        t = float(now() - self.startTime)
+        glUniform1f(glGetUniformLocation(self.ptProgram.id, "uTime"), t)
+
+        # Resolution
         w, h = self.size
+        glUniform2f(glGetUniformLocation(self.ptProgram.id, "uResolution"), w, h)
 
-        glEnable(GL_SCISSOR_TEST)
+        # Mouse
+        glUniform4f(
+            glGetUniformLocation(self.ptProgram.id, "uMouse"),
+            self.mouse.x, self.mouse.y, self.mouse.clickx, self.mouse.clicky
+        )
 
-        glScissor(0, 0, w, h)
+        # Textures
+        for i, tex in enumerate(self.textures):
+            glUniform1i(glGetUniformLocation(self.ptProgram.id, "uTexture{}".format(i)), i)
+            glActiveTexture(GL_TEXTURE0 + i)
+            glBindTexture(GL_TEXTURE_2D, tex.id)
+
+        # Tweaks
+        glUniform4f(
+            glGetUniformLocation(self.ptProgram.id, "uTweaks"),
+            self.tweaks[0], self.tweaks[1], self.tweaks[2], self.tweaks[3]
+        )
+
+        # Iteration number
+        glUniform1i(glGetUniformLocation(self.ptProgram.id, "uIterations"), self.iterations)
+
+        # Number of samples (rays/paths) to take
+        samples = 1 #if self.iterations < 10 else 4
+        glUniform1i(glGetUniformLocation(self.ptProgram.id, "uSamples"), int(samples))
+
+
+        ### Path trace ###
         self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
-        #glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
-        glClear(GL_COLOR_BUFFER_BIT)
-
-        fragCountX = int(np.floor(np.sqrt(fragCount)))
-        fragCountY = fragCount / fragCountX
-        fragCount = fragCountX * fragCountY
-
-        glUniform1i(glGetUniformLocation(self.ptProgram.id, "uFragCount"), fragCount);
-
-        dw = (1.0 - (-1.0)) / float(fragCountX)
-        dh = (1.0 - (-1.0)) / float(fragCountY)
-
-        #print "Frag count = ({}, {})".format(fragCountX, fragCountY)
-        #print "Frag dim = ({}, {})".format(dw, dh)
-        #print ""
-
-        #grid = random.sample([random_grid, grid1, grid2], 1)[0]
-        grid = grid2
-
-        indices = grid(fragCountX, fragCountY);
-
-        for iteration, k in enumerate(indices):
-
-            i = k % fragCountX
-            j = k / fragCountX
-
-            mx = -1.0 + i * dw
-            Mx = mx + dw
-            my = -1.0 + j * dh
-            My = my + dh
-
-            #print "#{}: (i, j) = ({}, {})".format(k, i, j)
-            #print "({}, {}) | ({}, {})".format(mx, my, Mx, My)
-
-            glUniform1i(glGetUniformLocation(self.ptProgram.id, "uFragIndex"), k);
-            glUniform4f(glGetUniformLocation(self.ptProgram.id, "uFragBounds"), mx, Mx, my, My)
-
-            # [-1, 1] -> [0, 1]
-            mx = mx * 0.5 + 0.5
-            Mx = Mx * 0.5 + 0.5
-            my = my * 0.5 + 0.5
-            My = My * 0.5 + 0.5
-
-            glScissor(int(mx*w), int(my*h), int(dw*w), int(dh*h))
-
-            #print "({}, {}) | ({}, {})".format(mx, my, Mx, My)
-            #print "({}, {}) | ({}, {})".format(mx*w, my*h, Mx*w, My*h)
-            #print ""
-
-            # Select draw buffer of the work framebuffer
-            #glDrawBuffer(GL_FRONT if iteration % 2 else GL_BACK)
-
-            # Draw into the work framebuffer
-            self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
-            self._drawFullscreenQuad()
-
-            if display:
-                # Copy content of the work framebuffer  into the screen buffer
-                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
-                #glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)
-                self.workFBO.bind(GL_READ_FRAMEBUFFER)
-
-                # Select read buffer and the back draw buffer of the screen
-                #glReadBuffer(GL_FRONT if iteration % 2 else GL_BACK)
-                #glDrawBuffer(GL_BACK)
-
-                # Copy the content of the work framebuffer into the screen's
-                glScissor(0, 0, w, h)
-                glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR)
-
-            # Display the current result
-            yield iteration
+        self._drawFullscreenQuad()
 
 
-    def _resetAccumulator(self):
+    def _accumulate(self):
+        """ Accumulate current frame with previously rendered ones """
+
+        self.accProgram.bind()
+        glUniform1i(glGetUniformLocation(self.accProgram.id, "uWorkTexture"), 8)
+        glActiveTexture(GL_TEXTURE0 + 8)
+        glBindTexture(GL_TEXTURE_2D, self.workTexture.id)
+
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_ONE, GL_ONE)
+        self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
+        self._drawFullscreenQuad()
+        glDisable(GL_BLEND)
+
+
+    def _tonemap(self):
+        """ Average and tonemap the accumulated radiance """
+        self.finalProgram.bind()
+        w, h = self.size
+        glUniform2f(glGetUniformLocation(self.finalProgram.id, "uResolution"), w, h)
+        glUniform1i(glGetUniformLocation(self.finalProgram.id, "uIterations"), self.iterations)
+        glUniform1i(glGetUniformLocation(self.finalProgram.id, "uAccumulator"), 10)
+        glActiveTexture(GL_TEXTURE0 + 10)
+        glBindTexture(GL_TEXTURE_2D, self.accTexture.id)
+        self.finalFBO.bind(GL_DRAW_FRAMEBUFFER)
+        self._drawFullscreenQuad()
+
+
+    def _display(self):
+        w, h = self.size
+        self.finalFBO.bind(GL_READ_FRAMEBUFFER)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+        glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR)
+
+
+
+    def _reset(self):
+        """ Reset the path tracer """
+
         self.iterations = 0
+
         glClearColor(0, 0, 0, 0)
+
+        # Clear the work texture
         self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClear(GL_COLOR_BUFFER_BIT)
+
+        # Clear the accumulator texture
         self.accFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClear(GL_COLOR_BUFFER_BIT)
 
