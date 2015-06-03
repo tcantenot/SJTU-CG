@@ -17,27 +17,20 @@ from tweaker import PathTracerTweaker
 
 
 class OpenGLApp(wx.Frame):
-    """A simple class for using OpenGL with wxPython."""
+    """ Single thread OpenGL application with wxPython """
 
-    # TODO: improve construction
     def __init__(self, parent, id, title, pos=wx.DefaultPosition,
-                 size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE,
-                 name='frame'):
+        size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name='OpenGLApp'):
 
-        style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE
-
-        super(OpenGLApp, self).__init__(parent, id, title, pos, size, style, name)
+        wx.Frame.__init__(self, parent, id, title, pos, size, style, name)
 
         # Canvas attributes
-        attribList = (glcanvas.WX_GL_RGBA, # RGBA
-                      glcanvas.WX_GL_DOUBLEBUFFER, # Double Buffered
+        attribList = (glcanvas.WX_GL_RGBA,           # RGBA
+                      glcanvas.WX_GL_DOUBLEBUFFER,   # Double Buffered
                       glcanvas.WX_GL_DEPTH_SIZE, 24) # 24 bit
 
         # Create the canvas
-
         self.canvas = glcanvas.GLCanvas(self, attribList=attribList)
-        self.ctx = glcanvas.GLContext(self.canvas)
-        self.ctx.SetCurrent(self.canvas)
 
         # Set the event handlers
         self.canvas.Bind(wx.EVT_ERASE_BACKGROUND, self.onEraseBackground)
@@ -50,11 +43,11 @@ class OpenGLApp(wx.Frame):
 
         # Timer
         FRAME_ID = 0x42
-        self.timer = wx.Timer(self.canvas, FRAME_ID)
+        self._timer = wx.Timer(self.canvas, FRAME_ID)
         self.canvas.Bind(wx.EVT_TIMER, self.onFrame, id=FRAME_ID)
         fps = 60
         dt = 1000.0 / fps
-        self.timer.Start(dt)
+        self._timer.Start(dt)
 
         # Mouse positions
         self.clickx = self.lastx = self.x = size[0] / 2.0
@@ -67,7 +60,7 @@ class OpenGLApp(wx.Frame):
         self._pathtracer = None
 
         # Pause rendering
-        self.pause = False
+        self.paused = False
 
         # PathTracer tweaker dialog
         self._tweaker = None
@@ -77,29 +70,29 @@ class OpenGLApp(wx.Frame):
         self.canvas.SetFocus()
 
 
-    # Canvas Proxy Methods
+    ## Canvas Proxy Methods ##
 
-    def getGLExtents(self):
-        """Get the extents of the OpenGL canvas."""
+    def getCanvasSize(self):
+        """ Get the size of the OpenGL canvas """
         return self.canvas.GetClientSize()
 
 
     def swapBuffers(self):
-        """Swap the OpenGL buffers."""
+        """ Swap the OpenGL buffers """
         self.canvas.SwapBuffers()
 
 
-    # wxPython Window Handlers
+    ## wxPython Window Handlers ##
 
     def onEraseBackground(self, event):
-        """Process the erase background event."""
+        """ Process the erase background event """
         pass # Do nothing, to avoid flashing on MSWin
 
 
     def onResize(self, event):
-        """Process the resize event."""
+        """ Process the resize event """
 
-        size = self.getGLExtents()
+        size = self.getCanvasSize()
 
         # Keep ratio of mouse positions when resized
         self.x = self.x * size[0] / self.size[0]
@@ -111,84 +104,87 @@ class OpenGLApp(wx.Frame):
 
         self.size = size
 
-
         if self.canvas.GetContext():
-            # Make sure the frame is shown before calling SetCurrent.
             if self.pathtracer: self.pathtracer.resize(size)
-            self.Show()
-            self.canvas.SetCurrent()
-            self.canvas.Refresh(False)
+
+        print "Resize: {}".format(size)
+
         event.Skip()
 
 
     def onPaint(self, event):
-        """Process the paint event."""
+        """ Paint event handler used to perform initialization """
         # Activate the OpenGL context of the canvas
         self.canvas.SetCurrent()
-        # Initialize PathTracer if required
         if self.pathtracer and not self.pathtracer.initialized:
             self.pathtracer.init(self.size)
         event.Skip()
 
 
     def onFrame(self, event):
-        """Generate a frame."""
-        if event.GetId() == self.timer.GetId():
-            if not self.pause:
+        """ Generate a frame """
+        if event.GetId() == self._timer.GetId():
+            if not self.paused:
                 mouse = Mouse(self.x, self.y, self.clickx, self.clicky)
                 for iteration in self.pathtracer.render(mouse=mouse):
                     self.swapBuffers()
 
 
     def onMouseDown(self, event):
-        self.canvas.CaptureMouse()
-        self.x, self.y = event.GetPosition()
-        self.y = self.size[1] - self.y # Invert y-axis
-        self.lastx, self.lasty = self.x, self.y
-        self.clickx, self.clicky = self.x, self.y
-        #print "Mouse down ({}, {})".format(self.x, self.y)
+        """ Mouse button down handler """
+        if not self.paused:
+            self.canvas.CaptureMouse()
+            self.x, self.y = event.GetPosition()
+            self.y = self.size[1] - self.y # Invert y-axis
+            self.lastx, self.lasty = self.x, self.y
+            self.clickx, self.clicky = self.x, self.y
 
 
     def onMouseUp(self, event):
-        self.canvas.ReleaseMouse()
-        x, y = event.GetPosition()
-        #print "Mouse up ({}, {})".format(x, y)
+        """ Mouse button up handler """
+        if not self.paused:
+            self.canvas.ReleaseMouse()
+            x, y = event.GetPosition()
 
 
     def onMouseMotion(self, event):
-        if event.Dragging() and event.LeftIsDown():
-            self.lastx, self.lasty = self.x, self.y
-            self.x, self.y = event.GetPosition()
-            self.y = self.size[1] - self.y # Invert y-axis
-            self.canvas.Refresh(False)
-            #print "Mouse motion ({}, {})".format(self.x, self.y)
+        """ Mouse moved handler """
+        if not self.paused:
+            if event.Dragging() and event.LeftIsDown():
+                self.lastx, self.lasty = self.x, self.y
+                self.x, self.y = event.GetPosition()
+                self.y = self.size[1] - self.y # Invert y-axis
+                self.canvas.Refresh(False)
+
+
+    def onKeyDown(self, e):
+        """ Key pressed handler """
+        key = e.GetKeyCode()
+
+        if key == wx.WXK_ESCAPE: # Close the app
+            self._timer.Stop()
+            self.Close()
+
+        elif key == wx.WXK_SPACE:
+            self.paused = not self.paused;
+            print "{}".format("Pause" if self._paused else "Resume")
+
 
     @property
     def pathtracer(self):
+        """ Path tracer getter """
         return self._pathtracer
 
     @pathtracer.setter
     def pathtracer(self, p):
+        """ Path tracer setter """
         self._pathtracer = p
         if self._tweaker:
             self._tweaker.pathtracer = p
 
 
-    def onKeyDown(self, e):
-        key = e.GetKeyCode()
 
-        if key == wx.WXK_ESCAPE:
-            self.timer.Stop()
-            self.Close()
-
-        elif key == wx.WXK_SPACE:
-            if not self.pause:
-                print "Pause"
-            else:
-                print "Resume"
-            self.pause = not self.pause;
-
-
+# Main function
 def pathtracing(size):
     app = wx.App()
     frame = OpenGLApp(None, -1, 'Relatime GLSL pathtracer (single thread)', size=size)

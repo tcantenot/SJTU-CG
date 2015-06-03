@@ -115,13 +115,13 @@ class RenderThread(threading.Thread):
 
     @property
     def pathtracer(self):
-        """ PathTracer getter """
+        """ Path tracer getter """
         return self._pathtracer
 
 
     @pathtracer.setter
     def pathtracer(self, p):
-        """ PathTracer setter """
+        """ Path tracer setter """
         self._pathtracer = p
         if self._tweaker:
             self._tweaker.pathtracer = p
@@ -137,7 +137,7 @@ class RenderThread(threading.Thread):
 ################################################################################
 
 class OpenGLApp(wx.Frame):
-    """ OpenGL application with wxPython """
+    """ Multithread OpenGL application with wxPython """
 
     def __init__(self, parent, id, title, pos=wx.DefaultPosition,
         size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name='OpenGLApp'):
@@ -240,7 +240,6 @@ class OpenGLApp(wx.Frame):
     def onFrame(self, event):
         """ Rendered frame handler """
         self.swapBuffers()
-        #print "Frame {}".format(event.number)
 
 
     def onMouseDown(self, event):
@@ -251,7 +250,6 @@ class OpenGLApp(wx.Frame):
             self.y = self.size[1] - self.y # Invert y-axis
             self.lastx, self.lasty = self.x, self.y
             self.clickx, self.clicky = self.x, self.y
-            #print "Mouse down ({}, {})".format(self.x, self.y)
 
 
     def onMouseUp(self, event):
@@ -259,7 +257,6 @@ class OpenGLApp(wx.Frame):
         if not self.paused:
             self.canvas.ReleaseMouse()
             x, y = event.GetPosition()
-            #print "Mouse up ({}, {})".format(x, y)
 
 
     def onMouseMotion(self, event):
@@ -270,13 +267,12 @@ class OpenGLApp(wx.Frame):
                 self.x, self.y = event.GetPosition()
                 self.y = self.size[1] - self.y # Invert y-axis
                 self.canvas.Refresh(False)
-                #print "Mouse motion ({}, {})".format(self.x, self.y)
 
 
     def onKeyDown(self, e):
         """ Key pressed handler """
         key = e.GetKeyCode()
-        if key == wx.WXK_ESCAPE: # Close the OpenGLApp
+        if key == wx.WXK_ESCAPE: # Close the app
             self.Close()
         elif key == wx.WXK_SPACE: # Send pause command to the rendering thread
             self.renderThread.sendCommand(self.renderThread.pause)
@@ -298,6 +294,7 @@ class OpenGLApp(wx.Frame):
 
 
 
+# Main function
 def pathtracing(size):
     app = wx.App()
     pathtracer = OpenGLApp(None, -1, 'Realtime GLSL pathtracer', size=size)
