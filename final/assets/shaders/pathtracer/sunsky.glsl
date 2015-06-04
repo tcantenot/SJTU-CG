@@ -85,7 +85,8 @@ float SunIntensity(float zenithAngleCos)
 
 // Ad-hoc values
 float turbidity = 1.76;
-vec2 SunPos = vec2(1.58, 1.64);
+/*vec2 SunPos = vec2(1.58, 1.64);*/
+vec2 SunPos = vec2(0.54, 0.12);
 float SkyFactor = 1.0;
 
 

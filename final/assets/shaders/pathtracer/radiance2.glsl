@@ -46,6 +46,10 @@
 #define MIN_REFLECTANCE 0.1
 #endif
 
+#ifndef UNBIASED
+#define UNBIASED 0
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Radiance:
@@ -195,8 +199,12 @@ vec3 radiance(Ray ray)
                 #endif
             }
 
+            #if UNBIASED
             // Choose a random sampling direction
             vec3 d = hemisphereSample(normal);
+            #else
+            vec3 d = cosineWeightedSample(normal);
+            #endif
 
             // Next ray
             ray = Ray(hit, d);

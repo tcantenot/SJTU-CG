@@ -31,11 +31,11 @@ void main()
         vec2 pixel = gl_FragCoord.xy;
 
 	    // Multiples of 4x5 work best
-        vec2 fontSize = vec2(8.0, 15.0);
+        vec2 fontSize = vec2(8.0, 10.0);
 
         float value = uIterations;
 
-        vec2 pos = vec2(-30.0, uResolution.y - 25.0);
+        vec2 pos = vec2(-4.0 * fontSize.x, uResolution.y - 2.0 * fontSize.y);
 
         color = mix(color, vec3(1.0),
             printNumber(pixel, pos, fontSize, value, 8.0, 0.0)

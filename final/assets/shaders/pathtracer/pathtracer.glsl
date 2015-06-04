@@ -6,8 +6,6 @@
 #define DEBUG_NO_HIT 0
 
 #define SUN_SKY 1
-#define FRESNEL_SCHLICK 1
-#define GLOSSY_REFRACTION 1
 
 #define RAYMARCHING 0
 

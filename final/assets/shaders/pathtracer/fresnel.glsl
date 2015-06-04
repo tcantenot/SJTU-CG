@@ -1,8 +1,62 @@
 ////////////////////////////////////////////////////////////////////////////////
+/// Fresnel equations.
+/// http://en.wikipedia.org/wiki/Fresnel_equations
+///
+/// \param n1 Index of refraction of incidence medium.
+/// \param n2 Index of refraction of transmitted medium.
+/// \param cosI Cosine of incidence angle.
+/// \param cosT Cosine of transmittance angle.
+/// \param [out] R Reflection coefficient.
+/// \param [out] T Transmission coefficient.
+///
+/// \return The reflection coefficient.
+////////////////////////////////////////////////////////////////////////////////
+float computeFresnel(float n1, float n2, float cosI, float cosT,
+    out float R, out float T
+)
+{
+    float n1cosI = n1 * cosI;
+    float n1cosT = n1 * cosT;
+    float n2cosI = n2 * cosI;
+    float n2cosT = n2 * cosT;
+
+    // Reflectance for s-polarized light
+    float Rs = pow((n1cosI - n2cosT) / (n1cosI + n2cosT), 2.0);
+
+    // Reflectance for p-polarized light
+    float Rp = pow((n1cosT - n2cosI) / (n1cosT + n2cosI), 2.0);
+
+    // Reflectance for unpolarised light
+    R = (Rs + Rp) / 2.0;
+
+    // Transmittance for unpolarised light
+    T = 1.0 - R;
+
+    return R;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Fresnel equations.
+/// http://en.wikipedia.org/wiki/Fresnel_equations
+///
+/// \param n1 Index of refraction of incidence medium.
+/// \param n2 Index of refraction of transmitted medium.
+/// \param cosI Cosine of incidence angle.
+/// \param cosT Cosine of transmittance angle.
+///
+/// \return The reflection coefficient.
+////////////////////////////////////////////////////////////////////////////////
+float computeFresnel(float n1, float n2, float cosI, float cosT)
+{
+    float R, T;
+    return computeFresnel(n1, n2, cosI, cosT, R, T);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// Fresnel reflectance: Schlick's approximation.
 /// http://en.wikipedia.org/wiki/Schlick%27s_approximation
 ///
-/// \param R0  Reflectange at normal incidence.
+/// \param R0  Reflectance at normal incidence.
 /// \param HoL Half-angle vector dot light vector (ray vector).
 /// \param [out] R Reflection coefficient.
 /// \param [out] T Transmission coefficient.
@@ -11,21 +65,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 float fresnelSchlick(float R0, float HoL, out float R, out float T)
 {
-    const float bias  = 0.25;
-    const float scale = 0.50;
-
     // Schlick reflection coefficient
-    float RC = R0 + (1.0 - R0) * pow(1.0 - HoL, 5.0);
-
-    float P = bias + scale * RC;
-
-    // Reflection coefficient
-    R = RC / P;
+    R = R0 + (1.0 - R0) * pow(1.0 - HoL, 5.0);
 
     // Transmission coefficient
-    T = (1.0 - RC) / (1.0 - P);
+    T = 1.0 - R;
 
-    return P;
+    return R;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,8 +107,8 @@ float fresnelApprox(
 
 float fresnelApprox(float NoL, out float R, out float T)
 {
-    const float BIAS  = 0.25;
-    const float SCALE = 0.5;
+    const float BIAS  = 0.0;
+    const float SCALE = 1.0;
     const float POWER = 5.0;
 
     return fresnelApprox(NoL, BIAS, SCALE, POWER, R, T);

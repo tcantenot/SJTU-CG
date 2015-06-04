@@ -121,7 +121,7 @@ vec3 background(Ray ray, int depth)
 ////////////////////////////////////////////////////////////////////////////////
 
 #if 0
-#include "radiance1.glsl"
-#else
 #include "radiance2.glsl"
+#else
+#include "radiance3.glsl"
 #endif

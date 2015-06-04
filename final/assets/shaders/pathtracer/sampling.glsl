@@ -109,6 +109,18 @@ vec3 hemisphereSample(vec3 dir)
 	return (cos(phi) * u + sin(phi) * v) * sinTheta + cosTheta * w;
 }
 
+// Generate uniform random direction on unit sphere
+vec3 sphereSample()
+{
+    vec2 r = rand2();
+
+    float phi = TWO_PI * r.x;
+    float cosTheta = r.y * 2.0 - 1.0; // [-1, 1]
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+	return vec3(vec2(cos(phi), sin(phi)) * sinTheta, cosTheta);
+}
+
 vec3 randomSampling(vec3 normal, inout vec3 color)
 {
     const float Albedo = 1.0;

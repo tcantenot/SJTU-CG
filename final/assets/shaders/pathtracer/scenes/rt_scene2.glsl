@@ -1,5 +1,8 @@
 #include "../light.glsl"
 #include "../material.glsl"
+#include "rt_sphere.glsl"
+
+// FIXME: deprecated
 
 #define LIGHTS 1
 #define LIGHT_COUNT 3
@@ -18,14 +21,6 @@ uniform Light uLights[] = Light[](
     , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(1.0)/*vec3(0.0, 0.0, 1.0)*/, 10.0)
 );
 
-
-struct Sphere
-{
-	float radius;
-	vec3 pos;
-    Material material;
-    bool collidable;
-};
 
 const vec3 white  = vec3(1.0);
 const vec3 black  = vec3(0.0);
@@ -94,7 +89,7 @@ void HookCamera(inout Camera camera, Params params)
 
     vec3 pos = vec3(0.0, 0.0, z);
 
-    float theta = mapping(vec2(0.0, 1.0), vec2(-Pi, Pi), mouse.x / resolution.x);
+    float theta = mapping(vec2(0.0, 1.0), vec2(-pi, pi), mouse.x / resolution.x);
     float c = cos(theta);
     float s = sin(theta);
 
@@ -110,4 +105,4 @@ void HookCamera(inout Camera camera, Params params)
     camera.focal = 50.0;
 }
 
-#define HOOK_CAMERA(camera, params) HookCamera(camera, params)
+#define hook_camera(camera, params) hookcamera(camera, params)

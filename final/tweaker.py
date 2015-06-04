@@ -6,11 +6,9 @@ except ImportError:
 
 class PathTracerTweaker(wx.Dialog):
 
-    def __init__(self, pathtracer=None, *args, **kwargs):
+    def __init__(self, pathtracer, *args, **kwargs):
         super(PathTracerTweaker, self).__init__(*args, **kwargs)
-
-        self.pathtracer = kwargs["pathtracer"] if "pathtracer" in kwargs else None
-
+        self.pathtracer = pathtracer
         self.InitUI()
 
 

@@ -50,10 +50,6 @@ class RenderThread(threading.Thread):
         # PathTracer
         self._pathtracer = None
 
-        # PathTracer tweaker dialog
-        self._tweaker = None
-        #self._tweaker = PathTracerTweaker(self._parent, None, 'PathTracer params')
-
         # Queue containing the commands sent by the main app
         self._commandQueue = CommandQueue()
 
@@ -123,8 +119,6 @@ class RenderThread(threading.Thread):
     def pathtracer(self, p):
         """ Path tracer setter """
         self._pathtracer = p
-        if self._tweaker:
-            self._tweaker.pathtracer = p
 
 
     def _processCommands(self):
@@ -182,6 +176,9 @@ class OpenGLApp(wx.Frame):
 
         # Paused?
         self.paused = False
+
+        # PathTracer tweaker dialog
+        self._tweaker = None
 
         # Give the focus to the canvsas
         self.canvas.SetFocus()
@@ -277,6 +274,12 @@ class OpenGLApp(wx.Frame):
         elif key == wx.WXK_SPACE: # Send pause command to the rendering thread
             self.renderThread.sendCommand(self.renderThread.pause)
             self.paused = not self.paused
+        elif key == ord('T'): # Tweaks dialog
+            self._tweaker = PathTracerTweaker(
+                self.renderThread.pathtracer,
+                parent=self,
+                title='Path tracer params'
+            )
 
 
     def onClose(self, e):
