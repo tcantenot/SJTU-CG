@@ -1,12 +1,12 @@
 #include "absorption_and_scattering.glsl"
 
 // Material
+// TODO: make test on structure alignment performance
 struct Material
 {
 	float type;
-    vec3  color; // TODO: rename to albedo
-    float refractiveIndex; //TODO
-    vec3  specular; //TODO remove
+    vec3  albedo;
+    float refractiveIndex;
     float roughness;
     vec3  emissive;
     AbsorptionAndScattering as;
@@ -15,6 +15,5 @@ struct Material
 // Material type
 #define NO_SHADING 0
 #define DIFFUSE 1
-#define SPECULAR 2
-#define METALLIC 3
-#define REFRACTIVE 4
+#define METALLIC 2
+#define REFRACTIVE 3

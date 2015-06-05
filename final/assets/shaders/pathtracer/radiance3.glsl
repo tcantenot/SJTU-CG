@@ -31,6 +31,17 @@
 #define RUSSIAN_ROULETTE_DEPTH 5
 #endif
 
+// Enable/disable Russian Roulette for subsurface scattering ray termination
+#ifndef RUSSIAN_ROULETTE_SSS
+#define RUSSIAN_ROULETTE_SSS 1
+#endif
+
+// Min depth for Russian Roulette of subsurface scattering
+#ifndef RUSSIAN_ROULETTE_SSS_DEPTH
+#define RUSSIAN_ROULETTE_SSS_DEPTH 5
+#endif
+
+
 // Enable/Disable the direct lighting (sun and lights)
 #ifndef DIRECT_LIGHTING
 #define DIRECT_LIGHTING 1
@@ -64,96 +75,13 @@
 
 // Minimum reflectance used for ray termination
 #ifndef MIN_REFLECTANCE
-#define MIN_REFLECTANCE 0.05
+#define MIN_REFLECTANCE 0.1
 #endif
 
 // Swap function
 #define SWAP(type, a, b) { type tmp; tmp = a; a = b; b = tmp; }
 
 
-vec3 computeTransmission(vec3 absorption, float d)
-{
-    return exp(-(absorption * d));
-}
-
-vec3 computeReflectionDirection(vec3 normal, vec3 incident)
-{
-	return 2.0 * dot(normal, incident) * normal - incident;
-}
-
-vec3 computeTransmissionDirection(
-    vec3 normal, vec3 incident, float refractiveIndexIncident, float refractiveIndexTransmitted
-)
-{
-	// Snell's Law:
-	// Copied from Photorealizer.
-
-	float cosI = dot(normal, incident);
-
-	float n1_n2 =  refractiveIndexIncident /  refractiveIndexTransmitted;
-
-	float radicand = 1 - pow(n1_n2, 2) * (1 - pow(cosI, 2));
-	if (radicand < 0) return vec3(0, 0, 0); // Return value???????????????????????????????????????
-	float cosT = sqrt(radicand);
-
-	if (cosI > 0) { // normal and incident are on same side of the surface.
-		return n1_n2 * (-1 * incident) + ( n1_n2 * cosI - cosT ) * normal;
-	} else { // normal and incident are on opposite sides of the surface.
-		return n1_n2 * (-1 * incident) + ( n1_n2 * cosI + cosT ) * normal;
-	}
-}
-
-float computeFresnel(
-    vec3 normal, vec3 incident,
-    float refractiveIndexIncident, float refractiveIndexTransmitted,
-    vec3 reflectionDirection, vec3 transmissionDirection
-)
-{
-
-
-	// First, check for total internal reflection:
-	if ( length(transmissionDirection) <= 0.12345 || dot(normal, transmissionDirection) > 0 ) { // The length == 0 thing is how we're handling TIR right now.
-		// Total internal reflection!
-		float reflectionCoefficient = 1;
-		float transmissionCoefficient = 0;
-        return reflectionCoefficient;
-		/*return fresnel;*/
-	}
-
-
-
-	// Real Fresnel equations:
-	// Copied from Photorealizer.
-	float cosThetaIncident = dot(normal, incident);
-	float cosThetaTransmitted = dot(-1 * normal, transmissionDirection);
-
-	float reflectionCoefficientSPolarized = pow(   (refractiveIndexIncident * cosThetaIncident - refractiveIndexTransmitted * cosThetaTransmitted)   /   (refractiveIndexIncident * cosThetaIncident + refractiveIndexTransmitted * cosThetaTransmitted)   , 2);
-
-    float reflectionCoefficientPPolarized = pow(   (refractiveIndexIncident * cosThetaTransmitted - refractiveIndexTransmitted * cosThetaIncident)   /   (refractiveIndexIncident * cosThetaTransmitted + refractiveIndexTransmitted * cosThetaIncident)   , 2);
-
-	float reflectionCoefficientUnpolarized = (reflectionCoefficientSPolarized + reflectionCoefficientPPolarized) / 2.0; // Equal mix.
-	//
-	float reflectionCoefficient = reflectionCoefficientUnpolarized;
-	float transmissionCoefficient = 1 - reflectionCoefficient;
-    return reflectionCoefficient;
-    /*return fresnel;*/
-
-	/*
-	// Shlick's approximation including expression for R0 and modification for transmission found at http://www.bramz.net/data/writings/reflection_transmission.pdf
-	// TODO: IMPLEMENT ACTUAL FRESNEL EQUATIONS!
-	float R0 = pow( (refractiveIndexIncident - refractiveIndexTransmitted) / (refractiveIndexIncident + refractiveIndexTransmitted), 2 ); // For Schlick's approximation.
-	float cosTheta;
-	if (refractiveIndexIncident <= refractiveIndexTransmitted) {
-		cosTheta = dot(normal, incident);
-	} else {
-		cosTheta = dot(-1 * normal, transmissionDirection); // ???
-	}
-	fresnel.reflectionCoefficient = R0 + (1.0 - R0) * pow(1.0 - cosTheta, 5); // Costly pow function might make this slower than actual Fresnel equations. TODO: USE ACTUAL FRESNEL EQUATIONS!
-	fresnel.transmissionCoefficient = 1.0 - fresnel.reflectionCoefficient;
-	return fresnel;
-	*/
-
-}
 
 vec3 computeBackgroundColor(vec3 direction) {
 	float position = (dot(direction, normalize(vec3(-0.5, 0.5, -1.0))) + 1) / 2;
@@ -207,7 +135,6 @@ vec3 radiance(Ray ray)
     vec3 L = vec3(0.0); // Accumulated color
     vec3 F = vec3(1.0); // Accumulated reflectance
 
-
     // Assumption: ray starts in non absorbing/scattering media
     AbsorptionAndScattering currentAS = NO_AS;
 
@@ -241,8 +168,8 @@ vec3 radiance(Ray ray)
             // Assume a random transmission and compute the corresponding
             // scattering distance for the scattering formula:
             // T = exp(-scattering * distance)
-            float transmission = rand();
-            float scatteringDistance = -log(transmission) / currentAS.scattering;
+            float tr = max(rand(), 0.00001);
+            float scatteringDistance = -log(tr) / currentAS.scattering;
 
             // Absorption and scattering
             if(scatteringDistance < hitInfo.dist)
@@ -256,7 +183,25 @@ vec3 radiance(Ray ray)
                 Ray nextRay;
                 nextRay.origin = ray.origin + scatteringDistance * ray.direction;
                 nextRay.direction = sphereSample();
+                /*nextRay.direction = coneSample(ray.direction, 0.98);*/
                 ray = nextRay;
+
+                // Russian Roulette
+                // See: http://www.cs.rutgers.edu/~decarlo/readings/mcrt-sg03c.pdf p116
+                #if RUSSIAN_ROULETTE_SSS
+                if(depth > RUSSIAN_ROULETTE_SSS_DEPTH)
+                {
+                    float p = max(F.x, max(F.y, F.z));
+                    if(rand() < p)
+                    {
+                        F /= p; // Divide by p to keep an unbiased estimator
+                    }
+                    else
+                    {
+                        return L;
+                    }
+                }
+                #endif
 
                 // Go to next ray
                 continue;
@@ -278,17 +223,16 @@ vec3 radiance(Ray ray)
         }
 
 
-        // Special case to handle non shaded entities (spehrical lights, ...)
+        // Special case to handle non shaded entities (spherical lights, ...)
         if(mat.type == NO_SHADING)
         {
-            return L + F * mat.color;
+            return L + F * mat.albedo;
         }
 
         // Metallic materials
         if(mat.type == METALLIC)
         {
-            // FIXME: change to albedo
-            F *= mat.specular;
+            F *= mat.albedo;
 
             // Direction of reflection for a perfect mirror
             vec3 refl = reflect(ray.direction, n);
@@ -306,57 +250,6 @@ vec3 radiance(Ray ray)
 
             continue;
         }
-
-        vec3 normal   = n;
-        vec3 incident = -ray.direction;
-
-        /*#define B 1*/
-        #if 0
-        const float AIR_IOR = 1.000293;
-        float n1 = AIR_IOR;
-        AbsorptionAndScattering incidentMedium = NO_AS;
-
-        float n2 = mat.refractiveIndex;
-        AbsorptionAndScattering transmittedMedium = mat.as;
-
-        bool backFace = (dot(normal, incident) < 0);
-        if(backFace)
-        {
-            SWAP(float, n1, n2);
-            SWAP(AbsorptionAndScattering, incidentMedium, transmittedMedium);
-            normal *= -1;
-        }
-
-        vec3 reflectionDirection = computeReflectionDirection(normal, incident);
-		vec3 transmissionDirection = computeTransmissionDirection(normal, incident, n1, n2);
-
-        bool doSpecular = (mat.refractiveIndex > 1.0 &&
-                           any(greaterThan(mat.specular, vec3(0.0))));
-        bool reflectFromSurface = doSpecular && (
-            rand() < computeFresnel(normal, incident, n1, n2, reflectionDirection, transmissionDirection)
-        );
-
-        if(reflectFromSurface)
-        {
-            F *= mat.specular;
-
-            Ray nextRay;
-            nextRay.origin = hitInfo.pos;
-            nextRay.direction = reflectionDirection;
-            ray = nextRay;
-        }
-        else if(mat.type == REFRACTIVE)
-        {
-            // The ray entered a new medium
-            currentAS = transmittedMedium;
-
-            Ray nextRay;
-            nextRay.origin = hitInfo.pos;
-            nextRay.direction = transmissionDirection;
-            ray = nextRay;
-        }
-        #else
-
 
         const float AIR_IOR = 1.000293;
         float n1 = AIR_IOR;
@@ -385,7 +278,6 @@ vec3 radiance(Ray ray)
 
         // Total internal reflection
         // http://en.wikipedia.org/wiki/Total_internal_reflection
-        #if 1
         if(cosT < 0.0)
         {
             // Direction of reflection for a perfect mirror
@@ -404,12 +296,14 @@ vec3 radiance(Ray ray)
 
             continue;
         }
-        #endif
 
         AbsorptionAndScattering incidentMedium = NO_AS;
         AbsorptionAndScattering transmittedMedium = mat.as;
-        bool backFace = (dot(normal, incident) < 0);
-        if(backFace)
+
+        // If we are inside the material swap the medium
+        // TODO: use mix to avoid branching
+        vec3 normal = n;
+        if(bool(inside))
         {
             SWAP(float, n1, n2);
             SWAP(AbsorptionAndScattering, incidentMedium, transmittedMedium);
@@ -454,17 +348,8 @@ vec3 radiance(Ray ray)
         #endif
 
 
-
-        bool doSpecular = (mat.refractiveIndex > 1.0);
-        doSpecular = doSpecular && any(greaterThan(mat.specular, vec3(0.0)));
-
-        /*vec3 reflectionDirection = computeReflectionDirection(normal, incident);*/
-		/*vec3 transmissionDirection = computeTransmissionDirection(normal, incident, n1, n2);*/
-        /*bool reflectFromSurface = doSpecular && (*/
-            /*rand() < computeFresnel(normal, incident, n1, n2, reflectionDirection, transmissionDirection)*/
-        /*);*/
-        bool reflectFromSurface = doSpecular && (rand() < P);
-
+        // Reflection according to refractive index and Fresnel coefficient
+        bool reflectFromSurface = mat.refractiveIndex > 1.0 && rand() < P;
 
         // Split ray: reflection + refraction
         if(reflectFromSurface) // Reflection
@@ -494,17 +379,15 @@ vec3 radiance(Ray ray)
 
             // The ray entered a new medium
             currentAS = transmittedMedium;
-            //TODO set current index of refraction as well
 
             // Next ray
             ray = Ray(hit, refr);
         }
-        #endif
         else // Diffuse or emissive
         {
             L += F * mat.emissive;
 
-            vec3 f = mat.color;
+            vec3 f = mat.albedo;
 
             // Russian Roulette
             // See: http://www.cs.rutgers.edu/~decarlo/readings/mcrt-sg03c.pdf p116
@@ -570,7 +453,6 @@ vec3 radiance(Ray ray)
                     // Shadow ray
                     Ray shadowRay = Ray(hit, l);
 
-                    // FIXME: not correct because refractive can block light completely
                     // Check if the current hit point is potentially shadowed
                     HitInfo shadowingInfo;
                     bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);

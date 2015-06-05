@@ -1,6 +1,6 @@
 #define MULTIPLICITY 1
 #define SAMPLES 64
-#define MAX_DEPTH 50
+#define MAX_DEPTH 20
 
 // Debug to see how many samples never reach a light source
 #define DEBUG_NO_HIT 0

@@ -3,10 +3,10 @@
 
 #define LIGHTS 0
 
-#define SPHERE_COUNT 15
+#define SPHERE_COUNT 16
 Sphere spheres[] = Sphere[](
     Sphere(1e5, vec3(0.0, -1e5-0.81, 0.0), MatGround, true),
-    Sphere(0.8, vec3(-0.9, 0.0, -0.9), MatSteel, true),
+    Sphere(0.8, vec3(-0.9, 0.0, -0.9), MatRoughSteel, true),
     Sphere(0.6, vec3(0.9, -0.2, 1.8), MatGlass, true),
     Sphere(0.4, vec3(-0.5, -0.4, 1.0), MatYellow, true),
     Sphere(0.1, vec3(-1.0, -0.7, 1.2), MatPurpleAcrylic, true),
@@ -14,12 +14,12 @@ Sphere spheres[] = Sphere[](
     Sphere(0.1, vec3(0.3, -0.7, 1.4), MatPurpleAcrylic, true),
     Sphere(0.1, vec3(-0.1, -0.7, 0.1), MatPurpleAcrylic, true),
     Sphere(0.25, vec3(0.2, -0.55, 0.7), MatPurpleAcrylic, true),
-    Sphere(0.8, vec3(0.8, 0.0, -0.4), MatKetchup, true),
-    Sphere(0.4, vec3(0.8, 1.2, -0.4), MatKetchup, true),
-    Sphere(0.2, vec3(0.8, 1.8, -0.4), MatKetchup, true),
-    Sphere(0.1, vec3(0.8, 2.1, -0.4), MatKetchup, true),
-    Sphere(0.05, vec3(0.8, 2.25, -0.4), MatKetchup, true),
-    Sphere(0.025, vec3(0.8, 2.325, -0.4), MatKetchup, true),
+    Sphere(0.8, vec3(0.8, 0.0, -0.4), MatRedAcrylic, true),
+    Sphere(0.4, vec3(0.8, 1.2, -0.4), MatRedAcrylic, true),
+    Sphere(0.2, vec3(0.8, 1.8, -0.4), MatRedAcrylic, true),
+    Sphere(0.1, vec3(0.8, 2.1, -0.4), MatRedAcrylic, true),
+    Sphere(0.05, vec3(0.8, 2.25, -0.4), MatRedAcrylic, true),
+    Sphere(0.025, vec3(0.8, 2.325, -0.4), MatRedAcrylic, true),
     Sphere(5.0, vec3(0.0, 15.0, 0.0), MatWhiteLight, true)
 );
 
