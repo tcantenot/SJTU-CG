@@ -31,17 +31,6 @@
 #define RUSSIAN_ROULETTE_DEPTH 5
 #endif
 
-// Enable/disable Russian Roulette for subsurface scattering ray termination
-#ifndef RUSSIAN_ROULETTE_SSS
-#define RUSSIAN_ROULETTE_SSS 1
-#endif
-
-// Min depth for Russian Roulette of subsurface scattering
-#ifndef RUSSIAN_ROULETTE_SSS_DEPTH
-#define RUSSIAN_ROULETTE_SSS_DEPTH 5
-#endif
-
-
 // Enable/Disable the direct lighting (sun and lights)
 #ifndef DIRECT_LIGHTING
 #define DIRECT_LIGHTING 1
@@ -50,6 +39,11 @@
 // Enable/Disable the sun and sky lighting
 #ifndef SUN_SKY
 #define SUN_SKY 1
+#endif
+
+// Enable/Disable the sun direct lighting
+#ifndef SUN
+#define SUN 1
 #endif
 
 // Use the real Fresnel equations
@@ -67,34 +61,35 @@
 #define GLOSSY_REFLECTION 1
 #endif
 
+// Enable/Disable absorption and scattering
+#ifndef ABSORPTION_AND_SCATTERING
+#define ABSORPTION_AND_SCATTERING 1
+#endif
+
+// Enable/disable Russian Roulette for subsurface scattering ray termination
+#ifndef RUSSIAN_ROULETTE_SSS
+#define RUSSIAN_ROULETTE_SSS 1
+#endif
+
+// Min depth for Russian Roulette of subsurface scattering
+#ifndef RUSSIAN_ROULETTE_SSS_DEPTH
+#define RUSSIAN_ROULETTE_SSS_DEPTH 5
+#endif
+
 // Stop ray once the reflectance has gone too low
 // (the ray will probably not carry much energy)
 #ifndef LOW_REFLECTANCE_OPTIMIZATION
-#define LOW_REFLECTANCE_OPTIMIZATION 1
+#define LOW_REFLECTANCE_OPTIMIZATION 0
 #endif
 
 // Minimum reflectance used for ray termination
 #ifndef MIN_REFLECTANCE
-#define MIN_REFLECTANCE 0.1
+#define MIN_REFLECTANCE 0.05
 #endif
 
-// Swap function
-#define SWAP(type, a, b) { type tmp; tmp = a; a = b; b = tmp; }
+// Swap-if function
+#define SWAP_IF(type, l, r, b) {type t = l; l = mix(l, r, b); r = mix(r, t, b);}
 
-
-
-vec3 computeBackgroundColor(vec3 direction) {
-	float position = (dot(direction, normalize(vec3(-0.5, 0.5, -1.0))) + 1) / 2;
-	/*vec3 firstColor = vec3(0.15, 0.3, 0.5); // Bluish.*/
-	/*vec3 secondColor = vec3(1.0, 1.0, 1.0); // White.*/
-	/*vec3 interpolatedColor = (1 - position) * firstColor + position * secondColor;*/
-	/*float radianceMultiplier = 1.0;*/
-    vec3 firstColor = vec3(0.15, 0.3, 0.5); // Bluish.
- 	vec3 secondColor = vec3(1.0, 1.0, 1.0); // White.
- 	vec3 interpolatedColor = (1 - position) * firstColor + position * secondColor;
- 	float radianceMultiplier = 0.3;
-	return interpolatedColor * radianceMultiplier;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Radiance:
@@ -136,7 +131,10 @@ vec3 radiance(Ray ray)
     vec3 F = vec3(1.0); // Accumulated reflectance
 
     // Assumption: ray starts in non absorbing/scattering media
-    AbsorptionAndScattering currentAS = NO_AS;
+    const AbsorptionAndScattering DEFAULT_AS = NO_AS;
+    AbsorptionAndScattering currentAS = DEFAULT_AS;
+
+    int IN = 0;
 
 
 	for(int depth = 0; depth < MAX_DEPTH; ++depth)
@@ -160,9 +158,10 @@ vec3 radiance(Ray ray)
         Material mat = getMaterial(hitInfo);
 
         // Absorption and scattering
+        #if ABSORPTION_AND_SCATTERING
         const vec3 ZERO_ABSORPTION_EPS = vec3(0.0001);
-        if(currentAS.scattering > 0.0 ||
-           any(greaterThan(currentAS.absorption, ZERO_ABSORPTION_EPS))
+        if((currentAS.scattering > 0.0 ||
+           any(greaterThan(currentAS.absorption, ZERO_ABSORPTION_EPS)))
         )
         {
             // Assume a random transmission and compute the corresponding
@@ -174,6 +173,8 @@ vec3 radiance(Ray ray)
             // Absorption and scattering
             if(scatteringDistance < hitInfo.dist)
             {
+                /*return vec3(0.0, 1.0, 0.0);*/
+
                 // Compute how much light has been absorbed by the current medium
                 // before if was scattered
                 F *= computeTransmission(currentAS.absorption, scatteringDistance);
@@ -209,17 +210,27 @@ vec3 radiance(Ray ray)
             // Absorption only
             else
             {
+                /*return vec3(1.0, 0.0, 1.0);*/
                 // Compute how much light has been absorbed by the current medium
-                F *= computeTransmission(currentAS.absorption, hitInfo.dist);
+
+                /*float d = mix(hitInfo.dist, 1.0, float(intersection));*/
+                float d = hitInfo.dist * mix(0.00001, 1.0, float(intersection));
+                /*float d = hitInfo.dist;*/
+
+                vec3 absorption = currentAS.absorption;
+                /*absorption = vec3(0.0);*/
+
+                /*if(intersection)*/
+                    F *= computeTransmission(absorption, d);
             }
         }
+        #endif //ABSORPTION_AND_SCATTERING
 
         // If no hit, get background color and exit
         if(!intersection)
         {
-            /*return L + F * vec3(0.3);*/
+            /*return vec3(0.0);*/
             return L + F * background(ray, depth);
-            return L + F * computeBackgroundColor(ray.direction);
         }
 
 
@@ -297,18 +308,35 @@ vec3 radiance(Ray ray)
             continue;
         }
 
-        AbsorptionAndScattering incidentMedium = NO_AS;
+        // If we are inside the material swap the medium
+        vec3 normal = mix(n, -n, inside);
+        /*SWAP_IF(float, n1, n2, inside)*/
+
+        #if ABSORPTION_AND_SCATTERING
+        AbsorptionAndScattering incidentMedium = DEFAULT_AS;
         AbsorptionAndScattering transmittedMedium = mat.as;
 
-        // If we are inside the material swap the medium
-        // TODO: use mix to avoid branching
-        vec3 normal = n;
-        if(bool(inside))
+        /*SWAP_IF(vec3, incidentMedium.absorption, transmittedMedium.absorption, inside)*/
+        /*SWAP_IF(float, incidentMedium.scattering, transmittedMedium.scattering, inside)*/
+
+        // 0: outside, 1: inside
+        /*float inside = float(NoL > 0.0);*/
+        float GO = dot(n, ray.direction);
+        if(GO > 0.0)
         {
-            SWAP(float, n1, n2);
-            SWAP(AbsorptionAndScattering, incidentMedium, transmittedMedium);
-            normal *= -1;
+            /*return vec3(0., 1.0, 1.0);*/
+            normal = -n;
+            float t = n1;
+            n1 = n2;
+            n2 = n1;
+            AbsorptionAndScattering tmp = incidentMedium;
+            incidentMedium.absorption = transmittedMedium.absorption;
+            incidentMedium.scattering = transmittedMedium.scattering;
+            transmittedMedium.absorption = tmp.absorption;
+            transmittedMedium.scattering = tmp.scattering;
         }
+        #endif
+
 
         // /!\ The light path is inverted in path tracing.
         // For this reason, we arrive either from the reflection or
@@ -352,7 +380,7 @@ vec3 radiance(Ray ray)
         bool reflectFromSurface = mat.refractiveIndex > 1.0 && rand() < P;
 
         // Split ray: reflection + refraction
-        if(reflectFromSurface) // Reflection
+        if(false && reflectFromSurface) // Reflection
         {
             // Modulate reflectance by the reflection coefficient
             // and divide by P to remain unbiased (RR)
@@ -369,7 +397,7 @@ vec3 radiance(Ray ray)
             #endif
 
             // Next ray
-            ray = Ray(hit, refl);
+            ray = Ray(hit + n * 0.0002, refl);
         }
         else if(mat.type == REFRACTIVE)// Refraction
         {
@@ -377,11 +405,20 @@ vec3 radiance(Ray ray)
             // and divide by (1 - P) to remain unbiased (RR)
             F *= T / (1.0 - P);
 
+            /*if(bool(inside)) return vec3(0.0, 1.0, 1.0);*/
+
+            if(any(greaterThan(transmittedMedium.absorption, vec3(0.0))))
+            {
+                /*IN++;*/
+            }
+
+            #if ABSORPTION_AND_SCATTERING
             // The ray entered a new medium
             currentAS = transmittedMedium;
+            #endif
 
             // Next ray
-            ray = Ray(hit, refr);
+            ray = Ray(hit + n * 0.001 + refr * 0.1, refr);
         }
         else // Diffuse or emissive
         {
@@ -414,7 +451,7 @@ vec3 radiance(Ray ray)
             #if DIRECT_LIGHTING
             {
                 // Direct sun light
-                #if SUN_SKY
+                #if SUN_SKY && SUN
                 {
                     vec3 sunSampleDir = coneSample(sunDirection, sunAngularDiameterCos);
                     float sunLight = dot(normal, sunSampleDir);
@@ -482,8 +519,6 @@ vec3 radiance(Ray ray)
 
             ray = nextRay;
         }
-
-        ++depth;
     }
 
     return L;

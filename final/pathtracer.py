@@ -75,6 +75,9 @@ class PathTracer:
         # Print stats on screen?
         self.printStats = True
 
+        # Use dark font for stats?
+        self.darkFontStats = False
+
         # Number of iterations since last reset
         self.iterations = 0
 
@@ -429,6 +432,7 @@ class PathTracer:
         glUniform1f(glGetUniformLocation(self.finalProgram.id, "uFramerate"), self.framerate)
         glUniform1f(glGetUniformLocation(self.finalProgram.id, "uRenderTime"), self.renderTime)
         glUniform1i(glGetUniformLocation(self.finalProgram.id, "uPrintStats"), self.printStats)
+        glUniform1i(glGetUniformLocation(self.finalProgram.id, "uDarkFont"), self.darkFontStats)
         glActiveTexture(GL_TEXTURE0 + 10)
         glBindTexture(GL_TEXTURE_2D, self.accTexture.id)
         self.finalFBO.bind(GL_DRAW_FRAMEBUFFER)

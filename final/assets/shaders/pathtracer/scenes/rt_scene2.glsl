@@ -1,10 +1,10 @@
 #include "../light.glsl"
-#include "../material.glsl"
+#include "materials.glsl"
 #include "rt_sphere.glsl"
 
 // FIXME: deprecated
 
-#define LIGHTS 1
+#define LIGHTS 0
 #define LIGHT_COUNT 3
 
 uniform Light uLights[] = Light[](
@@ -22,43 +22,40 @@ uniform Light uLights[] = Light[](
 );
 
 
-const vec3 white  = vec3(1.0);
-const vec3 black  = vec3(0.0);
-const vec3 gray   = vec3(0.75);
-const vec3 red    = vec3(0.75, 0.25, 0.25);
-const vec3 green  = vec3(0.25, 0.75, 0.25);
-const vec3 blue   = vec3(0.25, 0.25, 0.75);
-const vec3 yellow = vec3(0.75, 0.75, 0.25);
-const vec3 lgreen = vec3(0.7, 1.0, 0.9);
-const vec3 lblue  = vec3(0.7, 0.8, 0.9);
-const vec3 lred   = vec3(0.7, 0.5, 0.4);
+/*const vec3 white  = vec3(1.0);*/
+/*const vec3 black  = vec3(0.0);*/
+/*const vec3 gray   = vec3(0.75);*/
+/*const vec3 red    = vec3(0.75, 0.25, 0.25);*/
+/*const vec3 green  = vec3(0.25, 0.75, 0.25);*/
+/*const vec3 blue   = vec3(0.25, 0.25, 0.75);*/
+/*const vec3 yellow = vec3(0.75, 0.75, 0.25);*/
+/*const vec3 lgreen = vec3(0.7, 1.0, 0.9);*/
+/*const vec3 lblue  = vec3(0.7, 0.8, 0.9);*/
+/*const vec3 lred   = vec3(0.7, 0.5, 0.4);*/
 
 
-#define SPHERE_COUNT 14
+#define SPHERE_COUNT 9
 Sphere spheres[] = Sphere[](
     // Floor
-    Sphere(1e5, vec3(50., -1e5, 81.6), Material(DIFFUSE, white, black, 0.1), true),
-    /*Sphere(1e5, vec3(50., -1e5, 81.6), Material(SPECULAR, white, black, 0.1), true),*/
+    Sphere(1e5, vec3(50., -1e5, 81.6), MatGround, true),
 
     // Plastic balls
-	/*Sphere(8.5, vec3(45., 8.5, 78.), Material(DIFFUSE, yellow, black, 0.0), true),*/
-	Sphere(8.5, vec3(0., 8.5, 0.), Material(DIFFUSE, yellow, black, 0.0), true),
-	Sphere(8.5, vec3(15., 8.5, 15.), Material(DIFFUSE, red, black, 0.0), true),
+	Sphere(8.5, vec3(0., 8.5, 0.), MatYellow, true),
+	Sphere(8.5, vec3(15., 8.5, 15.), MatRedAcrylic, true),
 
     // Metallic balls
-	/*Sphere(16.5, vec3(27., 16.5, 47.), Material(SPECULAR, gray, black, 0.0), true),*/
-	Sphere(16.5, vec3(-35., 16.5, 0.), Material(SPECULAR, gray, black, 0.0), true),
-	Sphere(2.0, vec3(5., 2.0, 30.), Material(SPECULAR, white, black, 0.0), true),
-	Sphere(2.0, vec3(8., 2.0, 0.), Material(SPECULAR, white, black, 0.0), true),
-	Sphere(2.0, vec3(-25., 2.0, 35.), Material(SPECULAR, yellow, black, 0.0), true),
-	Sphere(2.0, vec3(-15., 2.0, 60.), Material(SPECULAR, white, black, 0.0), true),
+    Sphere(16.5, vec3(-35., 16.5, 0.), MatSteel, true),
+    Sphere(2.0, vec3(5., 2.0, 30.), MatSteel, true),
+    Sphere(2.0, vec3(8., 2.0, 0.), MatSteel, true),
+    Sphere(2.0, vec3(-25., 2.0, 35.), MatGold, true),
+    Sphere(2.0, vec3(-15., 2.0, 60.), MatSteel, true),
 
     // Glass balls
-	/*Sphere(16.5, vec3(73., 16.5, 78.), Material(REFRACTIVE, lblue, black, 0.0), true)*/
-	Sphere(16.5, vec3(35., 16.5, 0), Material(REFRACTIVE, lblue, black, 0.0), true),
+    Sphere(12.0, vec3(43., 12.0, 38.), MatBlueGlass, true)
+	/*Sphere(16.5, vec3(35., 16.5, 0), Material(REFRACTIVE, lblue, black, 0.0), true),*/
 
-	Sphere(5.0, vec3(15., 5.0, 35.0), Material(REFRACTIVE, lgreen, black, 0.0), true),
-	Sphere(2.0, vec3(-10., 2.0, 55.), Material(REFRACTIVE, lred, black, 0.0), true)
+	/*Sphere(5.0, vec3(15., 5.0, 35.0), Material(REFRACTIVE, lgreen, black, 0.0), true),*/
+	/*Sphere(2.0, vec3(-10., 2.0, 55.), Material(REFRACTIVE, lred, black, 0.0), true)*/
 
 
     // First light
@@ -71,9 +68,9 @@ Sphere spheres[] = Sphere[](
     /*,Sphere(uLights[1].radius, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black), false)*/
     /*,Sphere(5, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black, 0.0), false)*/
 
-    ,Sphere(2, uLights[2].pos, Material(NO_SHADING, uLights[2].color, black, 0.0), false)
-    ,Sphere(2, uLights[3].pos, Material(NO_SHADING, uLights[3].color, black, 0.0), false)
-    ,Sphere(2, uLights[4].pos, Material(NO_SHADING, uLights[4].color, black, 0.0), false)
+    /*,Sphere(2, uLights[2].pos, Material(NO_SHADING, uLights[2].color, black, 0.0), false)*/
+    /*,Sphere(2, uLights[3].pos, Material(NO_SHADING, uLights[3].color, black, 0.0), false)*/
+    /*,Sphere(2, uLights[4].pos, Material(NO_SHADING, uLights[4].color, black, 0.0), false)*/
 );
 
 void HookCamera(inout Camera camera, Params params)
@@ -83,13 +80,13 @@ void HookCamera(inout Camera camera, Params params)
     vec4 mouse = params.mouse;
     vec2 resolution = params.resolution;
 
-    float z = 100.0;
+    float z = 120.0;
     float ymin = 0.0;
     float ymax = 100.0;
 
     vec3 pos = vec3(0.0, 0.0, z);
 
-    float theta = mapping(vec2(0.0, 1.0), vec2(-pi, pi), mouse.x / resolution.x);
+    float theta = mapping(vec2(0.0, 1.0), vec2(-Pi, Pi), mouse.x / resolution.x);
     float c = cos(theta);
     float s = sin(theta);
 
@@ -105,4 +102,4 @@ void HookCamera(inout Camera camera, Params params)
     camera.focal = 50.0;
 }
 
-#define hook_camera(camera, params) hookcamera(camera, params)
+#define HOOK_CAMERA(camera, params) HookCamera(camera, params)

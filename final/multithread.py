@@ -285,6 +285,9 @@ class OpenGLApp(wx.Frame):
             )
         elif key == ord('S'): # Toogle render stats printing
             self.renderThread.sendCommand(self.renderThread.toogleStats)
+        elif key == ord('D'): # Toogle render dark font for stats
+            pt = self.renderThread.pathtracer
+            pt.darkFontStats = not pt.darkFontStats
 
 
     def onClose(self, e):

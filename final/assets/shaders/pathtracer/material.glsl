@@ -13,7 +13,7 @@ struct Material
 };
 
 // Material type
-#define NO_SHADING 0
+#define NO_SHADING -1
 #define DIFFUSE 1
 #define METALLIC 2
 #define REFRACTIVE 3

@@ -6,6 +6,7 @@
 in vec2 vTexCoord;
 
 uniform bool uPrintStats = true;
+uniform bool uDarkFont   = false;
 
 uniform vec2 uResolution;
 uniform int uIterations;
@@ -26,6 +27,7 @@ void main()
     color /= float(uIterations);
     color = tonemap(color);
 
+    vec3 fontColor = mix(vec3(1.0), vec3(0.0), float(uDarkFont));
 
     // Print the number of iterations
     if(uPrintStats)
@@ -44,7 +46,7 @@ void main()
 
             vec2 pos = vec2(xleft, uResolution.y - 2.0 * fontSize.y);
 
-            color = mix(color, vec3(1.0),
+            color = mix(color, fontColor,
                 printNumber(pixel, pos, fontSize, value, 8.0, 2.0)
             );
         }
@@ -55,7 +57,7 @@ void main()
 
             vec2 pos = vec2(xleft, uResolution.y - 2.0 * fontSize.y - 15.0);
 
-            color = mix(color, vec3(1.0),
+            color = mix(color, fontColor,
                 printNumber(pixel, pos, fontSize, value, 8.0, 2.0)
             );
         }
@@ -66,7 +68,7 @@ void main()
 
             vec2 pos = vec2(xright, uResolution.y - 2.0 * fontSize.y);
 
-            color = mix(color, vec3(1.0),
+            color = mix(color, fontColor,
                 printNumber(pixel, pos, fontSize, value, 8.0, 0.0)
             );
         }
@@ -77,7 +79,7 @@ void main()
 
             vec2 pos = vec2(xright - 3.0 * fontSize.x, uResolution.y - 2.0 * fontSize.y - 15.0);
 
-            color = mix(color, vec3(1.0),
+            color = mix(color, fontColor,
                 printNumber(pixel, pos, fontSize, value, 8.0, 2.0)
             );
         }

@@ -24,8 +24,13 @@ const Material MatGlass = Material(REFRACTIVE,
     vec3(0.0), 2.42, 0.0, vec3(0.0), NO_AS       // Flint
 );
 
+const Material MatBlueGlass = Material(REFRACTIVE,
+    vec3(0.0), 2.42, 0.0, vec3(0.0),
+    AbsorptionAndScattering(vec3(0.5, 0.6, 0.1), 0.0)
+);
+
 const Material MatGreenGlass = Material(REFRACTIVE,
-    vec3(0.0), 1.0000, 0.0, vec3(0.0),
+    vec3(0.0), 2.42, 0.0, vec3(0.0),
     AbsorptionAndScattering(vec3(0.8, 0.01, 0.9), 1.0)
 );
 

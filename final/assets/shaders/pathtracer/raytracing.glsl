@@ -27,7 +27,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
 	hitInfo.id   = -1;
     hitInfo.dist = 1e5;
 
-    Sphere hit;
+    Sphere hitSphere;
 	for(int i = 0; i < SPHERE_COUNT; ++i)
     {
         if(i == avoid) continue;
@@ -39,7 +39,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
 		float d = distanceTo(ray, s);
 		if(d != 0.0 && d < hitInfo.dist)
         {
-            hit = s;
+            hitSphere = s;
             hitInfo.dist = d;
             hitInfo.id = i;
         }
@@ -49,7 +49,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
     if(hitInfo.id != -1)
     {
         hitInfo.pos    = ray.origin + hitInfo.dist * ray.direction;
-        hitInfo.normal = normalize(hitInfo.pos - hit.pos);
+        hitInfo.normal = normalize(hitInfo.pos - hitSphere.pos);
         return true;
     }
 

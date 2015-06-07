@@ -13,11 +13,15 @@
 
 uniform Light uLights[] = Light[](
 
-    /*Light(vec3(-4.0, 25.0, 0.0), 10, vec3(1.0), 1.0)*/
-    Light(vec3(0.0, 681.6 - 0.27, 0.0), 600, vec3(1.0), 1.0)
-    , Light(vec3(0.000, 1.0, 30.0), 2.0, vec3(1.0, 0.0, 0.0), 20.0)
-    , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 20.0)
-    , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 20.0)
+    Light(vec3(0.0, 5.0, 0.0), 1.0, vec3(1.0), 50.0)
+    /*Light(vec3(0.0, 600.0 + 80.999, 0.0), 600, vec3(1.0), 1.0)*/
+    , Light(vec3(0.000, 1.0, 30.0), 2.0, vec3(1.0, 0.0, 0.0), 10.0)
+    , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 10.0)
+    , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 10.0)
+);
+
+const Material MatCBlack = Material(DIFFUSE,
+    vec3(0.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
 const Material MatCRed = Material(DIFFUSE,
@@ -36,14 +40,6 @@ const Material MatCYellow = Material(DIFFUSE,
     vec3(0.75, 0.75, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCBlack = Material(DIFFUSE,
-    vec3(0.0), 0.0, 0.0, vec3(0.0), NO_AS
-);
-
-const Material MatCAlmostBlack = Material(DIFFUSE,
-    vec3(0.01), 0.0, 0.0, vec3(0.0), NO_AS
-);
-
 const Material MatCGray = Material(DIFFUSE,
     vec3(0.75), 0.0, 0.0, vec3(0.0), NO_AS
 );
@@ -52,60 +48,60 @@ const Material MatCMirror = Material(METALLIC,
     vec3(1.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGlossyMirror = Material(METALLIC,
-    vec3(1.0), 0.0, 0.1, vec3(0.0), NO_AS
-);
-
 const Material MatCLBlueGlass = Material(REFRACTIVE,
     vec3(0.7, 0.8, 0.9), 1.5, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCLightNoShading = Material(NO_SHADING,
-    vec3(5.0), 0.0, 0.0, vec3(0.0), NO_AS
-);
 
-#define MATLIGHT(color) \
-    Material(NO_SHADING, color, 0.0, 0.0, vec3(0.0), NO_AS)
-
-
-#define SPHERE_COUNT 10
+#define SPHERE_COUNT 9
 Sphere spheres[] = Sphere[](
-
     // Red wall
     Sphere(1e5, vec3(-1e5-80.0, 0.0, 0.0), MatCRed, true),
 
     // Blue wall
     Sphere(1e5, vec3(1e5+80.0, 0.0, 0.0), MatCBlue, true),
+    /*Sphere(1e5, vec3(1e5+80.0, 0.0, 0.0), MatCMirror, true),*/
 
     // Front wall
-    Sphere(1e5, vec3(0.0, 0.0, -1e5-85.0), MatCGray, true),
+    /*Sphere(1e5, vec3(0.0, 0.0, -1e5-85.0), MatCGray, true),*/
+    Sphere(1e5, vec3(0.0, 0.0, -1e5-85.0), MatCMirror, true),
 
     // Back wall
-    Sphere(1e5, vec3(0.0, 0.0, +1e5+150.0), MatCBlack, true),
+    Sphere(1e5, vec3(0.0, 0.0, +1e5+150.0), MatCGreen, true),
 
     // Floor
     Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCGray, true),
-    /*Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCGlossyMirror, true),*/
-    /*Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCAlmostBlack, true),*/
+    /*Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCMirror, true),*/
 
     // Ceiling
     Sphere(1e5, vec3(0.0, -1e5+81.6, 0.0), MatCGray, true),
 
     // Plastic ball
-    Sphere(8.5, vec3(0., 8.5, 0.0), MatCYellow, true),
+    Sphere(8.5, vec3(20., 8.5, 0.0), MatCYellow, true),
+    Sphere(8.5, vec3(0.0, 8.5, 7.0), MatCGray, true),
+    Sphere(8.5, vec3(-20.0, 8.5, 50.0), MatCRed, true),
 
     // Metallic ball
-    Sphere(16.5, vec3(-35., 16.5, -35), MatCMirror, true),
+    /*Sphere(16.5, vec3(-35., 16.5, -35), MatCMirror, true),*/
 
     // Glass ball
-    Sphere(16.5, vec3(24., 16.5, 25), MatCLBlueGlass, true),
+    /*Sphere(16.5, vec3(24., 16.5, 25), MatCLBlueGlass, true),*/
 
-    // Ceiling light
-    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MatCLightNoShading, false)
 
-    , Sphere(uLights[1].radius, uLights[1].pos, MATLIGHT(uLights[1].color), false)
-    , Sphere(uLights[2].radius, uLights[2].pos, MATLIGHT(uLights[2].color), false)
-    , Sphere(uLights[3].radius, uLights[3].pos, MATLIGHT(uLights[3].color), false)
+    // First light
+    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), Material(NO_SHADING, vec3(5.0), 0.0, 0.0, vec3(0.0), NO_AS), false)
+    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFFUSE, black, uLights[0].power*uLights[0].color))*/
+    /*Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black, 0.0), true)*/
+    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black, 0.0), false)*/
+    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black, 0.0), false)*/
+
+    // Second light
+    /*,Sphere(uLights[1].radius, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black), false)*/
+    /*,Sphere(5, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black, 0.0), false)*/
+
+    /*,Sphere(2, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black, 0.0), false)*/
+    /*,Sphere(2, uLights[2].pos, Material(NO_SHADING, uLights[2].color, black, 0.0), false)*/
+    /*,Sphere(2, uLights[3].pos, Material(NO_SHADING, uLights[3].color, black, 0.0), false)*/
 );
 
 
