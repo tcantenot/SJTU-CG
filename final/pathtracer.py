@@ -62,6 +62,19 @@ class PathTracer:
         # Textures
         self.textures = []
 
+        # Measured frame rate in ms
+        self.framerate = 0
+
+        # Time when scene started to be rendered
+        # (reset each time the scene changes)
+        self.renderStartTime = 0
+
+        # Elapsed time since the current scene rendering started (in s)
+        self.renderTime = 0
+
+        # Print stats on screen?
+        self.printStats = True
+
         # Number of iterations since last reset
         self.iterations = 0
 
@@ -94,13 +107,16 @@ class PathTracer:
             self._createFinalFBO()
             self._createQuadBuffer()
             self._loadTextures()
-            self.startTime = time.time()
+            self.startTime  = now()
+            self.renderStartTime = now()
 
 
     def render(self, *args, **kwargs):
         """ Render a frame if necessary """
 
         if self.initialized:
+
+            beg = now()
 
             # Pre-frame handler
             needsFrame = self._preFrame(*args, **kwargs)
@@ -129,6 +145,10 @@ class PathTracer:
                 # Post-frame handler
                 # Must be performed after swapBuffers()
                 self._postFrame()
+
+            end = now()
+            self.renderTime = (end - self.renderStartTime)
+            self.framerate = (end - beg) * 1000
 
 
     def resize(self, size):
@@ -406,6 +426,9 @@ class PathTracer:
         glUniform2f(glGetUniformLocation(self.finalProgram.id, "uResolution"), w, h)
         glUniform1i(glGetUniformLocation(self.finalProgram.id, "uIterations"), self.iterations)
         glUniform1i(glGetUniformLocation(self.finalProgram.id, "uAccumulator"), 10)
+        glUniform1f(glGetUniformLocation(self.finalProgram.id, "uFramerate"), self.framerate)
+        glUniform1f(glGetUniformLocation(self.finalProgram.id, "uRenderTime"), self.renderTime)
+        glUniform1i(glGetUniformLocation(self.finalProgram.id, "uPrintStats"), self.printStats)
         glActiveTexture(GL_TEXTURE0 + 10)
         glBindTexture(GL_TEXTURE_2D, self.accTexture.id)
         self.finalFBO.bind(GL_DRAW_FRAMEBUFFER)
@@ -423,6 +446,8 @@ class PathTracer:
     def _reset(self):
         """ Reset the path tracing data """
         self.iterations = 0
+        self.renderTime = 0
+        self.renderStartTime = now()
         glClearColor(0, 0, 0, 0)
         self.workFBO.bind(GL_DRAW_FRAMEBUFFER)
         glClear(GL_COLOR_BUFFER_BIT)

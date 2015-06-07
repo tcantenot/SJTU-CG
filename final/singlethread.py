@@ -169,6 +169,9 @@ class OpenGLApp(wx.Frame):
             self.paused = not self.paused;
             print "{}".format("Pause" if self._paused else "Resume")
 
+        elif key == ord('S'): # Toogle render stats printing
+            self.pathracer.printStats = not self.pathtracer.printStats
+
 
     @property
     def pathtracer(self):

@@ -103,6 +103,9 @@ class RenderThread(threading.Thread):
         """ Stop the rendering thread """
         self._stop = True
 
+    def toogleStats(self):
+        """ Toogle the print of the render stats """
+        self.pathtracer.printStats = not self.pathtracer.printStats
 
     def sendCommand(self, func, args=[], kwargs={}):
         """ Send a command to the rendering thread """
@@ -280,6 +283,8 @@ class OpenGLApp(wx.Frame):
                 parent=self,
                 title='Path tracer params'
             )
+        elif key == ord('S'): # Toogle render stats printing
+            self.renderThread.sendCommand(self.renderThread.toogleStats)
 
 
     def onClose(self, e):
