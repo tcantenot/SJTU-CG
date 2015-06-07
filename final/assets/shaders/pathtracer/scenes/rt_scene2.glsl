@@ -1,6 +1,6 @@
 #include "../light.glsl"
+#include "../sphere.glsl"
 #include "materials.glsl"
-#include "rt_sphere.glsl"
 
 // FIXME: deprecated
 

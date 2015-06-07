@@ -1,6 +1,6 @@
 #include "../light.glsl"
+#include "../sphere.glsl"
 #include "materials.glsl"
-#include "rt_sphere.glsl"
 
 #ifdef SUN_SKY
 #undef SUN_SKY

@@ -1,5 +1,6 @@
 #include "../light.glsl"
-#include "../material.glsl"
+#include "../sphere.glsl"
+#include "materials.glsl"
 
 #define LIGHTS 1
 #define LIGHT_COUNT 5

@@ -1,4 +1,4 @@
-#include "../material.glsl"
+#include "material.glsl"
 
 struct Sphere
 {
