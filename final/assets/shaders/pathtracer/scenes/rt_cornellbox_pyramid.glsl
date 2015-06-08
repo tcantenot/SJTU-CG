@@ -20,9 +20,9 @@ uniform Light uLights[] = Light[](
     , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 20.0)
 );
 const Material MatCGlass = Material(REFRACTIVE,
-    vec3(0.75, 0.25, 0.25), 1.33, 0.0, vec3(0.0),
+    vec3(0.75, 0.25, 0.25), 1.0001, 0.0, vec3(0.0),
     /*NO_AS*/
-    AbsorptionAndScattering(vec3(0.01, 0.8, 0.9), 0.4)
+    AbsorptionAndScattering(vec3(0.1, 0.6, 0.5), 0.02)
 );
 const Material MatCRed = Material(REFRACTIVE,
     vec3(0.75, 0.25, 0.25), 1.33, 0.0, vec3(0.0),
@@ -87,9 +87,13 @@ const Material MatCLightNoShading = Material(NO_SHADING,
 float r = 0.5;
 float z1 = -2.0 * r * sqrt3 / 3.0;
 
-#define SPHERE_COUNT 11
+#define SPHERE_COUNT 2
 Sphere spheres[] = Sphere[](
 
+    Sphere(2.5, vec3(0.0, 0.0, 0.0), MatCGlass, true),
+    Sphere(1.0, vec3(0.0, 0.0, 0.0), MatCYellow, true)
+
+#if 0
     // Red wall
     /*Sphere(1e5, vec3(-1e5-80.0, 0.0, 0.0), MatCRed, true),*/
     Sphere(2.5, vec3(0.0, 0.5, 0.0), MatCGlass, true),
@@ -137,6 +141,7 @@ Sphere spheres[] = Sphere[](
     , Sphere(uLights[1].radius, uLights[1].pos, MATLIGHT(uLights[1].color), false)
     , Sphere(uLights[2].radius, uLights[2].pos, MATLIGHT(uLights[2].color), false)
     , Sphere(uLights[3].radius, uLights[3].pos, MATLIGHT(uLights[3].color), false)
+#endif
 );
 
 

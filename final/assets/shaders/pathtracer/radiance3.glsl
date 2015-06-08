@@ -134,8 +134,16 @@ vec3 radiance(Ray ray)
     const AbsorptionAndScattering DEFAULT_AS = NO_AS;
     AbsorptionAndScattering currentAS = DEFAULT_AS;
 
-    int IN = 0;
+    const float AIR_IOR = 1.000293;
+    float startingRefractiveIndex = AIR_IOR;
 
+    // Check if we start inside geometry
+    if(trace(ray, -1, hitInfo))
+    {
+        Material mat = getMaterial(hitInfo);
+        currentAS = mat.as;
+        startingRefractiveIndex = mat.refractiveIndex;
+    }
 
 	for(int depth = 0; depth < MAX_DEPTH; ++depth)
     {
@@ -150,7 +158,8 @@ vec3 radiance(Ray ray)
         #endif
 
         // Find intersection with the scene
-        bool intersection = trace(ray, hitInfo.id, hitInfo);
+        // FIXME: don't want to avoid anything... -> -1
+        bool intersection = trace(ray, -1, hitInfo);
 
         vec3 hit = hitInfo.pos;
         vec3 n   = hitInfo.normal;
@@ -210,18 +219,8 @@ vec3 radiance(Ray ray)
             // Absorption only
             else
             {
-                /*return vec3(1.0, 0.0, 1.0);*/
                 // Compute how much light has been absorbed by the current medium
-
-                /*float d = mix(hitInfo.dist, 1.0, float(intersection));*/
-                float d = hitInfo.dist * mix(0.00001, 1.0, float(intersection));
-                /*float d = hitInfo.dist;*/
-
-                vec3 absorption = currentAS.absorption;
-                /*absorption = vec3(0.0);*/
-
-                /*if(intersection)*/
-                    F *= computeTransmission(absorption, d);
+                F *= computeTransmission(currentAS.absorption, hitInfo.dist);
             }
         }
         #endif //ABSORPTION_AND_SCATTERING
@@ -229,7 +228,6 @@ vec3 radiance(Ray ray)
         // If no hit, get background color and exit
         if(!intersection)
         {
-            /*return vec3(0.0);*/
             return L + F * background(ray, depth);
         }
 
@@ -262,8 +260,7 @@ vec3 radiance(Ray ray)
             continue;
         }
 
-        const float AIR_IOR = 1.000293;
-        float n1 = AIR_IOR;
+        float n1 = mix(startingRefractiveIndex, AIR_IOR, float(depth > 0));
         float n2 = mat.refractiveIndex;
 
         // n is the normal vector that points from the surface towards its outside.
@@ -310,31 +307,14 @@ vec3 radiance(Ray ray)
 
         // If we are inside the material swap the medium
         vec3 normal = mix(n, -n, inside);
-        /*SWAP_IF(float, n1, n2, inside)*/
+        SWAP_IF(float, n1, n2, inside)
 
         #if ABSORPTION_AND_SCATTERING
         AbsorptionAndScattering incidentMedium = DEFAULT_AS;
         AbsorptionAndScattering transmittedMedium = mat.as;
 
-        /*SWAP_IF(vec3, incidentMedium.absorption, transmittedMedium.absorption, inside)*/
-        /*SWAP_IF(float, incidentMedium.scattering, transmittedMedium.scattering, inside)*/
-
-        // 0: outside, 1: inside
-        /*float inside = float(NoL > 0.0);*/
-        float GO = dot(n, ray.direction);
-        if(GO > 0.0)
-        {
-            /*return vec3(0., 1.0, 1.0);*/
-            normal = -n;
-            float t = n1;
-            n1 = n2;
-            n2 = n1;
-            AbsorptionAndScattering tmp = incidentMedium;
-            incidentMedium.absorption = transmittedMedium.absorption;
-            incidentMedium.scattering = transmittedMedium.scattering;
-            transmittedMedium.absorption = tmp.absorption;
-            transmittedMedium.scattering = tmp.scattering;
-        }
+        SWAP_IF(vec3, incidentMedium.absorption, transmittedMedium.absorption, inside)
+        SWAP_IF(float, incidentMedium.scattering, transmittedMedium.scattering, inside)
         #endif
 
 
@@ -380,7 +360,7 @@ vec3 radiance(Ray ray)
         bool reflectFromSurface = mat.refractiveIndex > 1.0 && rand() < P;
 
         // Split ray: reflection + refraction
-        if(false && reflectFromSurface) // Reflection
+        if(reflectFromSurface) // Reflection
         {
             // Modulate reflectance by the reflection coefficient
             // and divide by P to remain unbiased (RR)
@@ -397,7 +377,7 @@ vec3 radiance(Ray ray)
             #endif
 
             // Next ray
-            ray = Ray(hit + n * 0.0002, refl);
+            ray = Ray(hit, refl);
         }
         else if(mat.type == REFRACTIVE)// Refraction
         {
@@ -405,20 +385,13 @@ vec3 radiance(Ray ray)
             // and divide by (1 - P) to remain unbiased (RR)
             F *= T / (1.0 - P);
 
-            /*if(bool(inside)) return vec3(0.0, 1.0, 1.0);*/
-
-            if(any(greaterThan(transmittedMedium.absorption, vec3(0.0))))
-            {
-                /*IN++;*/
-            }
-
             #if ABSORPTION_AND_SCATTERING
             // The ray entered a new medium
             currentAS = transmittedMedium;
             #endif
 
             // Next ray
-            ray = Ray(hit + n * 0.001 + refr * 0.1, refr);
+            ray = Ray(hit, refr);
         }
         else // Diffuse or emissive
         {

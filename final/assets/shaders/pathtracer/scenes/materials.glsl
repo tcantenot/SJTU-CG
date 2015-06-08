@@ -21,7 +21,7 @@ const Material MatPurpleAcrylic = Material(DIFFUSE,
 );
 
 const Material MatGlass = Material(REFRACTIVE,
-    vec3(0.0), 2.42, 0.0, vec3(0.0), NO_AS       // Flint
+    vec3(0.0), 1.0001, 0.0, vec3(0.0), NO_AS       // Flint
 );
 
 const Material MatBlueGlass = Material(REFRACTIVE,
