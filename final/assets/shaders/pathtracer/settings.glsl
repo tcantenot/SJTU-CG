@@ -91,11 +91,8 @@ void SetupCamera(inout Camera camera, Params params)
 #else
 Material getMaterial(HitInfo _)
 {
-    Material mat;
-    mat.type = DIFFUSE;
-    mat.color = vec3(1.0);
-    mat.emissive = vec3(0.0);
-    return mat;
+    const Material m = MATERIAL(DIFFUSE, vec3(1.0), 0.0, 0.0, vec3(0.0), NO_AS);
+    return m;
 }
 #endif
 
@@ -125,3 +122,16 @@ vec3 background(Ray ray, int depth)
 #else
 #include "radiance3.glsl"
 #endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+///                              POSTPROCESS                                 ///
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef HOOK_POSTPROCESS
+#define PostProcess(color, ray, params) HOOK_POSTPROCESS(color, ray, params)
+#else
+void PostProcess(inout vec3 color, Ray ray, Params params) { }
+#endif
+
+

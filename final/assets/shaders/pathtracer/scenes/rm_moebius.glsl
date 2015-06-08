@@ -101,15 +101,13 @@ Material HookMaterial(HitInfo hitInfo)
     int id = hitInfo.id;
     vec3 pos = hitInfo.pos;
 
-    Material mat;
-    mat.type = DIFFUSE;
-    mat.color = vec3(1.0);
-    mat.emissive = vec3(0.0);
+    Material mat = MATERIAL(DIFFUSE, vec3(1.0), 0.0, 0.0, vec3(0.0), NO_AS);
 
     if(id == 1)
     {
         mat.type = REFRACTIVE;
-        mat.color = vec3(1.0);//vec3(0.9, 0.5, 0.4);
+        mat.albedo = vec3(1.0);//vec3(0.9, 0.5, 0.4);
+        mat.refractiveIndex = 1.5;
     }
 
     return mat;

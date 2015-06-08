@@ -7,7 +7,7 @@
 
 #define SUN_SKY 1
 
-#define RAYMARCHING 0
+#define RAYMARCHING 1
 
 #include "camera.glsl"
 #include "dof.glsl"
@@ -55,7 +55,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
             vec3 test = radiance(ray);
             if(dot(test, test) > 0.0) color += vec3(1.0); else color += vec3(0.5, 0.0, 0.1);
             #else
-            color += radiance(ray);
+            vec3 c = radiance(ray);
+            PostProcess(c, ray, params);
+            color += c;
             #endif
 
             ++subframe;

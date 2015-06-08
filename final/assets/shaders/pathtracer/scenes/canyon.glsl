@@ -136,3 +136,83 @@ float map(in vec3 p, inout HitInfo hitInfo)
 
     return t;
 }
+
+Material HookMaterial(HitInfo hitInfo)
+{
+    int id = hitInfo.id;
+    vec3 pos = hitInfo.pos;
+    vec3 nor = hitInfo.normal;
+
+	vec4 mate = vec4(0.5,0.5,0.5,0.0);
+    {
+        vec3 uvw = 1.0*pos;
+
+        vec3 bnor;
+        float be = 1.0/1024.0;
+        float bf = 0.4;
+        bnor.x = texcube( iChannel0, bf*uvw+vec3(be,0.0,0.0), nor ).x - texcube( iChannel0, bf*uvw-vec3(be,0.0,0.0), nor ).x;
+        bnor.y = texcube( iChannel0, bf*uvw+vec3(0.0,be,0.0), nor ).x - texcube( iChannel0, bf*uvw-vec3(0.0,be,0.0), nor ).x;
+        bnor.z = texcube( iChannel0, bf*uvw+vec3(0.0,0.0,be), nor ).x - texcube( iChannel0, bf*uvw-vec3(0.0,0.0,be), nor ).x;
+        bnor = normalize(bnor);
+        float amo = 0.2  + 0.25*(1.0-smoothstep(0.6,0.7,nor.y) );
+        nor = normalize( nor + amo*(bnor-nor*dot(bnor,nor)) );
+
+        vec3 te = texcube( iChannel0, 0.15*uvw, nor ).xyz;
+        te = 0.05 + te;
+        mate.xyz = 0.6*te;
+        mate.w = 1.5*(0.5+0.5*te.x);
+        float th = smoothstep( 0.1, 0.4, texcube( iChannel0, 0.002*uvw, nor ).x );
+        vec3 dcol = mix( vec3(0.2, 0.3, 0.0), 0.4*vec3(0.65, 0.4, 0.2), 0.2+0.8*th );
+        mate.xyz = mix( mate.xyz, 2.0*dcol, th*smoothstep( 0.0, 1.0, nor.y ) );
+        mate.xyz *= 0.5;
+        float rr = smoothstep( 0.2, 0.4, texcube( iChannel1, 2.0*0.02*uvw, nor ).y );
+        mate.xyz *= mix( vec3(1.0), 1.5*vec3(0.25,0.24,0.22)*1.5, rr );
+        mate.xyz *= 1.5*pow(texcube( iChannel3, 8.0*uvw, nor ).xyz,vec3(0.5));
+        mate = mix( mate, vec4(0.7,0.7,0.7,.0), smoothstep(0.8,0.9,nor.y + nor.x*0.6*te.x*te.x ));
+
+
+        mate.xyz *= 1.5;
+    }
+
+    Material mat;
+    mat.type = DIFFUSE;
+    mat.albedo = mate.rgb;
+    mat.emissive = vec3(0.0);
+    mat.refractiveIndex = 0.0;
+    mat.roughness = 0.0;
+    mat.as = NO_AS;
+
+    return mat;
+}
+
+void HookCamera(inout Camera camera, Params params)
+{
+    const float Pi = 3.141592645;
+
+    vec4 mouse = params.mouse;
+    vec2 resolution = params.resolution;
+
+    float z = 5.0;
+    float ymin = -6.0;
+    float ymax = 10.0;
+
+    vec3 pos = vec3(0.0, 0.0, z);
+
+    float theta = mapping(vec2(0.0, 1.0), vec2(-Pi, Pi), mouse.x / resolution.x);
+    float c = cos(theta);
+    float s = sin(theta);
+
+    pos.x = pos.x * c + pos.z * s;
+    pos.z = pos.z * c - pos.x * s;
+    pos.y = mapping(vec2(0.0, 1.0), vec2(ymin, ymax), mouse.y / resolution.y);
+
+    camera.position = pos;
+    camera.target = vec3(0.0);
+    camera.roll = 0.0;
+    camera.fov = vec2(45.0, 45.0);
+    camera.aperture = 0.0;
+    camera.focal = 35.0;
+}
+
+#define HOOK_MATERIAL(hitInfo) HookMaterial(hitInfo)
+#define HOOK_CAMERA(camera, params) HookCamera(camera, params)
