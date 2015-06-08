@@ -44,7 +44,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
 
         if(!s.collidable && shadowTrace) continue;
 
-		float d = abs(distanceTo(ray, s));
+		float d = distanceTo(ray, s);
 		if(d != 0.0 && d < hitInfo.dist)
         {
             hitSphere = s;

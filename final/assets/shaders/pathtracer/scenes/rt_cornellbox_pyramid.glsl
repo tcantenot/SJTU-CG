@@ -19,63 +19,63 @@ uniform Light uLights[] = Light[](
     , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 20.0)
     , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 20.0)
 );
-const Material MatCGlass = Material(REFRACTIVE,
+const Material MatCGlass = MATERIAL(REFRACTIVE,
     vec3(0.75, 0.25, 0.25), 1.0001, 0.0, vec3(0.0),
     /*NO_AS*/
     AbsorptionAndScattering(vec3(0.1, 0.6, 0.5), 0.02)
 );
-const Material MatCRed = Material(REFRACTIVE,
+const Material MatCRed = MATERIAL(REFRACTIVE,
     vec3(0.75, 0.25, 0.25), 1.33, 0.0, vec3(0.0),
     //NO_AS
     AbsorptionAndScattering(vec3(0.5, 0.8, 0.9), 1.0)
 );
 
-const Material MatCGreen = Material(DIFFUSE,
+const Material MatCGreen = MATERIAL(DIFFUSE,
     vec3(0.25, 0.75, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCBlue = Material(DIFFUSE,
+const Material MatCBlue = MATERIAL(DIFFUSE,
     vec3(0.25, 0.25, 0.75), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCYellow = Material(DIFFUSE,
+const Material MatCYellow = MATERIAL(DIFFUSE,
     vec3(0.75, 0.75, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCBlack = Material(DIFFUSE,
+const Material MatCBlack = MATERIAL(DIFFUSE,
     vec3(0.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCWhite = Material(NO_SHADING,
+const Material MatCWhite = MATERIAL(NO_SHADING,
     vec3(1.0), 0.0, 0.0, vec3(1.0), NO_AS
 );
 
-const Material MatCAlmostBlack = Material(DIFFUSE,
+const Material MatCAlmostBlack = MATERIAL(DIFFUSE,
     vec3(0.01), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGray = Material(DIFFUSE,
+const Material MatCGray = MATERIAL(DIFFUSE,
     vec3(0.75), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCMirror = Material(METALLIC,
+const Material MatCMirror = MATERIAL(METALLIC,
     vec3(1.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGlossyMirror = Material(METALLIC,
+const Material MatCGlossyMirror = MATERIAL(METALLIC,
     vec3(1.0), 0.0, 0.1, vec3(0.0), NO_AS
 );
 
-const Material MatCLBlueGlass = Material(REFRACTIVE,
+const Material MatCLBlueGlass = MATERIAL(REFRACTIVE,
     vec3(0.7, 0.8, 0.9), 1.5, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCLightNoShading = Material(NO_SHADING,
+const Material MatCLightNoShading = MATERIAL(NO_SHADING,
     vec3(5.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
 #define MATLIGHT(color) \
-    Material(NO_SHADING, color, 0.0, 0.0, vec3(0.0), NO_AS)
+    MATERIAL(NO_SHADING, color, 0.0, 0.0, vec3(0.0), NO_AS)
 
 #define root3_over6 0.288675135
 #define root3_over4 0.433012702

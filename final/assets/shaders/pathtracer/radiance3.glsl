@@ -87,8 +87,17 @@
 #define MIN_REFLECTANCE 0.05
 #endif
 
+// Bias to add on ray bounce to avoid self-intersection
+#ifndef BOUNCE_BIAS
+#define BOUNCE_BIAS 0.000
+#endif
+
 // Swap-if function
 #define SWAP_IF(type, l, r, b) {type t = l; l = mix(l, r, b); r = mix(r, t, b);}
+
+
+
+// TODO: add option for roughness + allow to disable so uneeded parts of materials
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -130,20 +139,11 @@ vec3 radiance(Ray ray)
     vec3 L = vec3(0.0); // Accumulated color
     vec3 F = vec3(1.0); // Accumulated reflectance
 
+    #if ABSORPTION_AND_SCATTERING
     // Assumption: ray starts in non absorbing/scattering media
     const AbsorptionAndScattering DEFAULT_AS = NO_AS;
     AbsorptionAndScattering currentAS = DEFAULT_AS;
-
-    const float AIR_IOR = 1.000293;
-    float startingRefractiveIndex = AIR_IOR;
-
-    // Check if we start inside geometry
-    if(trace(ray, -1, hitInfo))
-    {
-        Material mat = getMaterial(hitInfo);
-        currentAS = mat.as;
-        startingRefractiveIndex = mat.refractiveIndex;
-    }
+    #endif
 
 	for(int depth = 0; depth < MAX_DEPTH; ++depth)
     {
@@ -158,8 +158,7 @@ vec3 radiance(Ray ray)
         #endif
 
         // Find intersection with the scene
-        // FIXME: don't want to avoid anything... -> -1
-        bool intersection = trace(ray, -1, hitInfo);
+        bool intersection = trace(ray, hitInfo.id, hitInfo);
 
         vec3 hit = hitInfo.pos;
         vec3 n   = hitInfo.normal;
@@ -174,16 +173,14 @@ vec3 radiance(Ray ray)
         )
         {
             // Assume a random transmission and compute the corresponding
-            // scattering distance for the scattering formula:
-            // T = exp(-scattering * distance)
+            // scattering distance with the scattering formula:
+            // tr = exp(-scattering * distance)
             float tr = max(rand(), 0.00001);
             float scatteringDistance = -log(tr) / currentAS.scattering;
 
             // Absorption and scattering
             if(scatteringDistance < hitInfo.dist)
             {
-                /*return vec3(0.0, 1.0, 0.0);*/
-
                 // Compute how much light has been absorbed by the current medium
                 // before if was scattered
                 F *= computeTransmission(currentAS.absorption, scatteringDistance);
@@ -255,12 +252,13 @@ vec3 radiance(Ray ray)
             refl = coneSample(refl, alpha);
 
             // Next ray
-            ray = Ray(hit, refl);
+            ray = Ray(hit + n * BOUNCE_BIAS, refl);
 
             continue;
         }
 
-        float n1 = mix(startingRefractiveIndex, AIR_IOR, float(depth > 0));
+        const float AIR_IOR = 1.000293;
+        float n1 = AIR_IOR;
         float n2 = mat.refractiveIndex;
 
         // n is the normal vector that points from the surface towards its outside.
@@ -268,19 +266,20 @@ vec3 radiance(Ray ray)
         // (negative side) and negative if it is coming from the outside.
         float NoL = dot(n, ray.direction);
 
+        // Cosine of the angle of incidence: must be positive for the Snell's law
+        float cosI = abs(NoL);
+
         // Relative position from the refractive material:
         // 0: outside, 1: inside
         float inside = float(NoL > 0.0);
 
-        // Cosine of the angle of incidence
-        /*float cosI = NoL;*/
-        /*// Cosine of the angle of incidence: must be positive for the Snell's law*/
-        float cosI = abs(NoL);
+        // If we are inside the material swap the medium
+        SWAP_IF(float, n1, n2, inside)
 
         // Ratio of refractive indices
-        float r = mix(n1 / n2, n2 / n1, inside);
+        float r = n1 / n2;
 
-        // Snell's law
+        // Snell's law: square of cosine of the angle of refraction
         // http://en.wikipedia.org/wiki/Snell%27s_law#Derivations_and_formula
         float cosT = 1.0 - r * r * (1.0 - cosI * cosI);
 
@@ -300,22 +299,10 @@ vec3 radiance(Ray ray)
             refl = coneSample(refl, alpha);
 
             // Next ray
-            ray = Ray(hit, refl);
+            ray = Ray(hit + n * BOUNCE_BIAS, refl);
 
             continue;
         }
-
-        // If we are inside the material swap the medium
-        vec3 normal = mix(n, -n, inside);
-        SWAP_IF(float, n1, n2, inside)
-
-        #if ABSORPTION_AND_SCATTERING
-        AbsorptionAndScattering incidentMedium = DEFAULT_AS;
-        AbsorptionAndScattering transmittedMedium = mat.as;
-
-        SWAP_IF(vec3, incidentMedium.absorption, transmittedMedium.absorption, inside)
-        SWAP_IF(float, incidentMedium.scattering, transmittedMedium.scattering, inside)
-        #endif
 
 
         // /!\ The light path is inverted in path tracing.
@@ -324,9 +311,8 @@ vec3 radiance(Ray ray)
         // This is not an issue because the propagation is reversible.
 
 
-        // Direction of reflection for a perfect mirror
-        // (which is also the direction of incidence of light:
-        // surface -> light source)
+        // Direction of reflection for a perfect mirror which is also the
+        // direction of incidence of light: surface -> light source
         vec3 refl = reflect(ray.direction, n);
 
         // Refraction direction
@@ -377,21 +363,30 @@ vec3 radiance(Ray ray)
             #endif
 
             // Next ray
-            ray = Ray(hit, refl);
+            ray = Ray(hit + n * BOUNCE_BIAS, refl);
         }
-        else if(mat.type == REFRACTIVE)// Refraction
+        else if(mat.type == REFRACTIVE) // Refraction
         {
             // Modulate reflectance by the transmission coefficient
             // and divide by (1 - P) to remain unbiased (RR)
             F *= T / (1.0 - P);
 
             #if ABSORPTION_AND_SCATTERING
+            AbsorptionAndScattering ias = DEFAULT_AS;
+            AbsorptionAndScattering tas = mat.as;
+
+            SWAP_IF(vec3,  ias.absorption, tas.absorption, inside)
+            SWAP_IF(float, ias.scattering, tas.scattering, inside)
+
             // The ray entered a new medium
-            currentAS = transmittedMedium;
+            currentAS = tas;
             #endif
 
+            // Ignore self-intersection
+            hitInfo.id = -1;
+
             // Next ray
-            ray = Ray(hit, refr);
+            ray = Ray(hit - n * BOUNCE_BIAS, refr);
         }
         else // Diffuse or emissive
         {
@@ -418,7 +413,32 @@ vec3 radiance(Ray ray)
             }
             #endif
 
+            Ray nextRay;
+            nextRay.origin = hitInfo.pos + n * BOUNCE_BIAS;
+
+            #if IMPORTANCE_SAMPLING
+            // http://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf (35)
+
+            // Biased sampling: cosine weighted
+            // Lambertian BRDF = Albedo / PI
+            // PDF = cos(angle) / PI
+            nextRay.direction = cosineWeightedSample(n);
+
+            // Modulate reflectance with: BRDF * cos(angle) / PDF = Albedo
             F *= f;
+            #else
+            // http://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf (34)
+
+            // Unbiased sampling: uniform over normal-oriented hemisphere
+            // Lambertian BRDF = Albedo / PI
+            // PDF = 1 / (2 * PI)
+            nextRay.direction = hemisphereSample(n);
+
+            // Modulate reflectance with: BRDF * cos(angle) / PDF = 2 * Albedo * cos(angle)
+            F *= 2.0 * f * max(0.0, dot(nextRay.direction, n));
+            /*F *= f;*/
+            #endif
+
 
             // Direct lighting
             #if DIRECT_LIGHTING
@@ -427,11 +447,11 @@ vec3 radiance(Ray ray)
                 #if SUN_SKY && SUN
                 {
                     vec3 sunSampleDir = coneSample(sunDirection, sunAngularDiameterCos);
-                    float sunLight = dot(normal, sunSampleDir);
+                    float sunLight = dot(n, sunSampleDir);
 
                     if(sunLight > 0.0)
                     {
-                        Ray shadowRay = Ray(hit, sunSampleDir);
+                        Ray shadowRay = Ray(hit + n * BOUNCE_BIAS, sunSampleDir);
                         HitInfo _;
                         if(!shadowtrace(shadowRay, hitInfo.id, _))
                         {
@@ -461,33 +481,29 @@ vec3 radiance(Ray ray)
 
 
                     // Shadow ray
-                    Ray shadowRay = Ray(hit, l);
+                    Ray shadowRay = Ray(hit + n * BOUNCE_BIAS, l);
 
                     // Check if the current hit point is potentially shadowed
                     HitInfo shadowingInfo;
                     bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);
-
                     float lightDist = distanceTo(shadowRay, light);
                     if(lightDist < shadowingInfo.dist)
                     {
                         vec3 I = light.power * light.color * clamp(dot(l, n), 0.0, 1.0);
-                        float omega = 2.0 * PI * (1.0 - cosThetaMax);
-                        lightIntensity += (I * omega) / PI;
+
+                        // Inverse PDF for random ray direction in unit oriented hemisphere
+                        // proportional to solid angle in [0, thetaMax]
+                        // (cone of angle thetaMax aligned with the light vector)
+                        // http://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf (34)
+                        float invpdf = 2.0 * PI * (1.0 - cosThetaMax);
+
+                        lightIntensity += (I * invpdf) / PI;
                     }
                 }
 
                 L += F * lightIntensity;
                 #endif
             }
-            #endif
-
-            Ray nextRay;
-            nextRay.origin = hitInfo.pos;
-
-            #if IMPORTANCE_SAMPLING
-            nextRay.direction = cosineWeightedSample(normal);
-            #else
-            nextRay.direction = hemisphereSample(normal);
             #endif
 
             ray = nextRay;

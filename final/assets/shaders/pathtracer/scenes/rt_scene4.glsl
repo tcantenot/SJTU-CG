@@ -23,6 +23,10 @@ uniform Light uLights[] = Light[](
     /*, Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(1.0)[>vec3(0.0, 0.0, 1.0)<], 10.0)*/
 );
 
+const Material MatWLight = MATERIAL(DIFFUSE,
+    vec3(0.0), 0.0, 0.0, vec3(5.0), NO_AS
+);
+
 
 #define SPHERE_COUNT 16
 Sphere spheres[] = Sphere[](
@@ -41,7 +45,7 @@ Sphere spheres[] = Sphere[](
     Sphere(0.1, vec3(0.8, 2.1, -0.4), MatKetchup, true),
     Sphere(0.05, vec3(0.8, 2.25, -0.4), MatKetchup, true),
     Sphere(0.025, vec3(0.8, 2.325, -0.4), MatKetchup, true),
-    Sphere(6.0, vec3(-4.0, 15.0, 0.0), MatWhiteLight, false)
+    Sphere(6.0, vec3(-4.0, 15.0, 0.0), MatWLight, false)
 );
 
 void HookCamera(inout Camera camera, Params params)

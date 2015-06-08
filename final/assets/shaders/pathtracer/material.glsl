@@ -1,16 +1,19 @@
 #include "absorption_and_scattering.glsl"
 
 // Material
-// TODO: make test on structure alignment performance
 struct Material
 {
-	float type;
     vec3  albedo;
-    float refractiveIndex;
-    float roughness;
+	float type;
     vec3  emissive;
+    float roughness;
     AbsorptionAndScattering as;
+    float refractiveIndex;
 };
+
+#define MATERIAL(type, albedo, refractiveIndex, roughness, emissive, as) \
+    Material(albedo, type, emissive, roughness, as, refractiveIndex)
+
 
 // Material type
 #define NO_SHADING -1

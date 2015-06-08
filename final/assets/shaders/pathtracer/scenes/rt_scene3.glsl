@@ -5,8 +5,8 @@
 
 #define SPHERE_COUNT 15
 Sphere spheres[] = Sphere[](
-    Sphere(1e5, vec3(0.0, -1e5-0.81, 0.0), MatGround, true),
-    Sphere(0.8, vec3(-0.9, 0.0, -0.9), MatRoughSteel, true),
+    Sphere(1e5, vec3(0.0, -1e5-0.80, 0.0), MatGround, true),
+    Sphere(0.8, vec3(-0.9, 0.0, -0.9), MatSteel, true),
     Sphere(0.6, vec3(0.9, -0.2, 1.8), MatGlass, true),
     Sphere(0.4, vec3(-0.5, -0.4, 1.0), MatYellow, true),
     Sphere(0.1, vec3(-1.0, -0.7, 1.2), MatPurpleAcrylic, true),

@@ -17,6 +17,5 @@ const AbsorptionAndScattering NO_AS = AbsorptionAndScattering(vec3(0.0), 0.0);
 vec3 computeTransmission(vec3 absorption, float d)
 {
     // Scattering equation
-    /*return vec3(1.0) - absorption;*/
     return exp(-(absorption * d));
 }

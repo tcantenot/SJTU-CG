@@ -47,7 +47,7 @@ vec3 cosineWeightedSample(vec3 dir)
     }
 
     float phi = TWO_PI * r.x;
-    float cosTheta = r.y;
+    float cosTheta = sqrt(r.y);
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
 	// Create an orthogonal basis

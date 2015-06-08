@@ -8,64 +8,64 @@
 
 #define SUN_SKY 0
 
-#define LIGHTS 1
+#define LIGHTS 0
 #define LIGHT_COUNT 1
 
 uniform Light uLights[] = Light[](
 
     /*Light(vec3(-4.0, 25.0, 0.0), 10, vec3(1.0), 1.0)*/
-    Light(vec3(0.0, 681.6 - 0.27, 0.0), 600, vec3(1.0), 1.0)
+    Light(vec3(0.0, 681.6 - 0.27, 0.0), 600, vec3(2.0), 1.0)
     , Light(vec3(0.000, 1.0, 30.0), 2.0, vec3(1.0, 0.0, 0.0), 20.0)
     , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 20.0)
     , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 20.0)
 );
 
-const Material MatCRed = Material(DIFFUSE,
+const Material MatCRed = MATERIAL(DIFFUSE,
     vec3(0.75, 0.25, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGreen = Material(DIFFUSE,
+const Material MatCGreen = MATERIAL(DIFFUSE,
     vec3(0.25, 0.75, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCBlue = Material(DIFFUSE,
+const Material MatCBlue = MATERIAL(DIFFUSE,
     vec3(0.25, 0.25, 0.75), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCYellow = Material(DIFFUSE,
+const Material MatCYellow = MATERIAL(DIFFUSE,
     vec3(0.75, 0.75, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCBlack = Material(DIFFUSE,
+const Material MatCBlack = MATERIAL(DIFFUSE,
     vec3(0.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCAlmostBlack = Material(DIFFUSE,
+const Material MatCAlmostBlack = MATERIAL(DIFFUSE,
     vec3(0.01), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGray = Material(DIFFUSE,
+const Material MatCGray = MATERIAL(DIFFUSE,
     vec3(0.75), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCMirror = Material(METALLIC,
+const Material MatCMirror = MATERIAL(METALLIC,
     vec3(1.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGlossyMirror = Material(METALLIC,
+const Material MatCGlossyMirror = MATERIAL(METALLIC,
     vec3(1.0), 0.0, 0.1, vec3(0.0), NO_AS
 );
 
-const Material MatCLBlueGlass = Material(REFRACTIVE,
+const Material MatCLBlueGlass = MATERIAL(REFRACTIVE,
     vec3(0.7, 0.8, 0.9), 1.5, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCLightNoShading = Material(NO_SHADING,
+const Material MatCLightNoShading = MATERIAL(NO_SHADING,
     vec3(5.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
 #define MATLIGHT(color) \
-    Material(NO_SHADING, color, 0.0, 0.0, vec3(0.0), NO_AS)
+    MATERIAL(NO_SHADING, color, 0.0, 0.0, vec3(0.0), NO_AS)
 
 
 #define SPHERE_COUNT 10
@@ -101,7 +101,8 @@ Sphere spheres[] = Sphere[](
     Sphere(16.5, vec3(24., 16.5, 25), MatCLBlueGlass, true),
 
     // Ceiling light
-    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MatCLightNoShading, false)
+    /*Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MatCLightNoShading, false)*/
+    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MATLIGHT(uLights[0].color), false)
 
     , Sphere(uLights[1].radius, uLights[1].pos, MATLIGHT(uLights[1].color), false)
     , Sphere(uLights[2].radius, uLights[2].pos, MATLIGHT(uLights[2].color), false)
@@ -116,7 +117,7 @@ void HookCamera(inout Camera camera, Params params)
     vec4 mouse = params.mouse;
     vec2 resolution = params.resolution;
 
-    float z = 140.0;
+    float z = 100.0;
     float ymin = 0.0;
     float ymax = 80.0;
 
@@ -133,7 +134,7 @@ void HookCamera(inout Camera camera, Params params)
     camera.position = pos;
     camera.target = vec3(0.0);
     camera.roll = 0.0;
-    camera.fov = vec2(45.0);
+    camera.fov = vec2(60.0);
     camera.aperture = 0.0;
     camera.focal = 35.0;
 }
