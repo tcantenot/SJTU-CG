@@ -22,8 +22,8 @@ const int RM_STEP_MAX = 500;
 
 #else
 
-#include "raytracing_scene.glsl"
-#include "raytracing.glsl"
+#include "../rt/raytracing_scene.glsl"
+#include "../rt/raytracing.glsl"
 
 #define trace(ray, previousHitId, hitInfo) \
     raytrace(ray, previousHitId, false, hitInfo)
@@ -90,8 +90,6 @@ Material getMaterial(HitInfo _)
 ////////////////////////////////////////////////////////////////////////////////
 ///                               BACKGROUND                                 ///
 ////////////////////////////////////////////////////////////////////////////////
-
-#include "sunsky_background.glsl"
 
 #ifdef HOOK_BACKGROUND
 #define background(ray, depth) HOOK_BACKGROUND(ray, depth)

@@ -1,4 +1,4 @@
-#include "../material.glsl"
+#include "../core.glsl"
 
 const Material MatRedAcrylic = MATERIAL(DIFFUSE,
     vec3(0.87, 0.15, 0.15), 1.491, 0.0, vec3(0.0), NO_AS

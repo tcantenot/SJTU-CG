@@ -1,1 +1,1 @@
-#include "../pathtracer/core.glsl"
+#include "../core/core.glsl"

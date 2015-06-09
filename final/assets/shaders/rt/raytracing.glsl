@@ -1,8 +1,6 @@
 #include "box.glsl"
-#include "material.glsl"
-#include "hitinfo.glsl"
+#include "core.glsl"
 #include "plane.glsl"
-#include "ray.glsl"
 
 
 float distanceTo(Ray ray, Sphere s)

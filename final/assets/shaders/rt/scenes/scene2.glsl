@@ -1,4 +1,4 @@
-#include "../light.glsl"
+#include "../core.glsl"
 #include "../sphere.glsl"
 #include "materials.glsl"
 

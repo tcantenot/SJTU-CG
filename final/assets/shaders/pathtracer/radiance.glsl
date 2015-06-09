@@ -1,7 +1,6 @@
 #include "core.glsl"
 #include "fresnel.glsl"
 #include "sampling.glsl"
-#include "sunsky.glsl"
 
 #ifndef PI
 #define PI 3.14159265359

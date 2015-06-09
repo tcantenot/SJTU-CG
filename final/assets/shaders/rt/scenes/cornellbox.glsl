@@ -1,4 +1,4 @@
-#include "../light.glsl"
+#include "../core.glsl"
 #include "../sphere.glsl"
 #include "materials.glsl"
 
@@ -6,28 +6,22 @@
 #undef SUN_SKY
 #endif
 
-#define SUN_SKY 1
+#define SUN_SKY 0
 
-#define LIGHTS 0
+#define LIGHTS 1
 #define LIGHT_COUNT 1
 
 uniform Light uLights[] = Light[](
 
-    /*Light(vec3(-4.0, 25.0, 0.0), 10, vec3(1.0), 1.0)*/
-    Light(vec3(0.0, 600.0 + 80.999, 0.0), 600, vec3(1.0), 1.0)
+    Light(vec3(-4.0, 25.0, 0.0), 10, vec3(1.0), 1.0)
+    /*Light(vec3(0.0, 681.6 - 0.27, 0.0), 600, vec3(2.0), 1.0)*/
     , Light(vec3(0.000, 1.0, 30.0), 2.0, vec3(1.0, 0.0, 0.0), 20.0)
     , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 20.0)
     , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 20.0)
 );
-const Material MatCGlass = MATERIAL(REFRACTIVE,
-    vec3(0.75, 0.25, 0.25), 1.0001, 0.0, vec3(0.0),
-    /*NO_AS*/
-    AbsorptionAndScattering(vec3(0.1, 0.6, 0.5), 0.02)
-);
-const Material MatCRed = MATERIAL(REFRACTIVE,
-    vec3(0.75, 0.25, 0.25), 1.33, 0.0, vec3(0.0),
-    //NO_AS
-    AbsorptionAndScattering(vec3(0.5, 0.8, 0.9), 1.0)
+
+const Material MatCRed = MATERIAL(DIFFUSE,
+    vec3(0.75, 0.25, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
 const Material MatCGreen = MATERIAL(DIFFUSE,
@@ -46,10 +40,6 @@ const Material MatCBlack = MATERIAL(DIFFUSE,
     vec3(0.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCWhite = MATERIAL(NO_SHADING,
-    vec3(1.0), 0.0, 0.0, vec3(1.0), NO_AS
-);
-
 const Material MatCAlmostBlack = MATERIAL(DIFFUSE,
     vec3(0.01), 0.0, 0.0, vec3(0.0), NO_AS
 );
@@ -63,7 +53,7 @@ const Material MatCMirror = MATERIAL(METALLIC,
 );
 
 const Material MatCGlossyMirror = MATERIAL(METALLIC,
-    vec3(1.0), 0.0, 0.1, vec3(0.0), NO_AS
+    vec3(1.0), 0.0, 0.02, vec3(0.0), NO_AS
 );
 
 const Material MatCLBlueGlass = MATERIAL(REFRACTIVE,
@@ -77,71 +67,48 @@ const Material MatCLightNoShading = MATERIAL(NO_SHADING,
 #define MATLIGHT(color) \
     MATERIAL(NO_SHADING, color, 0.0, 0.0, vec3(0.0), NO_AS)
 
-#define root3_over6 0.288675135
-#define root3_over4 0.433012702
-#define root3_over3 0.577350269
-#define root6_over3 0.816496581
-#define root6_over6 0.408248290
-#define sqrt3 1.732050808
 
-float r = 0.5;
-float z1 = -2.0 * r * sqrt3 / 3.0;
-
-#define SPHERE_COUNT 2
+#define SPHERE_COUNT 9
 Sphere spheres[] = Sphere[](
 
-    Sphere(2.5, vec3(0.0, 0.0, 0.0), MatCGlass, true),
-    Sphere(1.0, vec3(0.0, 0.0, 0.0), MatCYellow, true)
-
-#if 0
     // Red wall
-    /*Sphere(1e5, vec3(-1e5-80.0, 0.0, 0.0), MatCRed, true),*/
-    Sphere(2.5, vec3(0.0, 0.5, 0.0), MatCGlass, true),
+    Sphere(1e5, vec3(-1e5-80.0, 0.0, 0.0), MatCRed, true),
 
     // Blue wall
-    /*Sphere(1e5, vec3(1e5+80.0, 0.0, 0.0), MatCBlue, true),*/
-    /*Sphere(1e5, vec3(1e5+5.0, 0.0, 0.0), MatCMirror, true),*/
+    Sphere(1e5, vec3(1e5+80.0, 0.0, 0.0), MatCBlue, true),
 
     // Front wall
-    /*Sphere(1e5, vec3(0.0, 0.0, -1e5-85.0), MatCGray, true),*/
+    Sphere(1e5, vec3(0.0, 0.0, -1e5-85.0), MatCGray, true),
 
     // Back wall
-    /*Sphere(1e5, vec3(0.0, 0.0, +1e5+150.0), MatCBlack, true),*/
+    Sphere(1e5, vec3(0.0, 0.0, +1e5+150.0), MatCBlack, true),
 
     // Floor
-    /*Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCGray, true),*/
+    Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCGray, true),
     /*Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCGlossyMirror, true),*/
     /*Sphere(1e5, vec3(0.0, -1e5, 0.0), MatCAlmostBlack, true),*/
 
     // Ceiling
-    /*Sphere(1e5, vec3(0.0, -1e5+81.6, 0.0), MatCGray, true),*/
+    Sphere(1e5, vec3(0.0, -1e5+81.6, 0.0), MatCGray, true),
 
-    // Pyramid
+    // Plastic ball
+    Sphere(8.5, vec3(0., 8.5, 0.0), MatCYellow, true),
 
-    // First level
-    Sphere(r, vec3(-2.0*r, 0.0, z1), MatCBlue, true),
-    Sphere(r, vec3(0.0, 0.0, z1), MatCWhite, true),
-    Sphere(r, vec3(2.0*r, 0.0, z1), MatCBlue, true),
-    Sphere(r, vec3(-r, 0.0, r * sqrt3 + z1), MatCWhite, true),
-    Sphere(r, vec3(r, 0.0, r * sqrt3 + z1), MatCWhite, true),
-    Sphere(r, vec3(0.0, 0.0, 2.0 * r * sqrt3 + z1), MatCBlue, true),
+    // Metallic ball
+    Sphere(16.5, vec3(-35., 16.5, -35), MatCMirror, true),
 
-    // Second level
-    Sphere(r, vec3(0.0, 0.0 + 2.0 * root6_over3 * r, 2.0 * root3_over3 * r), MatCYellow, true),
-    Sphere(r, vec3(-r, 0.0 + 2.0 * root6_over3 * r,  z1 + root3_over3 * r), MatCYellow, true),
-    Sphere(r, vec3(r, 0.0 + 2.0 * root6_over3 * r, z1 + root3_over3 * r), MatCYellow, true),
-
-    // Third level
-    Sphere(r, vec3(0.0, 0.0 + 2.0 * 2.0 * root6_over3 * r, 0.0), MatCWhite, true),
-
+    // Glass ball
+    Sphere(16.5, vec3(24., 16.5, 25), MatCLBlueGlass, true),
 
     // Ceiling light
-    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MatCLightNoShading, false)
+    /*Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MatCLightNoShading, false)*/
+
+    Sphere(20.0, vec3(0.0, 40.0, 0.0), MATLIGHT(uLights[0].color), false)
+    /*Sphere(600.0, vec3(0.0, 681.6-0.27, 0.0), MATLIGHT(uLights[0].color), false)*/
 
     , Sphere(uLights[1].radius, uLights[1].pos, MATLIGHT(uLights[1].color), false)
     , Sphere(uLights[2].radius, uLights[2].pos, MATLIGHT(uLights[2].color), false)
     , Sphere(uLights[3].radius, uLights[3].pos, MATLIGHT(uLights[3].color), false)
-#endif
 );
 
 
@@ -152,9 +119,9 @@ void HookCamera(inout Camera camera, Params params)
     vec4 mouse = params.mouse;
     vec2 resolution = params.resolution;
 
-    float z = 10.0;
+    float z = 100.0;
     float ymin = 0.0;
-    float ymax = 3.0;
+    float ymax = 80.0;
 
     vec3 pos = vec3(0.0, 0.0, z);
 
@@ -169,7 +136,7 @@ void HookCamera(inout Camera camera, Params params)
     camera.position = pos;
     camera.target = vec3(0.0);
     camera.roll = 0.0;
-    camera.fov = vec2(45.0);
+    camera.fov = vec2(60.0);
     camera.aperture = 0.0;
     camera.focal = 35.0;
 }

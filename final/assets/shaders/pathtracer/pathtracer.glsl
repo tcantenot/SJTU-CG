@@ -7,7 +7,7 @@
 
 #define SUN_SKY 1
 
-#define RAYMARCHING 1
+#define RAYMARCHING 0
 
 #include "core.glsl"
 #include "dof.glsl"
