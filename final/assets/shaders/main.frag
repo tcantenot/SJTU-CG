@@ -18,20 +18,7 @@ uniform sampler2D uTexture5;
 
 out vec4 RenderTarget0;
 
-/*#include "dev.glsl"*/
-/*#include "pathtracer.glsl"*/
-/*#include "misc/raytracer.glsl"*/
-/*#include "misc/frozen_wasteland.glsl"*/
-/*#include "misc/xyptonjtroz.glsl"*/
-/*#include "misc/cloudten.glsl"*/
-/*#include "misc/noisetex.glsl"*/
-/*#include "misc/elevated.glsl"*/
-/*#include "scenes/canyon.glsl"*/
-/*#include "misc/smallpt.glsl"*/
-/*#include "smallpt.glsl"*/
-/*#include "fragmentarium/skypathtracer.glsl"*/
 #include "pathtracer/pathtracer.glsl"
-/*#include "test_random.glsl"*/
 
 void main()
 {

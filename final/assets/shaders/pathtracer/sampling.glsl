@@ -9,42 +9,71 @@
 #endif
 
 
-const bool Stratify = false;
-const bool BiasSampling = true;
+// Enable/Disable stratified sampling
+#ifndef STRATIFIED_SAMPLING
+#define STRATIFIED_SAMPLING 0
+#endif
+
+// Enable/Disable hybrid stratified sampling (stratified sampling must be enabled)
+// Start with stratified sampling for a number of frame and then falls back to
+// uniform sampling
+#ifndef HYBRID_STRATIFIED_SAMPLING
+#define HYBRID_STRATIFIED_SAMPLING 0
+#endif
+
+// Maximum frame number for the hybrid stratified sampling
+#ifndef HYBRID_STRATIFIED_SAMPLING_MAX_FRAME
+#define HYBRID_STRATIFIED_SAMPLING_MAX_FRAME 50
+#endif
 
 
-int subframe = 0;
+#if STRATIFIED_SAMPLING
+// Stratified sampling frame number
+float gStratFrame = uIterations;
 
-vec2 strat=
-vec2(
-	floor(mod(float(subframe)*1.0,10.)),
-	floor(mod(float(subframe)*0.1,10.))
-	)/10.0;
+// Stratified sampling offset
+vec2 gStratOffset = vec2(
+    floor(mod(float(gStratFrame) * 1.0, 10.0)),
+    floor(mod(float(gStratFrame) * 0.1, 10.0))
+) / 10.0;
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Construct a vector orthogonal to the given one.
-/// See: http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
-/// \param v Vector.
-/// \param A orthogonal vector to v.
+/// Construct a vector orthogonal to the given one.
+/// http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
+/// \param v Vector (non normalized).
+/// \return A orthogonal vector to v (non normalized).
 ////////////////////////////////////////////////////////////////////////////////
-vec3 ortho(vec3 v)
+vec3 orthogonal(vec3 v)
 {
 	return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y);
 }
 
 
-// Generate random direction on unit hemisphere proportional to cosine-weighted solid angle
-vec3 cosineWeightedSample(vec3 dir)
+////////////////////////////////////////////////////////////////////////////////
+/// Generate random direction on unit hemisphere proportional to
+/// cosine-weighted solid angle.
+/// PDF = cos(angle) / pi.
+///
+/// \param dir Orientation of the sampled hemisphere.
+///
+/// \return The randomly generated unit vector.
+////////////////////////////////////////////////////////////////////////////////
+vec3 randomCosineWeightedVector(vec3 dir)
 {
 	vec2 r = rand2();
 
-	if(Stratify)
+    #if STRATIFIED_SAMPLING
+    #if HYBRID_STRATIFIED_SAMPLING
+    if(gStratFrame < HYBRID_STRATIFIED_SAMPLING_MAX_FRAME)
+    #endif
     {
         r *= 0.1;
-        r+= strat;
-        strat = mod(strat + vec2(0.1, 0.9), 1.0);
+        r += gStratOffset;
+        gStratOffset = mod(gStratOffset + vec2(0.1, 0.9), 1.0);
     }
+    #endif
 
     float phi = TWO_PI * r.x;
     float cosTheta = sqrt(r.y);
@@ -52,7 +81,7 @@ vec3 cosineWeightedSample(vec3 dir)
 
 	// Create an orthogonal basis
 	vec3 w = normalize(dir);
-	vec3 u = normalize(ortho(w));
+	vec3 u = normalize(orthogonal(w));
 	vec3 v = normalize(cross(w, u));
 
 	return (cos(phi) * u + sin(phi) * v) * sinTheta + cosTheta * w;
@@ -60,8 +89,8 @@ vec3 cosineWeightedSample(vec3 dir)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Generate random direction on unit oriented hemisphere proportional
-/// to solid angle in [0, thetaMax].
+/// Generate random direction on unit oriented hemisphere proportional to solid
+/// angle in [0, thetaMax].
 /// PDF = 1 / (2pi * (1 - cos(thetaMax)),
 ///
 /// \param dir         Orientation of the sampled hemisphere.
@@ -69,15 +98,19 @@ vec3 cosineWeightedSample(vec3 dir)
 ///
 /// \return The randomly generated unit vector.
 ////////////////////////////////////////////////////////////////////////////////
-vec3 coneSample(vec3 dir, float cosThetaMax)
+vec3 randomConeVector(vec3 dir, float cosThetaMax)
 {
 	vec2 r = rand2();
 
-    if(Stratify)
+    #if STRATIFIED_SAMPLING
+    #if HYBRID_STRATIFIED_SAMPLING
+    if(gStratFrame < HYBRID_STRATIFIED_SAMPLING_MAX_FRAME)
+    #endif
     {
         r *= 0.1;
-        r += strat;
+        r += gStratOffset;
     }
+    #endif
 
     float phi = TWO_PI * r.x;
     float cosTheta = 1.0 - r.y * (1.0 - cosThetaMax);
@@ -85,17 +118,34 @@ vec3 coneSample(vec3 dir, float cosThetaMax)
 
 	// Create an orthogonal basis
 	vec3 w = normalize(dir);
-	vec3 u = normalize(ortho(w));
+	vec3 u = normalize(orthogonal(w));
 	vec3 v = normalize(cross(w, u));
 
 	return (cos(phi) * u + sin(phi) * v) * sinTheta + cosTheta * w;
 }
 
-// Generate uniform random direction on unit hemisphere
-// with probability density rho = 1/2pi
-vec3 hemisphereSample(vec3 dir)
+////////////////////////////////////////////////////////////////////////////////
+/// Generate uniform random direction on unit hemisphere.
+/// PDF = 1 / 2pi.
+///
+/// \param dir Orientation of the sampled hemisphere.
+///
+/// \return The randomly generated unit vector.
+////////////////////////////////////////////////////////////////////////////////
+vec3 randomHemisphereVector(vec3 dir)
 {
     vec2 r = rand2();
+
+    #if STRATIFIED_SAMPLING
+    #if HYBRID_STRATIFIED_SAMPLING
+    if(gStratFrame < HYBRID_STRATIFIED_SAMPLING_MAX_FRAME)
+    #endif
+    {
+        r *= 0.1;
+        r += gStratOffset;
+        gStratOffset = mod(gStratOffset + vec2(0.1, 0.9), 1.0);
+    }
+    #endif
 
     float phi = TWO_PI * r.x;
     float cosTheta = r.y;
@@ -103,93 +153,34 @@ vec3 hemisphereSample(vec3 dir)
 
 	// Create an orthogonal basis
 	vec3 w = normalize(dir);
-	vec3 u = normalize(ortho(w));
+	vec3 u = normalize(orthogonal(w));
 	vec3 v = normalize(cross(w, u));
 
 	return (cos(phi) * u + sin(phi) * v) * sinTheta + cosTheta * w;
 }
 
-// Generate uniform random direction on unit sphere
-vec3 sphereSample()
+////////////////////////////////////////////////////////////////////////////////
+/// Generate uniform random direction on unit sphere.
+/// PDF = 1 / pi.
+/// \return The randomly generated unit vector.
+////////////////////////////////////////////////////////////////////////////////
+vec3 randomSphereVector()
 {
     vec2 r = rand2();
+
+    #if STRATIFIED_SAMPLING
+    #if HYBRID_STRATIFIED_SAMPLING
+    if(gStratFrame < HYBRID_STRATIFIED_SAMPLING_MAX_FRAME)
+    #endif
+    {
+        r *= 0.1;
+        r += gStratOffset;
+    }
+    #endif
 
     float phi = TWO_PI * r.x;
     float cosTheta = r.y * 2.0 - 1.0; // [-1, 1]
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
 	return vec3(vec2(cos(phi), sin(phi)) * sinTheta, cosTheta);
-}
-
-vec3 randomSampling(vec3 normal, inout vec3 color)
-{
-    const float Albedo = 1.0;
-
-    vec3 d;
-    if(BiasSampling)
-    {
-        // Biased sampling: cosine weighted
-        // Lambertian BRDF = Albedo / PI
-        // PDF = cos(angle) / PI
-        d = cosineWeightedSample(normal);
-
-        // Modulate color with: BRDF * cos(angle) / PDF = Albedo
-        color *= Albedo;
-    }
-    else
-    {
-        // Unbiased sampling: uniform over normal-oriented hemisphere
-        // Lambertian BRDF = Albedo / PI
-        // PDF = 1 / (2 * PI)
-        d = hemisphereSample(normal);
-
-        // Modulate color with: BRDF * cos(angle) / PDF = 2 * Albedo * cos(angle)
-        color *= 2.0 * Albedo * max(0.0, dot(d, normal));
-    }
-
-    return d;
-}
-
-
-// Generate a random point on unit disk with probability density rho = 1/pi
-// using a concentric mapping
-vec2 diskConcentricSample()
-{
-    vec2 h = rand2();
-    float r1 = h.x;
-    float r2 = h.y;
-
-    float r;   // [0, 1]
-    float phi; // [0, 2pi]
-
-    // First triangular region
-    if(r1 > -r2 && r1 > r2)
-    {
-        r = r1;
-        phi = (PI / 4.0) * (r2 / r1);
-    }
-    // Second triangular region
-    else if(r1 < r2 && r1 > -r2)
-    {
-        r = r2;
-        phi = (PI / 4.0) * (2.0 - r1 / r2);
-    }
-    // Third triangular region
-    else if(r1 < -r2 && r1 < r2)
-    {
-        r = -r1;
-        phi = (PI / 4.0) * (4.0 + r2 / r1);
-    }
-    // Fourth triangular region
-    else if(r1 > r2 && r1 < -r2)
-    {
-        r = -r2;
-        phi = (PI / 4.0) * (6.0 - r1 / r2);
-    }
-
-    vec2 p;
-    p.x = r * cos(phi);
-    p.y = r * sin(phi);
-
-    return p;
 }

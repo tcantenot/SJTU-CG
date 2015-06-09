@@ -51,7 +51,7 @@ Sphere spheres[] = Sphere[](
     Sphere(2.0, vec3(-15., 2.0, 60.), MatSteel, true),
 
     // Glass balls
-    Sphere(12.0, vec3(43., 12.0, 38.), MatBlueGlass, true)
+    Sphere(12.0, vec3(43., 12.0, 38.), MatGlass, true)
 	/*Sphere(16.5, vec3(35., 16.5, 0), Material(REFRACTIVE, lblue, black, 0.0), true),*/
 
 	/*Sphere(5.0, vec3(15., 5.0, 35.0), Material(REFRACTIVE, lgreen, black, 0.0), true),*/

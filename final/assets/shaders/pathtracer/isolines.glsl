@@ -101,3 +101,13 @@ vec4 distance2Color(float d)
 	c *= 1.0 - smoothstep(abs(d), 0.0, 0.25);
 	return c;
 }
+
+void HookPostProcess(inout vec3 color, Ray ray, Params params)
+{
+    float y = 2.0 * uTweaks.w - 1.0;
+    y *= 10.0;
+    HitInfo hitInfo;
+    bool intersection = trace(ray, -1, hitInfo);
+    float t = hitInfo.dist;
+    isolinesDebug(color, ray, t, y, params, 1.0, 1.5);
+}

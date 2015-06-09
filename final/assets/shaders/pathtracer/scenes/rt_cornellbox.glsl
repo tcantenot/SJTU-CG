@@ -8,13 +8,13 @@
 
 #define SUN_SKY 0
 
-#define LIGHTS 0
+#define LIGHTS 1
 #define LIGHT_COUNT 1
 
 uniform Light uLights[] = Light[](
 
-    /*Light(vec3(-4.0, 25.0, 0.0), 10, vec3(1.0), 1.0)*/
-    Light(vec3(0.0, 681.6 - 0.27, 0.0), 600, vec3(2.0), 1.0)
+    Light(vec3(-4.0, 25.0, 0.0), 10, vec3(1.0), 1.0)
+    /*Light(vec3(0.0, 681.6 - 0.27, 0.0), 600, vec3(2.0), 1.0)*/
     , Light(vec3(0.000, 1.0, 30.0), 2.0, vec3(1.0, 0.0, 0.0), 20.0)
     , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 20.0)
     , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 20.0)
@@ -53,7 +53,7 @@ const Material MatCMirror = MATERIAL(METALLIC,
 );
 
 const Material MatCGlossyMirror = MATERIAL(METALLIC,
-    vec3(1.0), 0.0, 0.1, vec3(0.0), NO_AS
+    vec3(1.0), 0.0, 0.02, vec3(0.0), NO_AS
 );
 
 const Material MatCLBlueGlass = MATERIAL(REFRACTIVE,
@@ -68,7 +68,7 @@ const Material MatCLightNoShading = MATERIAL(NO_SHADING,
     MATERIAL(NO_SHADING, color, 0.0, 0.0, vec3(0.0), NO_AS)
 
 
-#define SPHERE_COUNT 10
+#define SPHERE_COUNT 9
 Sphere spheres[] = Sphere[](
 
     // Red wall
@@ -102,7 +102,9 @@ Sphere spheres[] = Sphere[](
 
     // Ceiling light
     /*Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MatCLightNoShading, false)*/
-    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MATLIGHT(uLights[0].color), false)
+
+    Sphere(20.0, vec3(0.0, 40.0, 0.0), MATLIGHT(uLights[0].color), false)
+    /*Sphere(600.0, vec3(0.0, 681.6-0.27, 0.0), MATLIGHT(uLights[0].color), false)*/
 
     , Sphere(uLights[1].radius, uLights[1].pos, MATLIGHT(uLights[1].color), false)
     , Sphere(uLights[2].radius, uLights[2].pos, MATLIGHT(uLights[2].color), false)

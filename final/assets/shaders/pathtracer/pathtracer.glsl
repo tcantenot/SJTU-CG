@@ -7,7 +7,7 @@
 
 #define SUN_SKY 1
 
-#define RAYMARCHING 1
+#define RAYMARCHING 0
 
 #include "camera.glsl"
 #include "dof.glsl"
@@ -60,7 +60,6 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
             color += c;
             #endif
 
-            ++subframe;
             ++samples;
         }
     }

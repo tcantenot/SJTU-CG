@@ -78,8 +78,8 @@
 
 // Stop ray once the reflectance has gone too low
 // (the ray will probably not carry much energy)
-#ifndef LOW_REFLECTANCE_OPTIMIZATION
-#define LOW_REFLECTANCE_OPTIMIZATION 0
+#ifndef LOW_REFLECTANCE_BIASED_OPTIMIZATION
+#define LOW_REFLECTANCE_BIASED_OPTIMIZATION 0
 #endif
 
 // Minimum reflectance used for ray termination
@@ -147,7 +147,7 @@ vec3 radiance(Ray ray)
 
 	for(int depth = 0; depth < MAX_DEPTH; ++depth)
     {
-        #if LOW_REFLECTANCE_OPTIMIZATION
+        #if LOW_REFLECTANCE_BIASED_OPTIMIZATION
         {
             float f = max(F.x, max(F.y, F.z));
             if(f < MIN_REFLECTANCE)
@@ -156,6 +156,8 @@ vec3 radiance(Ray ray)
             }
         }
         #endif
+
+        if(depth == MAX_DEPTH - 1) return vec3(0.0, 1.0, 0.0);
 
         // Find intersection with the scene
         bool intersection = trace(ray, hitInfo.id, hitInfo);
@@ -189,8 +191,8 @@ vec3 radiance(Ray ray)
                 // -> assume isotropic scattering
                 Ray nextRay;
                 nextRay.origin = ray.origin + scatteringDistance * ray.direction;
-                nextRay.direction = sphereSample();
-                /*nextRay.direction = coneSample(ray.direction, 0.98);*/
+                nextRay.direction = randomSphereVector();
+                /*nextRay.direction = randomConeVector(ray.direction, 0.98);*/
                 ray = nextRay;
 
                 // Russian Roulette
@@ -249,7 +251,7 @@ vec3 radiance(Ray ray)
             // If the roughness is 0 the material is a perfect mirror and
             // the output cone will be reduce to a single direction:
             // the reflection one
-            refl = coneSample(refl, alpha);
+            refl = randomConeVector(refl, alpha);
 
             // Next ray
             ray = Ray(hit + n * BOUNCE_BIAS, refl);
@@ -296,7 +298,7 @@ vec3 radiance(Ray ray)
             // If the roughness is 0 the material is a perfect mirror and
             // the output cone will be reduce to a single direction:
             // the reflection one
-            refl = coneSample(refl, alpha);
+            refl = randomConeVector(refl, alpha);
 
             // Next ray
             ray = Ray(hit + n * BOUNCE_BIAS, refl);
@@ -359,7 +361,7 @@ vec3 radiance(Ray ray)
             // If the roughness is 0 the material is a perfect
             // refractive material and the output cone will be reduce to
             // a single direction: the refraction one
-            refl = coneSample(refl, alpha);
+            refl = randomConeVector(refl, alpha);
             #endif
 
             // Next ray
@@ -422,7 +424,7 @@ vec3 radiance(Ray ray)
             // Biased sampling: cosine weighted
             // Lambertian BRDF = Albedo / PI
             // PDF = cos(angle) / PI
-            nextRay.direction = cosineWeightedSample(n);
+            nextRay.direction = randomCosineWeightedVector(n);
 
             // Modulate reflectance with: BRDF * cos(angle) / PDF = Albedo
             F *= f;
@@ -432,7 +434,7 @@ vec3 radiance(Ray ray)
             // Unbiased sampling: uniform over normal-oriented hemisphere
             // Lambertian BRDF = Albedo / PI
             // PDF = 1 / (2 * PI)
-            nextRay.direction = hemisphereSample(n);
+            nextRay.direction = randomHemisphereVector(n);
 
             // Modulate reflectance with: BRDF * cos(angle) / PDF = 2 * Albedo * cos(angle)
             F *= 2.0 * f * max(0.0, dot(nextRay.direction, n));
@@ -446,7 +448,7 @@ vec3 radiance(Ray ray)
                 // Direct sun light
                 #if SUN_SKY && SUN
                 {
-                    vec3 sunSampleDir = coneSample(sunDirection, sunAngularDiameterCos);
+                    vec3 sunSampleDir = randomConeVector(sunDirection, sunAngularDiameterCos);
                     float sunLight = dot(n, sunSampleDir);
 
                     if(sunLight > 0.0)
@@ -477,7 +479,7 @@ vec3 radiance(Ray ray)
                     float cosThetaMax = sqrt(1.0 - sinThetaMax);
 
                     // Light direction: random vector in the cone of light
-                    vec3 l = coneSample(lightDir, cosThetaMax);
+                    vec3 l = randomConeVector(lightDir, cosThetaMax);
 
 
                     // Shadow ray

@@ -20,35 +20,35 @@ uniform Light uLights[] = Light[](
     , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 10.0)
 );
 
-const Material MatCBlack = Material(DIFFUSE,
+const Material MatCBlack = MATERIAL(DIFFUSE,
     vec3(0.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCRed = Material(DIFFUSE,
+const Material MatCRed = MATERIAL(DIFFUSE,
     vec3(0.75, 0.25, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGreen = Material(DIFFUSE,
+const Material MatCGreen = MATERIAL(DIFFUSE,
     vec3(0.25, 0.75, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCBlue = Material(DIFFUSE,
+const Material MatCBlue = MATERIAL(DIFFUSE,
     vec3(0.25, 0.25, 0.75), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCYellow = Material(DIFFUSE,
+const Material MatCYellow = MATERIAL(DIFFUSE,
     vec3(0.75, 0.75, 0.25), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCGray = Material(DIFFUSE,
+const Material MatCGray = MATERIAL(DIFFUSE,
     vec3(0.75), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCMirror = Material(METALLIC,
+const Material MatCMirror = MATERIAL(METALLIC,
     vec3(1.0), 0.0, 0.0, vec3(0.0), NO_AS
 );
 
-const Material MatCLBlueGlass = Material(REFRACTIVE,
+const Material MatCLBlueGlass = MATERIAL(REFRACTIVE,
     vec3(0.7, 0.8, 0.9), 1.5, 0.0, vec3(0.0), NO_AS
 );
 
@@ -89,19 +89,19 @@ Sphere spheres[] = Sphere[](
 
 
     // First light
-    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), Material(NO_SHADING, vec3(5.0), 0.0, 0.0, vec3(0.0), NO_AS), false)
-    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(DIFFUSE, black, uLights[0].power*uLights[0].color))*/
-    /*Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black, 0.0), true)*/
-    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black, 0.0), false)*/
-    /*,Sphere(uLights[0].radius, uLights[0].pos, Material(NO_SHADING, uLights[0].color, black, 0.0), false)*/
+    Sphere(600.0, vec3(0.0, 600.0 + 81.0, 0.0), MATERIAL(NO_SHADING, vec3(5.0), 0.0, 0.0, vec3(0.0), NO_AS), false)
+    /*,Sphere(uLights[0].radius, uLights[0].pos, MATERIAL(DIFFUSE, black, uLights[0].power*uLights[0].color))*/
+    /*Sphere(uLights[0].radius, uLights[0].pos, MATERIAL(NO_SHADING, uLights[0].color, black, 0.0), true)*/
+    /*,Sphere(uLights[0].radius, uLights[0].pos, MATERIAL(NO_SHADING, uLights[0].color, black, 0.0), false)*/
+    /*,Sphere(uLights[0].radius, uLights[0].pos, MATERIAL(NO_SHADING, uLights[0].color, black, 0.0), false)*/
 
     // Second light
-    /*,Sphere(uLights[1].radius, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black), false)*/
-    /*,Sphere(5, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black, 0.0), false)*/
+    /*,Sphere(uLights[1].radius, uLights[1].pos, MATERIAL(NO_SHADING, uLights[1].color, black), false)*/
+    /*,Sphere(5, uLights[1].pos, MATERIAL(NO_SHADING, uLights[1].color, black, 0.0), false)*/
 
-    /*,Sphere(2, uLights[1].pos, Material(NO_SHADING, uLights[1].color, black, 0.0), false)*/
-    /*,Sphere(2, uLights[2].pos, Material(NO_SHADING, uLights[2].color, black, 0.0), false)*/
-    /*,Sphere(2, uLights[3].pos, Material(NO_SHADING, uLights[3].color, black, 0.0), false)*/
+    /*,Sphere(2, uLights[1].pos, MATERIAL(NO_SHADING, uLights[1].color, black, 0.0), false)*/
+    /*,Sphere(2, uLights[2].pos, MATERIAL(NO_SHADING, uLights[2].color, black, 0.0), false)*/
+    /*,Sphere(2, uLights[3].pos, MATERIAL(NO_SHADING, uLights[3].color, black, 0.0), false)*/
 );
 
 
