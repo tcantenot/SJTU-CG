@@ -1,6 +1,4 @@
-#include "hitinfo.glsl"
-#include "ray.glsl"
-
+#include "core.glsl"
 
 float map(vec3 p)
 {

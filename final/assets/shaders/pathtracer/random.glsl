@@ -70,7 +70,7 @@ vec2 rand2()
     return vec2(rand(), rand());
 }
 
-
+#if 0
 // Van der Corput radical inverse
 // see: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 float radicalInverseVdC(uint bits)
@@ -123,4 +123,4 @@ vec3  hash3( vec2  n ) { return fract(43758.5453123*sin(dot(n,vec2(1.0,113.0))+v
 vec4  hash4( vec2  n ) { return fract(43758.5453123*sin(dot(n,vec2(1.0,113.0))+vec4(0.0,1.0,2.0,3.0))); }
 #endif
 
-
+#endif

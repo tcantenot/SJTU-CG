@@ -1,9 +1,5 @@
+#include "core.glsl"
 #include "fresnel.glsl"
-#include "hitinfo.glsl"
-#include "light.glsl"
-#include "material.glsl"
-#include "random.glsl"
-#include "ray.glsl"
 #include "sampling.glsl"
 #include "sunsky.glsl"
 
@@ -156,8 +152,6 @@ vec3 radiance(Ray ray)
             }
         }
         #endif
-
-        if(depth == MAX_DEPTH - 1) return vec3(0.0, 1.0, 0.0);
 
         // Find intersection with the scene
         bool intersection = trace(ray, hitInfo.id, hitInfo);
@@ -468,6 +462,7 @@ vec3 radiance(Ray ray)
                 vec3 lightIntensity = vec3(0.0);
                 for(int i = 0; i < LIGHT_COUNT; ++i)
                 {
+                    // TODO: replace by HookLight(i): Light
                     Light light = uLights[i];
 
                     // Vector hit-light

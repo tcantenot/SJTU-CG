@@ -203,16 +203,16 @@ class PathTracer:
     def _createAccumulatorProgram(self):
         """ Create the accumulator program """
         self.accProgram = self._createProgram(
-            "assets/shaders/pathtracer/accumulator.vert",
-            "assets/shaders/pathtracer/accumulator.frag"
+            "assets/shaders/accumulator.vert",
+            "assets/shaders/accumulator.frag"
         )
 
 
     def _createFinalProgram(self):
         """ Create the final (tonemap) program """
         self.finalProgram = self._createProgram(
-            "assets/shaders/pathtracer/final.vert",
-            "assets/shaders/pathtracer/final.frag"
+            "assets/shaders/final.vert",
+            "assets/shaders/final.frag"
         )
 
 

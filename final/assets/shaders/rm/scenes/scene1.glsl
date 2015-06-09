@@ -1,10 +1,5 @@
-#include "../camera.glsl"
+#include "../core.glsl"
 #include "../distance_fields.glsl"
-#include "../hitinfo.glsl"
-#include "../material.glsl"
-#include "../random.glsl"
-#include "../utils.glsl"
-
 
 float map(vec3 p, inout HitInfo hitInfo)
 {

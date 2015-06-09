@@ -7,11 +7,10 @@
 
 #define SUN_SKY 1
 
-#define RAYMARCHING 0
+#define RAYMARCHING 1
 
-#include "camera.glsl"
+#include "core.glsl"
 #include "dof.glsl"
-#include "params.glsl"
 #include "settings.glsl"
 
 uniform int uSamples;
@@ -21,6 +20,7 @@ uniform int uSamples;
 // - HookTonemap
 // - HookMaterial
 // - HookScene
+// - HookDOF
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {

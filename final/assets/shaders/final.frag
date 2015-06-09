@@ -1,6 +1,6 @@
 #version 140
 
-#include "print.glsl"
+#include "debug/print.glsl"
 
 
 in vec2 vTexCoord;

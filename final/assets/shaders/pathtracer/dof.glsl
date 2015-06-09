@@ -1,6 +1,4 @@
-#include "camera.glsl"
-#include "params.glsl"
-#include "ray.glsl"
+#include "core.glsl"
 #include "sampling.glsl"
 
 Ray getDOFRay(Camera camera, Params params)

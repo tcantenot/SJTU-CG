@@ -1,14 +1,4 @@
-#include "camera.glsl"
-#include "fresnel.glsl"
-#include "hitinfo.glsl"
-#include "light.glsl"
-#include "material.glsl"
-#include "params.glsl"
-#include "random.glsl"
-#include "ray.glsl"
-#include "sampling.glsl"
-#include "utils.glsl"
-
+#include "core.glsl"
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                        RAYMARCHING / RAYTRACING                          ///
@@ -21,8 +11,8 @@ const float RM_TMIN = 10.0 * RM_PRECISION;
 const float RM_TMAX = 1000.0;
 const int RM_STEP_MAX = 500;
 
-#include "raymarching_scene.glsl"
-#include "raymarching.glsl"
+#include "../rm/raymarching_scene.glsl"
+#include "../rm/raymarching.glsl"
 
 #define trace(ray, previousHitId, hitInfo) \
     raymarch(ray, RM_TMIN, RM_TMAX, RM_PRECISION, RM_STEP_MAX, hitInfo)
