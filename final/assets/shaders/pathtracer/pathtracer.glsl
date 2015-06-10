@@ -1,5 +1,4 @@
 #define MULTIPLICITY 1
-#define SAMPLES 64
 #define MAX_DEPTH 50
 
 // Debug to see how many samples never reach a light source
@@ -10,17 +9,18 @@
 #define RAYMARCHING 0
 
 #include "core.glsl"
-#include "dof.glsl"
+
+#if DEBUG_NO_HIT
+#include "../debug/debug_no_hit.glsl"
+#endif
+
 #include "settings.glsl"
 
 uniform int uSamples;
 
 //TODO:
-// - HookCameraSetup
 // - HookTonemap
-// - HookMaterial
 // - HookScene
-// - HookDOF
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
@@ -33,7 +33,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     // Initialize camera
     Camera camera;
 
-    SetupCamera(camera, params);
+    HookCameraSetup(camera, params);
 
     /*camera.aperture = uTweaks.x;*/
     /*camera.focal = uTweaks.y * 100.0;*/
@@ -45,16 +45,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
         for(int i = 0; i < uSamples; ++i)
         {
             // Get jittered ray with depth of field
-            Ray ray = getDOFRay(camera, params);
+            Ray ray = HookDOFRay(camera, params);
 
-            #if DEBUG_NO_HIT
-            vec3 test = radiance(ray);
-            if(dot(test, test) > 0.0) color += vec3(1.0); else color += vec3(0.5, 0.0, 0.1);
-            #else
             vec3 c = radiance(ray);
-            PostProcess(c, ray, params);
+
+            HookPostProcess(c, ray, params);
+
             color += c;
-            #endif
 
             ++samples;
         }

@@ -1,7 +1,7 @@
 #version 140
 
 #include "debug/print.glsl"
-
+#include "sfx/tonemap.glsl"
 
 in vec2 vTexCoord;
 
@@ -16,18 +16,12 @@ uniform sampler2D uAccumulator;
 
 out vec4 RenderTarget0;
 
-vec3 tonemap(vec3 color)
-{
-    return pow(color, vec3(1.0 / 2.2));
-}
-
 void main()
 {
+    // Average and tonemap the colors of the accumulator
     vec3 color = texture(uAccumulator, vTexCoord).rgb;
     color /= float(uIterations);
-    color = tonemap(color);
-
-    vec3 fontColor = mix(vec3(1.0), vec3(0.0), float(uDarkFont));
+    color = Uncharted2Tonemap(color);
 
     // Print the number of iterations
     if(uPrintStats)
@@ -36,6 +30,8 @@ void main()
 
         // Multiples of 4x5 work best
         vec2 fontSize = vec2(8.0, 10.0);
+
+        vec3 fontColor = mix(vec3(1.0), vec3(0.0), float(uDarkFont));
 
         float xleft  = -40.0;
         float xright = uResolution.x - 80.0;

@@ -53,7 +53,7 @@ float map(vec3 p, inout HitInfo hitInfo)
     return d*1.1;
 }
 
-void HookCamera(inout Camera camera, Params params)
+void setupCamera(inout Camera camera, Params params)
 {
     const float Pi = 3.141592645;
 
@@ -136,7 +136,7 @@ vec3 fog(in vec3 col, in vec3 ro, in vec3 rd, in float mt)
 }
 
 
-void HookPostProcess(inout vec3 color, Ray ray, Params params)
+void postProcess(inout vec3 color, Ray ray, Params params)
 {
     //then volumetric fog
     vec3 ro = ray.origin;
@@ -145,5 +145,5 @@ void HookPostProcess(inout vec3 color, Ray ray, Params params)
     color = fog(color, ro, rd, rz);
 }
 
-#define HOOK_CAMERA(camera, params) HookCamera(camera, params)
-#define HOOK_POSTPROCESS(color, ray, params) HookPostProcess(color, ray, params)
+#define HOOK_CAMERA_SETUP(camera, params) setupCamera(camera, params)
+#define HOOK_POSTPROCESS(color, ray, params) postProcess(color, ray, params)

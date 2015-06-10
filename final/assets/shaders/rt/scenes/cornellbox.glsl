@@ -2,22 +2,19 @@
 #include "../sphere.glsl"
 #include "materials.glsl"
 
-#ifdef SUN_SKY
 #undef SUN_SKY
-#endif
-
 #define SUN_SKY 0
 
-#define LIGHTS 1
-#define LIGHT_COUNT 1
+#define HOOK_LIGHT_COUNT 4
+#define HOOK_LIGHTS(i) uLights[i]
 
 uniform Light uLights[] = Light[](
 
     Light(vec3(-4.0, 25.0, 0.0), 10, vec3(1.0), 1.0)
     /*Light(vec3(0.0, 681.6 - 0.27, 0.0), 600, vec3(2.0), 1.0)*/
-    , Light(vec3(0.000, 1.0, 30.0), 2.0, vec3(1.0, 0.0, 0.0), 20.0)
-    , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 20.0)
-    , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 20.0)
+    , Light(vec3(0.000, 1.0, 30.0), 2.0, vec3(1.0, 0.0, 0.0), 2.0)
+    , Light(vec3(-15.0, 1.0, 45.0), 2.0, vec3(0.0, 1.0, 0.0), 2.0)
+    , Light(vec3(+15.0, 1.0, 45.0), 2.0, vec3(0.0, 0.0, 1.0), 2.0)
 );
 
 const Material MatCRed = MATERIAL(DIFFUSE,
@@ -112,7 +109,9 @@ Sphere spheres[] = Sphere[](
 );
 
 
-void HookCamera(inout Camera camera, Params params)
+#undef MATLIGHT
+
+void setupCamera(inout Camera camera, Params params)
 {
     const float Pi = 3.141592645;
 
@@ -141,4 +140,4 @@ void HookCamera(inout Camera camera, Params params)
     camera.focal = 35.0;
 }
 
-#define HOOK_CAMERA(camera, params) HookCamera(camera, params)
+#define HOOK_CAMERA_SETUP(camera, params) setupCamera(camera, params)

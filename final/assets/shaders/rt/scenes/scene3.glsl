@@ -1,8 +1,6 @@
 #include "../sphere.glsl"
 #include "materials.glsl"
 
-#define LIGHTS 0
-
 #define SPHERE_COUNT 15
 Sphere spheres[] = Sphere[](
     Sphere(1e5, vec3(0.0, -1e5-0.80, 0.0), MatGround, true),
@@ -23,7 +21,7 @@ Sphere spheres[] = Sphere[](
     Sphere(5.0, vec3(0.0, 15.0, 0.0), MatWhiteLight, true)
 );
 
-void HookCamera(inout Camera camera, Params params)
+void setupCamera(inout Camera camera, Params params)
 {
     const float Pi = 3.141592645;
 
@@ -52,4 +50,4 @@ void HookCamera(inout Camera camera, Params params)
     camera.focal = 50.0;
 }
 
-#define HOOK_CAMERA(camera, params) HookCamera(camera, params)
+#define HOOK_CAMERA_SETUP(camera, params) setupCamera(camera, params)

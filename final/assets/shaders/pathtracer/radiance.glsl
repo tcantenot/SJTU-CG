@@ -41,6 +41,14 @@
 #define SUN 1
 #endif
 
+// Lights
+#ifndef LIGHTS
+#if HookLightCount > 0
+#define LIGHTS 1
+#else
+#define LIGHTS 0
+#endif
+
 // Use the real Fresnel equations
 #ifndef REAL_FRESNEL_EQUATIONS
 #define REAL_FRESNEL_EQUATIONS 1
@@ -153,12 +161,12 @@ vec3 radiance(Ray ray)
         #endif
 
         // Find intersection with the scene
-        bool intersection = trace(ray, hitInfo.id, hitInfo);
+        bool intersection = HookLightRay(ray, hitInfo.id, hitInfo);
 
         vec3 hit = hitInfo.pos;
         vec3 n   = hitInfo.normal;
 
-        Material mat = getMaterial(hitInfo);
+        Material mat = HookMaterial(hitInfo);
 
         // Absorption and scattering
         #if ABSORPTION_AND_SCATTERING
@@ -448,7 +456,7 @@ vec3 radiance(Ray ray)
                     {
                         Ray shadowRay = Ray(hit + n * BOUNCE_BIAS, sunSampleDir);
                         HitInfo _;
-                        if(!shadowtrace(shadowRay, hitInfo.id, _))
+                        if(!HookShadowRay(shadowRay, hitInfo.id, _))
                         {
                             L += F * sun(sunSampleDir) * sunLight * 1E-5;
                         }
@@ -459,10 +467,9 @@ vec3 radiance(Ray ray)
                 // Take a sample for each light
                 #if LIGHTS
                 vec3 lightIntensity = vec3(0.0);
-                for(int i = 0; i < LIGHT_COUNT; ++i)
+                for(int i = 0; i < HookLightCount; ++i)
                 {
-                    // TODO: replace by HookLight(i): Light
-                    Light light = uLights[i];
+                    Light light = HookLights(i);
 
                     // Vector hit-light
                     vec3 lightDir = light.pos - hit;
@@ -481,7 +488,7 @@ vec3 radiance(Ray ray)
 
                     // Check if the current hit point is potentially shadowed
                     HitInfo shadowingInfo;
-                    bool ps = shadowtrace(shadowRay, hitInfo.id, shadowingInfo);
+                    bool ps = HookShadowRay(shadowRay, hitInfo.id, shadowingInfo);
                     float lightDist = distanceTo(shadowRay, light);
                     if(lightDist < shadowingInfo.dist)
                     {

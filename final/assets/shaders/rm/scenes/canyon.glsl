@@ -137,7 +137,7 @@ float map(in vec3 p, inout HitInfo hitInfo)
     return t;
 }
 
-Material HookMaterial(HitInfo hitInfo)
+Material getMaterial(HitInfo hitInfo)
 {
     int id = hitInfo.id;
     vec3 pos = hitInfo.pos;
@@ -185,7 +185,7 @@ Material HookMaterial(HitInfo hitInfo)
     return mat;
 }
 
-void HookCamera(inout Camera camera, Params params)
+void setupCamera(inout Camera camera, Params params)
 {
     const float Pi = 3.141592645;
 
@@ -214,5 +214,5 @@ void HookCamera(inout Camera camera, Params params)
     camera.focal = 35.0;
 }
 
-#define HOOK_MATERIAL(hitInfo) HookMaterial(hitInfo)
-#define HOOK_CAMERA(camera, params) HookCamera(camera, params)
+#define HOOK_MATERIAL(hitInfo) getMaterial(hitInfo)
+#define HOOK_CAMERA_SETUP(camera, params) setupCamera(camera, params)

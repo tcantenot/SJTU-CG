@@ -82,14 +82,15 @@ float SunIntensity(float zenithAngleCos)
 }
 
 /*uniform vec2 SunPos = vec2(0.7, 0.12); //slider[(0,0),(0,0.2),(1,1)]*/
-vec2 SunPos = vec2(2.0 * uTweaks.x, 2.0 * uTweaks.y);
+/*vec2 SunPos = vec2(2.0 * uTweaks.x, 2.0 * uTweaks.y);*/
 /*uniform float SkyFactor = 1.0; //slider[0,1,100]*/
 /*float SkyFactor = 2.0 * uTweaks.w; //slider[0,1,100]*/
 
 // Ad-hoc values
 float turbidity = 1.76;
-/*vec2 SunPos = vec2(1.58, 1.64);*/
+vec2 SunPos = vec2(1.58, 1.64);
 /*vec2 SunPos = vec2(0.54, 0.12);*/
+/*vec2 SunPos = vec2(1.70, 1.86);*/
 float SkyFactor = 1.0;
 
 

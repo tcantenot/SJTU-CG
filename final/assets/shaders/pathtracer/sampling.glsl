@@ -11,7 +11,7 @@
 
 // Enable/Disable stratified sampling
 #ifndef STRATIFIED_SAMPLING
-#define STRATIFIED_SAMPLING 1
+#define STRATIFIED_SAMPLING 0
 #endif
 
 // Enable/Disable hybrid stratified sampling (stratified sampling must be enabled)

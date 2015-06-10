@@ -14,10 +14,10 @@ const int RM_STEP_MAX = 500;
 #include "../rm/raymarching_scene.glsl"
 #include "../rm/raymarching.glsl"
 
-#define trace(ray, previousHitId, hitInfo) \
+#define HookLightRay(ray, previousHitId, hitInfo) \
     raymarch(ray, RM_TMIN, RM_TMAX, RM_PRECISION, RM_STEP_MAX, hitInfo)
 
-#define shadowtrace(ray, previousHitId, hitInfo) \
+#define HookShadowRay(ray, previousHitId, hitInfo) \
     raymarch(ray, RM_TMIN, RM_TMAX, RM_PRECISION, RM_STEP_MAX, hitInfo)
 
 #else
@@ -25,10 +25,10 @@ const int RM_STEP_MAX = 500;
 #include "../rt/raytracing_scene.glsl"
 #include "../rt/raytracing.glsl"
 
-#define trace(ray, previousHitId, hitInfo) \
+#define HookLightRay(ray, previousHitId, hitInfo) \
     raytrace(ray, previousHitId, false, hitInfo)
 
-#define shadowtrace(ray, previousHitId, hitInfo) \
+#define HookShadowRay(ray, previousHitId, hitInfo) \
     raytrace(ray, previousHitId, true, hitInfo)
 
 #endif
@@ -38,10 +38,10 @@ const int RM_STEP_MAX = 500;
 ///                                 CAMERA                                   ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef HOOK_CAMERA
-#define SetupCamera(camera, params) HOOK_CAMERA(camera, params)
+#ifdef HOOK_CAMERA_SETUP
+#define HookCameraSetup(camera, params) HOOK_CAMERA_SETUP(camera, params)
 #else
-void SetupCamera(inout Camera camera, Params params)
+void HookCameraSetup(inout Camera camera, Params params)
 {
     const float Pi = 3.141592645;
 
@@ -73,13 +73,24 @@ void SetupCamera(inout Camera camera, Params params)
 
 
 ////////////////////////////////////////////////////////////////////////////////
+///                                  DOF                                     ///
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef HOOK_DOF_RAY
+#define HookDOFRay(camera, params) HOOK_DOF_RAY(camera, params)
+#else
+#include "dof.glsl"
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
 ///                                MATERIAL                                  ///
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef HOOK_MATERIAL
-#define getMaterial(hitInfo) HOOK_MATERIAL(hitInfo)
+#define HookMaterial(hitInfo) HOOK_MATERIAL(hitInfo)
 #else
-Material getMaterial(HitInfo _)
+Material HookMaterial(HitInfo _)
 {
     const Material m = MATERIAL(DIFFUSE, vec3(1.0), 0.0, 0.0, vec3(0.0), NO_AS);
     return m;
@@ -100,6 +111,29 @@ vec3 HookBackground(Ray ray, int depth)
 }
 #endif
 
+////////////////////////////////////////////////////////////////////////////////
+///                                  SUN                                     ///
+////////////////////////////////////////////////////////////////////////////////
+#ifdef HOOK_SUN
+#define HookSun() HOOK_SUN()
+#else
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+///                                 LIGHTS                                   ///
+////////////////////////////////////////////////////////////////////////////////
+#ifdef HOOK_LIGHTS
+#define HookLights(index) HOOK_LIGHTS(index)
+#else
+Light HookLight(int index) { return Light(vec3(0.0), 0.0, vec3(0.0), 0.0); }
+#endif
+
+#ifdef HOOK_LIGHT_COUNT
+#define HookLightCount HOOK_LIGHT_COUNT
+#else
+#define HookLightCount 0
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                                RADIANCE                                  ///
@@ -112,9 +146,7 @@ vec3 HookBackground(Ray ray, int depth)
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef HOOK_POSTPROCESS
-#define PostProcess(color, ray, params) HOOK_POSTPROCESS(color, ray, params)
+#define HookPostProcess(color, ray, params) HOOK_POSTPROCESS(color, ray, params)
 #else
-void PostProcess(inout vec3 color, Ray ray, Params params) { }
+void HookPostProcess(inout vec3 color, Ray ray, Params params) { }
 #endif
-
-

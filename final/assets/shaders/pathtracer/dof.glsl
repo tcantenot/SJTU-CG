@@ -1,7 +1,7 @@
 #include "core.glsl"
 #include "sampling.glsl"
 
-Ray getDOFRay(Camera camera, Params params)
+Ray HookDOFRay(Camera camera, Params params)
 {
     vec2 pixel = params.pixel;
     vec2 resolution = params.resolution;
