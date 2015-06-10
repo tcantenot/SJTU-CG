@@ -1,8 +1,8 @@
 // Absorption and scattering properties
 struct AbsorptionAndScattering
 {
-    vec3 absorption;
-    float scattering;
+    vec3 absorption;  // "Spectral" (RGB) absorption coefficient
+    float scattering; // Scattering coefficient
 };
 
 // No absorption and scattering

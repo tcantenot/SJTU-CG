@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Structure representing a light volume.
+/// Structure representing a spherical light volume.
 ////////////////////////////////////////////////////////////////////////////////
 struct Light
 {
@@ -13,7 +13,7 @@ struct Light
 #include "ray.glsl"
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Compute the distance between the ray origin and the light.
+/// Compute the distance between the ray origin and the light.
 /// \param ray Ray.
 /// \param light Light.
 /// \return The distance between the ray origin and the light if the ray hit the
