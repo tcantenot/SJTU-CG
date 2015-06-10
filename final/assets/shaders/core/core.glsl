@@ -6,6 +6,6 @@
 #include "params.glsl"
 #include "random.glsl"
 #include "ray.glsl"
-#include "sunsky.glsl"
 #include "sunsky_background.glsl"
+#include "sunsky.glsl"
 #include "utils.glsl"

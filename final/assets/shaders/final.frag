@@ -62,6 +62,17 @@ void main()
             );
         }
 
+        // Average framerate
+        {
+            float value = float(uIterations) / uRenderTime;
+
+            vec2 pos = vec2(xleft, uResolution.y - 2.0 * fontSize.y - 30.0);
+
+            color = mix(color, fontColor,
+                printNumber(pixel, pos, fontSize, value, 8.0, 2.0)
+            );
+        }
+
         // Frame number
         {
             float value = uIterations;

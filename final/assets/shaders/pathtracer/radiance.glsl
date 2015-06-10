@@ -220,7 +220,7 @@ vec3 radiance(Ray ray)
         // If no hit, get background color and exit
         if(!intersection)
         {
-            return L + F * background(ray, depth);
+            return L + F * HookBackground(ray, depth);
         }
 
 

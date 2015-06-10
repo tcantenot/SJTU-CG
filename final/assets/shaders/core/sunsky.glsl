@@ -5,7 +5,10 @@
 // The license of this fragment is not completely clear to me, but for all I
 // can tell this shader derives from the MIT licensed source given below.
 //
-// This fragment derives from this shader: http://glsl.herokuapp.com/e#9816.0
+// This shader derives from:
+// https://github.com/Syntopia/Fragmentarium/blob/master/Fragmentarium-Source/Examples/Include/Sunsky.frag
+//
+// Which in turn derived from this shader: http://glsl.herokuapp.com/e#9816.0
 // written by Martijn Steinrucken: countfrolic@gmail.com
 //
 // Which in turn contained the following copyright info:

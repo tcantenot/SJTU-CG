@@ -92,9 +92,9 @@ Material getMaterial(HitInfo _)
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef HOOK_BACKGROUND
-#define background(ray, depth) HOOK_BACKGROUND(ray, depth)
+#define HookBackground(ray, depth) HOOK_BACKGROUND(ray, depth)
 #else
-vec3 background(Ray ray, int depth)
+vec3 HookBackground(Ray ray, int depth)
 {
     return vec3(0.0);
 }

@@ -25,11 +25,7 @@ uniform int uSamples;
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
     // Initialize random seed
-    gSeed = uResolution.y * float(uIterations) * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
-
-    gSeed = float(uIterations) * 1000.0 + uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
-    gSeed = uResolution.y * fragCoord.x / uResolution.x + fragCoord.y / uResolution.y;
-    gSeed *= float(uIterations);
+    randomSeedInit(fragCoord, uResolution, uIterations);
 
     // Initialize params
     Params params = Params(gl_FragCoord.xy, uResolution, uMouse, uTime);
