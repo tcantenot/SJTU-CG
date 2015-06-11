@@ -32,13 +32,15 @@
 #endif
 
 // Enable/Disable the sun and sky lighting
-#ifndef SUN_SKY
-#define SUN_SKY 1
+#ifndef SUN_SKY_BACKGROUND
+#define SUN_SKY_BACKGROUND 0
 #endif
 
 // Enable/Disable the sun direct lighting
 #ifndef SUN
-#define SUN 1
+#define SUN 0
+#elif SUN
+#include "../env/sunsky.glsl"
 #endif
 
 // Lights
@@ -99,10 +101,6 @@
 #define SWAP_IF(type, l, r, b) {type t = l; l = mix(l, r, b); r = mix(r, t, b);}
 
 
-
-// TODO: add option for roughness + allow to disable so uneeded parts of materials
-
-
 ////////////////////////////////////////////////////////////////////////////////
 /// Radiance:
 ///
@@ -135,7 +133,7 @@
 vec3 radiance(Ray ray)
 {
     HitInfo hitInfo;
-	hitInfo.id = -1;
+    hitInfo.id = -1;
 
     int depth = 0;
 
@@ -148,7 +146,7 @@ vec3 radiance(Ray ray)
     AbsorptionAndScattering currentAS = DEFAULT_AS;
     #endif
 
-	for(int depth = 0; depth < MAX_DEPTH; ++depth)
+    for(int depth = 0; depth < MAX_DEPTH; ++depth)
     {
         #if LOW_REFLECTANCE_BIASED_OPTIMIZATION
         {
@@ -439,7 +437,6 @@ vec3 radiance(Ray ray)
 
             // Modulate reflectance with: BRDF * cos(angle) / PDF = 2 * Albedo * cos(angle)
             F *= 2.0 * f * max(0.0, dot(nextRay.direction, n));
-            /*F *= f;*/
             #endif
 
 
@@ -447,9 +444,10 @@ vec3 radiance(Ray ray)
             #if DIRECT_LIGHTING
             {
                 // Direct sun light
-                #if SUN_SKY && SUN
+                #if SUN
                 {
-                    vec3 sunSampleDir = randomConeVector(sunDirection, sunAngularDiameterCos);
+                    // Take a random direction towards the sun
+                    vec3 sunSampleDir = randomConeVector(getSunDirection(), getSunCosAngularDiameter());
                     float sunLight = dot(n, sunSampleDir);
 
                     if(sunLight > 0.0)

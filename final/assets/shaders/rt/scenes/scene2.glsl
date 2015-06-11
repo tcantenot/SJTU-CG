@@ -76,3 +76,17 @@ void setupCamera(inout Camera camera, Params params)
 }
 
 #define HOOK_CAMERA_SETUP(camera, params) setupCamera(camera, params)
+
+#define SUN_SKY_BACKGROUND 1
+
+#define SUN 0
+
+#include "../../env/sun.glsl"
+
+Sun getSun()
+{
+    const Sun sun = Sun(vec2(1.58, 1.64), 3.0 * REAL_SUN_SIZE, 100.0);
+    return sun;
+}
+
+#define HOOK_SUN() getSun()

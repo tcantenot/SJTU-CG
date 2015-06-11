@@ -1,0 +1,2 @@
+#define RAYMARCHING 0
+#define MAX_DEPTH 50

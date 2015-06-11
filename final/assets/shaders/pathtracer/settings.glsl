@@ -97,28 +97,6 @@ Material HookMaterial(HitInfo _)
 }
 #endif
 
-
-////////////////////////////////////////////////////////////////////////////////
-///                               BACKGROUND                                 ///
-////////////////////////////////////////////////////////////////////////////////
-
-#ifdef HOOK_BACKGROUND
-#define HookBackground(ray, depth) HOOK_BACKGROUND(ray, depth)
-#else
-vec3 HookBackground(Ray ray, int depth)
-{
-    return vec3(0.0);
-}
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
-///                                  SUN                                     ///
-////////////////////////////////////////////////////////////////////////////////
-#ifdef HOOK_SUN
-#define HookSun() HOOK_SUN()
-#else
-#endif
-
 ////////////////////////////////////////////////////////////////////////////////
 ///                                 LIGHTS                                   ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -132,6 +110,50 @@ Light HookLight(int index) { return Light(vec3(0.0), 0.0, vec3(0.0), 0.0); }
 #define HookLightCount HOOK_LIGHT_COUNT
 #else
 #define HookLightCount 0
+#endif
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+///                                  SUN                                     ///
+////////////////////////////////////////////////////////////////////////////////
+
+#include "../env/sun.glsl"
+
+#ifdef HOOK_SUN
+#define HookSun() HOOK_SUN()
+#else
+
+#ifndef SUN
+#define SUN 1
+#endif
+
+Sun getDefaultSun()
+{
+    const Sun DEFAULT_SUN = Sun(vec2(1.58, 1.64), REAL_SUN_SIZE, 1000.0);
+    return DEFAULT_SUN;
+}
+
+#define HookSun() getDefaultSun()
+#endif
+
+#include "../env/sunsky.glsl"
+
+////////////////////////////////////////////////////////////////////////////////
+///                               BACKGROUND                                 ///
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef HOOK_BACKGROUND
+#define HookBackground(ray, depth) HOOK_BACKGROUND(ray, depth)
+#else
+
+#ifndef SUN_SKY_BACKGROUND
+#define SUN_SKY_BACKGROUND 1
+#endif
+
+#include "../env/sunsky_background.glsl"
+#define HookBackground(ray, depth) skyBackground(ray.direction, depth)
+
 #endif
 
 

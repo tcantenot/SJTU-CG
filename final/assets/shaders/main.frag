@@ -17,8 +17,9 @@ uniform sampler2D uTexture5;
 
 out vec4 RenderTarget0;
 
-/*#include "debug/test_random.glsl"*/
+#include "config.glsl"
 #include "pathtracer/pathtracer.glsl"
+/*#include "debug/test_random.glsl"*/
 
 void main()
 {
