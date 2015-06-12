@@ -78,16 +78,11 @@ float getSunCosAngularDiameter()
     return _sunCosAngularDiameter;
 }
 
-/*uniform float turbidity = 16.0; //slider[1,2,16]*/
-/*float turbidity = 16.0 * uTweaks.z; //slider[1,2,16]*/
-const float turbidity = 1.76;
-
-/*uniform float SkyFactor = 1.0; //slider[0,1,100]*/
-/*float SkyFactor = 2.0 * uTweaks.w; //slider[0,1,100]*/
-const float SkyFactor = 1.0;
+uniform float uTurbidity = 1.76;
+uniform float uSkyFactor = 1.0;
 
 
-
+// Mie coefficients
 const float mieCoefficient = 0.005;
 const float mieDirectionalG = 0.80;
 
@@ -131,8 +126,8 @@ float SunIntensity(float zenithAngleCos)
     const float cutoffAngle = PI/1.95;
     const float steepness = 1.5;
 
-	return _sunIntensity;//*
-        //max(0.0, 1.0 - exp(-((cutoffAngle - acos(zenithAngleCos)) / steepness)));
+	return _sunIntensity *
+        max(0.0, 1.0 - exp(-((cutoffAngle - acos(zenithAngleCos)) / steepness)));
 }
 
 vec3 sun(vec3 viewDir)
@@ -148,7 +143,7 @@ vec3 sun(vec3 viewDir)
 	vec3 rayleighAtX = vec3(5.176821E-6, 1.2785348E-5, 2.8530756E-5);
 
 	// mie coefficients
-	vec3 mieAtX = totalMie(primaryWavelengths, K, turbidity) * mieCoefficient;
+	vec3 mieAtX = totalMie(primaryWavelengths, K, uTurbidity) * mieCoefficient;
 
 	// optical length
 	// cutoff angle at 90 to avoid singularity in next formula.
@@ -196,7 +191,7 @@ vec3 sky(vec3 viewDir)
 	vec3 rayleighAtX = vec3(5.176821E-6, 1.2785348E-5, 2.8530756E-5);
 
 	// mie coefficients
-	vec3 mieAtX = totalMie(primaryWavelengths, K, turbidity) * mieCoefficient;
+	vec3 mieAtX = totalMie(primaryWavelengths, K, uTurbidity) * mieCoefficient;
 
 	// optical length
 	// cutoff angle at 90 to avoid singularity in next formula.
@@ -222,7 +217,7 @@ vec3 sky(vec3 viewDir)
 	sky *= mix(vec3(1.0),pow(somethingElse * Fex,vec3(0.5)),clamp(pow(1.0-dot(up, _sunDirection),5.0),0.0,1.0));
 	// composition + solar disc
 
-	return SkyFactor * 0.01 * sky;
+	return uSkyFactor * 0.01 * sky;
 }
 
 vec3 sunsky(vec3 viewDir)
@@ -243,7 +238,7 @@ vec3 sunsky(vec3 viewDir)
 	vec3 rayleighAtX = vec3(5.176821E-6, 1.2785348E-5, 2.8530756E-5);
 
 	// mie coefficients
-	vec3 mieAtX = totalMie(primaryWavelengths, K, turbidity) * mieCoefficient;
+	vec3 mieAtX = totalMie(primaryWavelengths, K, uTurbidity) * mieCoefficient;
 
 	// optical length
 	// cutoff angle at 90 to avoid singularity in next formula.

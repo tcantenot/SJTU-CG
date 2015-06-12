@@ -29,7 +29,7 @@
 
 #if STRATIFIED_SAMPLING
 // Stratified sampling frame number
-float gStratFrame = uIterations;
+int gStratFrame = uIterations;
 
 // Stratified sampling offset
 vec2 gStratOffset = vec2(

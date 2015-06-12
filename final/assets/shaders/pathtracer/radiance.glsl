@@ -39,8 +39,6 @@
 // Enable/Disable the sun direct lighting
 #ifndef SUN
 #define SUN 0
-#elif SUN
-#include "../env/sunsky.glsl"
 #endif
 
 // Lights

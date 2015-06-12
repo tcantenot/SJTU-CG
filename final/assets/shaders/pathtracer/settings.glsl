@@ -1,4 +1,5 @@
 #include "core.glsl"
+#include "../env/sun.glsl"
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                        RAYMARCHING / RAYTRACING                          ///
@@ -118,8 +119,6 @@ Light HookLight(int index) { return Light(vec3(0.0), 0.0, vec3(0.0), 0.0); }
 ///                                  SUN                                     ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "../env/sun.glsl"
-
 #ifdef HOOK_SUN
 #define HookSun() HOOK_SUN()
 #else
@@ -151,9 +150,20 @@ Sun getDefaultSun()
 #define SUN_SKY_BACKGROUND 1
 #endif
 
-#include "../env/sunsky_background.glsl"
-#define HookBackground(ray, depth) skyBackground(ray.direction, depth)
+vec3 skyBackground(vec3 dir, int depth)
+{
+    #if SUN_SKY_BACKGROUND
+        #if SUN
+        return (depth > 0 ? sky(dir) : sunsky(dir));
+        #else
+        return sky(dir);
+        #endif
+    #else
+    return vec3(0.0);
+    #endif
+}
 
+#define HookBackground(ray, depth) skyBackground(ray.direction, depth)
 #endif
 
 
