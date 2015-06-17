@@ -1,5 +1,16 @@
 #include "core.glsl"
 
+/*#ifdef HOOK_MAP*/
+/*#define map(p, hitInfo) HOOK_MAP(p, hitInfo)*/
+/*#else*/
+/*float map(vec3 p, out HitInfo hitInfo)*/
+/*{*/
+    /*const float INF = 1e5;*/
+    /*hitInfo.id = -1;*/
+    /*return INF;*/
+/*}*/
+/*#endif*/
+
 float map(vec3 p)
 {
     HitInfo _;

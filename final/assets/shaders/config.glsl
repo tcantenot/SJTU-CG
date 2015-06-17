@@ -63,7 +63,22 @@
 // Minimum reflectance used for ray termination
 #define MIN_REFLECTANCE 0.05
 
-// Bias to add on ray bounce to avoid self-intersection
-#define BOUNCE_BIAS 0.000
+// Bias to add on metallic surface ray bounce
+#define METAL_BOUNCE_BIAS 0.000
+
+// Bias to add on total internal reflection ray bounce
+#define TOTAL_REFL_BOUNCE_BIAS 0.000
+
+// Bias to add on reflection ray bounce
+#define REFL_BOUNCE_BIAS 0.000
+
+// Bias to add on refraction ray bounce
+#define REFR_BOUNCE_BIAS 0.000
+
+// Bias to add on diffuse ray bounce
+#define DIFF_BOUNCE_BIAS 0.000
+
+// Bias to add on shadow ray bounce
+#define SHADOW_BOUNCE_BIAS 0.000
 
 #endif

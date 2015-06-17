@@ -28,40 +28,6 @@ vec3 getNormal(vec3 hit, Sphere sphere)
     return normalize(hit - sphere.pos);
 }
 
-bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
-{
-	hitInfo.id   = -1;
-    hitInfo.dist = 1e5;
-
-    Sphere hitSphere;
-	for(int i = 0; i < SPHERE_COUNT; ++i)
-    {
-        if(i == avoid) continue;
-
-		Sphere s = spheres[i];
-
-        if(!s.collidable && shadowTrace) continue;
-
-		float d = distanceTo(ray, s);
-		if(d != 0.0 && d < hitInfo.dist)
-        {
-            hitSphere = s;
-            hitInfo.dist = d;
-            hitInfo.id = i;
-        }
-	}
-
-    // The closest intersection has been found
-    if(hitInfo.id != -1)
-    {
-        hitInfo.pos    = ray.origin + hitInfo.dist * ray.direction;
-        hitInfo.normal = getNormal(hitInfo.pos, hitSphere);
-        return true;
-    }
-
-    return false;
-}
-
 float distanceTo(Ray ray, Plane plane)
 {
     const float eps = 1e-5;
@@ -108,20 +74,20 @@ vec2 distanceTo(Ray ray, Box box)
     vec3 t1 = min(tmin, tmax);
     vec3 t2 = max(tmin, tmax);
     float tnear = max(max(t1.x, t1.y), t1.z);
-    float tfar  = max(max(t2.x, t2.y), t2.z);
+    float tfar  = min(min(t2.x, t2.y), t2.z);
 
     return vec2(tnear, tfar);
 }
 
 vec3 getNormal(vec3 hit, Box box)
 {
-    const float eps = 1e-5;
+    const float eps = 0.01;
 
     if(hit.x < box.min.x + eps)      return vec3(-1.0, 0.0, 0.0);
-    else if(hit.x > box.min.x - eps) return vec3(+1.0, 0.0, 0.0);
+    else if(hit.x > box.max.x - eps) return vec3(+1.0, 0.0, 0.0);
     else if(hit.y < box.min.y + eps) return vec3(0.0, -1.0, 0.0);
-    else if(hit.y > box.min.y - eps) return vec3(0.0, +1.0, 0.0);
-    else if(hit.z < box.min.y + eps) return vec3(0.0, 0.0, -1.0);
+    else if(hit.y > box.max.y - eps) return vec3(0.0, +1.0, 0.0);
+    else if(hit.z < box.min.z + eps) return vec3(0.0, 0.0, -1.0);
     else return vec3(0.0, 0.0, +1.0);
 }
 
@@ -147,10 +113,88 @@ bool boxIntersection(Ray ray, Box box, out HitInfo hitInfo)
     return true;
 }
 
+bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
+{
+	hitInfo.id   = -1;
+    hitInfo.dist = 1e5;
+
+    Sphere hitSphere;
+
+#if 1
+	for(int i = 0; i < SPHERE_COUNT; ++i)
+    {
+        if(i == avoid) continue;
+
+		Sphere s = spheres[i];
+
+        if(!s.collidable && shadowTrace) continue;
+
+		float d = distanceTo(ray, s);
+		if(d != 0.0 && d < hitInfo.dist)
+        {
+            hitSphere = s;
+            hitInfo.dist = d;
+            hitInfo.id = i;
+        }
+	}
+#endif
+
+    bool box = false;
+
+    Box hitBox;
+#if 1
+    for(int i = 0; i < BOX_COUNT; ++i)
+    {
+        if(i == (avoid - SPHERE_COUNT - 1)) continue;
+
+		Box b = boxes[i];
+
+        if(!b.collidable && shadowTrace) continue;
+
+		vec2 d = distanceTo(ray, b);
+        if(d.x > d.y) continue;
+
+		if(d.x > 0 && d.x < hitInfo.dist)
+        {
+            hitBox = b;
+            hitInfo.dist = d.x;
+            hitInfo.id = i + SPHERE_COUNT + 1;
+            box = true;
+        }
+	}
+#endif
+
+    // The closest intersection has been found
+    if(hitInfo.id != -1)
+    {
+        hitInfo.pos = ray.origin + hitInfo.dist * ray.direction;
+        if(box)
+        {
+            hitInfo.normal = getNormal(hitInfo.pos, hitBox);
+        }
+        else
+        {
+            hitInfo.normal = getNormal(hitInfo.pos, hitSphere);
+        }
+
+        return true;
+    }
+
+    return false;
+}
 
 Material HookMaterial(HitInfo hitInfo)
 {
-    return spheres[hitInfo.id].material;
+    int id = hitInfo.id;
+    if(id > SPHERE_COUNT)
+    {
+        id -= SPHERE_COUNT + 1;
+        return boxes[id].material;
+    }
+    else
+    {
+        return spheres[id].material;
+    }
 }
 
 #define HOOK_MATERIAL(hitInfo) HookMaterial(hitInfo)

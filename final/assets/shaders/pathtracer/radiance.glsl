@@ -90,9 +90,34 @@
 #define MIN_REFLECTANCE 0.05
 #endif
 
-// Bias to add on ray bounce to avoid self-intersection
-#ifndef BOUNCE_BIAS
-#define BOUNCE_BIAS 0.000
+// Bias to add on metallic surface ray bounce
+#ifndef METAL_BOUNCE_BIAS
+#define METAL_BOUNCE_BIAS 0.000
+#endif
+
+// Bias to add on total internal reflection ray bounce
+#ifndef TOTAL_REFL_BOUNCE_BIAS
+#define TOTAL_REFL_BOUNCE_BIAS 0.000
+#endif
+
+// Bias to add on reflection ray bounce
+#ifndef REFL_BOUNCE_BIAS
+#define REFL_BOUNCE_BIAS 0.000
+#endif
+
+// Bias to add on refraction ray bounce
+#ifndef REFR_BOUNCE_BIAS
+#define REFR_BOUNCE_BIAS 0.000
+#endif
+
+// Bias to add on diffuse ray bounce
+#ifndef DIFF_BOUNCE_BIAS
+#define DIFF_BOUNCE_BIAS 0.000
+#endif
+
+// Bias to add on shadow ray bounce
+#ifndef SHADOW_BOUNCE_BIAS
+#define SHADOW_BOUNCE_BIAS 0.000
 #endif
 
 // Swap-if function
@@ -251,7 +276,7 @@ vec3 radiance(Ray ray)
             refl = randomConeVector(refl, alpha);
 
             // Next ray
-            ray = Ray(hit + n * BOUNCE_BIAS, refl);
+            ray = Ray(hit + n * METAL_BOUNCE_BIAS, refl);
 
             continue;
         }
@@ -298,7 +323,7 @@ vec3 radiance(Ray ray)
             refl = randomConeVector(refl, alpha);
 
             // Next ray
-            ray = Ray(hit + n * BOUNCE_BIAS, refl);
+            ray = Ray(hit + n * TOTAL_REFL_BOUNCE_BIAS, refl);
 
             continue;
         }
@@ -362,7 +387,7 @@ vec3 radiance(Ray ray)
             #endif
 
             // Next ray
-            ray = Ray(hit + n * BOUNCE_BIAS, refl);
+            ray = Ray(hit + n * REFL_BOUNCE_BIAS, refl);
         }
         else if(mat.type == REFRACTIVE) // Refraction
         {
@@ -385,7 +410,7 @@ vec3 radiance(Ray ray)
             hitInfo.id = -1;
 
             // Next ray
-            ray = Ray(hit - n * BOUNCE_BIAS, refr);
+            ray = Ray(hit + n * REFR_BOUNCE_BIAS, refr);
         }
         else // Diffuse or emissive
         {
@@ -413,7 +438,7 @@ vec3 radiance(Ray ray)
             #endif
 
             Ray nextRay;
-            nextRay.origin = hitInfo.pos + n * BOUNCE_BIAS;
+            nextRay.origin = hitInfo.pos + n * DIFF_BOUNCE_BIAS;
 
             #if IMPORTANCE_SAMPLING
             // http://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf (35)
@@ -450,7 +475,7 @@ vec3 radiance(Ray ray)
 
                     if(sunLight > 0.0)
                     {
-                        Ray shadowRay = Ray(hit + n * BOUNCE_BIAS, sunSampleDir);
+                        Ray shadowRay = Ray(hit + n * SHADOW_BOUNCE_BIAS, sunSampleDir);
                         HitInfo _;
                         if(!HookShadowRay(shadowRay, hitInfo.id, _))
                         {
@@ -480,7 +505,7 @@ vec3 radiance(Ray ray)
 
 
                     // Shadow ray
-                    Ray shadowRay = Ray(hit + n * BOUNCE_BIAS, l);
+                    Ray shadowRay = Ray(hit + n * SHADOW_BOUNCE_BIAS, l);
 
                     // Check if the current hit point is potentially shadowed
                     HitInfo shadowingInfo;
