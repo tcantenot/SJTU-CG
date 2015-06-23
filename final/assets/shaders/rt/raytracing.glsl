@@ -120,7 +120,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
 
     Sphere hitSphere;
 
-#if 1
+#if SPHERE_COUNT
 	for(int i = 0; i < SPHERE_COUNT; ++i)
     {
         if(i == avoid) continue;
@@ -142,7 +142,7 @@ bool raytrace(Ray ray, int avoid, const bool shadowTrace, out HitInfo hitInfo)
     bool box = false;
 
     Box hitBox;
-#if 1
+#ifdef BOX_COUNT
     for(int i = 0; i < BOX_COUNT; ++i)
     {
         if(i == (avoid - SPHERE_COUNT - 1)) continue;

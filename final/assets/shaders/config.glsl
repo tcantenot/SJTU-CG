@@ -1,5 +1,5 @@
 // Raytracing or Raymarching?
-#define RAYMARCHING 0
+#define RAYMARCHING 1
 
 // Max ray depth
 #define MAX_DEPTH 50

@@ -1,4 +1,5 @@
 #include "../core.glsl"
+#include "../box.glsl"
 #include "../sphere.glsl"
 #include "materials.glsl"
 
@@ -87,13 +88,13 @@ const Material MatCLightNoShading = MATERIAL(NO_SHADING,
 float r = 0.5;
 float z1 = -2.0 * r * sqrt3 / 3.0;
 
-#define SPHERE_COUNT 2
+#define SPHERE_COUNT 11
 Sphere spheres[] = Sphere[](
 
-    Sphere(2.5, vec3(0.0, 0.0, 0.0), MatCGlass, true),
-    Sphere(1.0, vec3(0.0, 0.0, 0.0), MatCYellow, true)
+    /*Sphere(2.5, vec3(0.0, 0.0, 0.0), MatCGlass, true),*/
+    /*Sphere(1.0, vec3(0.0, 0.0, 0.0), MatCYellow, true)*/
 
-#if 0
+#if 1
     // Red wall
     /*Sphere(1e5, vec3(-1e5-80.0, 0.0, 0.0), MatCRed, true),*/
     Sphere(2.5, vec3(0.0, 0.5, 0.0), MatCGlass, true),
@@ -143,6 +144,18 @@ Sphere spheres[] = Sphere[](
     , Sphere(uLights[3].radius, uLights[3].pos, MATLIGHT(uLights[3].color), false)
 #endif
 );
+
+#define BOX(center, size, mat, b) \
+    Box(center - size/2.0, center+size/2.0, mat, b)
+
+#define BOX_COUNT 0
+Box boxes[] = Box[](
+    BOX(vec3(0.0, 0.0, 0.0), vec3(+1e5, 0.1, +1e5), MatSteel, true),
+    BOX(vec3(0.0, 80.0, 0.0), vec3(+1e5, 0.1, +1e5), MatSteel, true)
+);
+
+#undef BOX
+
 
 
 void setupCamera(inout Camera camera, Params params)

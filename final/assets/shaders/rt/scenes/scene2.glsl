@@ -1,4 +1,5 @@
 #include "../core.glsl"
+#include "../box.glsl"
 #include "../sphere.glsl"
 #include "materials.glsl"
 
@@ -43,6 +44,18 @@ Sphere spheres[] = Sphere[](
     , Sphere(uLights[1].radius, uLights[1].pos, MATLIGHT(uLights[1].color), false)
     , Sphere(uLights[2].radius, uLights[2].pos, MATLIGHT(uLights[2].color), false)
 );
+
+#define BOX(center, size, mat, b) \
+    Box(center - size/2.0, center+size/2.0, mat, b)
+
+#define BOX_COUNT 0
+Box boxes[] = Box[](
+    BOX(vec3(0.0, 0.0, 0.0), vec3(+1e5, 0.1, +1e5), MatSteel, true),
+    BOX(vec3(0.0, 80.0, 0.0), vec3(+1e5, 0.1, +1e5), MatSteel, true)
+);
+
+#undef BOX
+
 
 #undef MATLIGHT
 
