@@ -22,10 +22,10 @@
 \begin{document}
 \maketitle
 
- %\begin{figure}[!htb]\centering
-        %\frame{\includegraphics[width=0.7\linewidth]{./images/bsp.png}}
-        %\caption{BSP tree}
- %\end{figure}
+\begin{figure}[!htb]\centering
+    \frame{\includegraphics[width=0.9\linewidth]{./images/img1.png}}
+\end{figure}
+
 
 \pagebreak
 \section{Introduction}
@@ -130,6 +130,15 @@ The scattering equation is as follow:
 where $S$ is the scattering probability, $sc$ is the material scattering coefficient and $d$ is the distance travelled inside the scattering medium. \\
 The equation means that a scattering event occurs with probability $S$ for a travelled distance of $d$ inside the medium.
 
+\noindent
+Absorption and scattering are useful to implement \textbf{Subsurface scattering} (SSS) (see figure \ref{sss}). This effect models the light that penetrates the material on a short distance  before being reflected/scattered.
+
+
+\begin{figure}[!Htb]\centering
+    \frame{\includegraphics[width=0.9\linewidth]{./images/sss.png}}\label{sss}
+    \caption{Example of subsurface scattering}
+\end{figure}
+
 \subsubsection{Global illumination}
 
 Pathtracing allows to render images of three-dimensional scenes such that the global illumination is faithful to reality. Pathtracing naturally simulates many effects such as \textbf{soft shadows}, \textbf{ambient occlusion}, \textbf{color bleeding}, \textbf{caustics}, \ldots
@@ -149,7 +158,7 @@ ADD PICTURES
 
 \subsubsection{Antialiasing}
 
-By casting several jittered ray per pixel to gather multiple samples, antialiasing comes in as a by-product.  
+By casting several jittered ray per pixel to gather multiple samples, antialiasing comes in as a by-product.
 
 \subsubsection{Tone mapping}
 
