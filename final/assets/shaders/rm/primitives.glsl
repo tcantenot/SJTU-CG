@@ -107,7 +107,7 @@ float sdCapsule(vec3 p, vec3 a, vec3 b, float r)
 float sdCone(vec3 p, vec3 c)
 {
     vec2 q = vec2(length(p.xz), p.y);
-    #if 0
+    #if 1
     return max(max(dot(q, c.xy), p.y), -p.y - c.z);
     #else
     float d1 = -p.y - c.z;
