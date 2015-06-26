@@ -48,6 +48,7 @@
 #else
 #define LIGHTS 0
 #endif
+#endif
 
 // Use the real Fresnel equations
 #ifndef REAL_FRESNEL_EQUATIONS

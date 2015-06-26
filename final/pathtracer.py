@@ -258,6 +258,7 @@ class PathTracer:
         glBufferData(GL_ARRAY_BUFFER, ndcQuad.nbytes, ndcQuad, GL_STATIC_DRAW)
 
         # Set buffer layout
+        self.ptProgram.bind()
         loc = glGetAttribLocation(self.ptProgram.id, "VertexPosition")
         glEnableVertexAttribArray(loc)
         glBindBuffer(GL_ARRAY_BUFFER, self.fullscreenQuadVertexBuffer)

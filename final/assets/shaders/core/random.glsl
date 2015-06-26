@@ -150,7 +150,7 @@ float _radicalInverseVdC(uint bits)
 // see: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 vec2 Hammersley2D(uint i, const uint N)
 {
-    const float iN = 1.0 / float(N);
+    float iN = 1.0 / float(N);
     return vec2(float(i) * iN, _radicalInverseVdC(i));
 }
 

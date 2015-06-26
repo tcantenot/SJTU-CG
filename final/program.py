@@ -71,8 +71,9 @@ class Program(object):
         """ Link program and check log for errors """
         glLinkProgram(self.id)
         self.linked = True
-        log = glGetProgramInfoLog(self.id)
-        if log != "":
+        status = glGetProgramiv(self.id, GL_LINK_STATUS)
+        if status != GL_TRUE:
+            log = glGetProgramInfoLog(self.id)
             print "Program log: {}".format(log)
             self.linked = False
         return self.linked

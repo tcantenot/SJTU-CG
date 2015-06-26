@@ -90,8 +90,6 @@ class RenderThread(threading.Thread):
     def resize(self, size):
         """ Resize the pathtracer """
         if self.pathtracer: self.pathtracer.resize(size)
-        print "Resize: {}".format(size)
-
 
     def pause(self):
         """ Pause/Resume the rendering thread """
@@ -111,6 +109,8 @@ class RenderThread(threading.Thread):
         """ Send a command to the rendering thread """
         self._commandQueue.enqueue(func, args, kwargs)
 
+    def getContext(self):
+        return self._glcontext
 
     @property
     def pathtracer(self):
@@ -208,7 +208,6 @@ class OpenGLApp(wx.Frame):
 
     def onResize(self, event):
         """ Process the resize event """
-
         size = self.getCanvasSize()
 
         # Keep ratio of mouse positions when resized
@@ -222,7 +221,7 @@ class OpenGLApp(wx.Frame):
         self.size = size
 
         # Send resize command to the rendering thread
-        if self.canvas.GetContext():
+        if self.renderThread.getContext():#self.canvas.GetContext():
             self.renderThread.sendCommand(self.renderThread.resize, args=[size])
 
         event.Skip()

@@ -9,7 +9,7 @@ except ImportError:
     raise ImportError, "Required dependency Numpy not present"
 
 try:
-    import Image
+    from PIL import Image
 except ImportError:
     raise ImportError, "Required dependency Image not present"
 
@@ -55,8 +55,9 @@ class Texture(object):
 
 
     def destroy(self):
-        if self.id != 0: glDeleteTextures([self.id])
-
+        if self.id != 0: 
+            glDeleteTextures([self.id])
+            self.id = 0
 
     def loadFromFile(self, filename):
 

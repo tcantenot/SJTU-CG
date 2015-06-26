@@ -68,7 +68,7 @@ vec3 opTwist(vec3 p, const float a, const float b)
 float opTwistLip(const float a)
 {
     const float Pi = 3.141592654;
-    const float lip = 1.0 / sqrt(4.0 + pow(Pi / a, 2.0));
+    float lip = 1.0 / sqrt(4.0 + pow(Pi / a, 2.0));
     return lip; // a -> +inf => lip -> 0.5
 }
 
@@ -163,7 +163,7 @@ float opRepMirror1(inout float p, float size)
 
 vec2 opRepMirror2(inout vec2 p, vec2 size)
 {
-    float halfSize = size * 0.5;
+    vec2 halfSize = size * 0.5;
     p += halfSize;
     vec2 i = floor(p / size);
     p = mod(p, size) - halfSize;

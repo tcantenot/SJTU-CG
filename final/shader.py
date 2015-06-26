@@ -123,8 +123,9 @@ class Shader(object):
     def compile(self):
         """ Compile shader and check log for errors """
         glCompileShader(self.id)
-        log = glGetShaderInfoLog(self.id)
-        if log != "":
+        status = glGetShaderiv(self.id, GL_COMPILE_STATUS)
+        if status != GL_TRUE:
+            log = glGetShaderInfoLog(self.id)
             print >> sys.stderr, "Shader source: {}".format(self.source)
             print >> sys.stderr, "Shader log: {}".format(log)
             with open("err.glsl", 'w') as f:
