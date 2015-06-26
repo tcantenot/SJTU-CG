@@ -5,7 +5,6 @@
 \usepackage{amsfonts}
 \usepackage{amsmath}
 
-
 \title{\textbf{Computer Graphics} \\ Final Project}
 \author{Thierry CANTENOT \\ J114030901}
 \date{23/06/15}
@@ -23,7 +22,7 @@
 \maketitle
 
 \begin{figure}[!htb]\centering
-    \frame{\includegraphics[width=0.9\linewidth]{./images/img1.png}}
+    \frame{\includegraphics[width=0.9\linewidth]{./images/cover.png}}
 \end{figure}
 
 
@@ -153,7 +152,22 @@ For implementation details about all the above effects, see the fully-commented 
 Depth of field can be easily integrated by "integrating" over the lens aperture and defining a focal distance. \\
 See \textit{dof.glsl} for implementation details.\\
 
-ADD PICTURES
+
+    \begin{figure}[!htb]\centering
+        \begin{minipage}{0.48\textwidth}
+            \frame{\includegraphics[width=\linewidth]{./images/no_dof.png}}
+            \caption{Without DOF}
+        \end{minipage}
+        \begin{minipage}{0.48\textwidth}
+        \frame{\includegraphics[width=\linewidth]{./images/dof.png}}
+        \caption{With DOF}
+        \end{minipage}
+    \end{figure}
+
+\begin{figure}[!Htb]\centering
+    \frame{\includegraphics[width=0.9\linewidth]{./images/other_dof.png}}
+    \caption{With DOF but smaller focal distance}
+\end{figure}
 
 
 \subsubsection{Antialiasing}
@@ -162,15 +176,56 @@ By casting several jittered ray per pixel to gather multiple samples, antialiasi
 
 \subsubsection{Tone mapping}
 
-In order to have visually pleasing and realistic images, I applied a tonemap operator to scale the computed intensities while keeping the image constrast. I used tonemap operator used in the game \textit{Uncharted 2}.\\
-See \textit{tonemap.glsl} for implementation details.
+In order to have visually pleasing and realistic images, I applied a tonemap operator to scale the computed intensities while keeping the image constrast. I used tonemap operator used in the game \textit{Uncharted 2}.
 
+    \begin{figure}[!htb]\centering
+        \begin{minipage}{0.48\textwidth}
+            \frame{\includegraphics[width=\linewidth]{./images/no_tonemap.png}}
+            \caption{Without tone mapping}
+        \end{minipage}
+        \begin{minipage}{0.48\textwidth}
+        \frame{\includegraphics[width=\linewidth]{./images/tonemap.png}}
+        \caption{With tone mapping}
+        \end{minipage}
+    \end{figure}
+
+\noindent
+See \textit{tonemap.glsl} for implementation details.
 
 \section{Scenes}
 
 The scenes use a sky background and sun (see \textit{sunsky.glsl}). \\
-The sun constitutes a direct light source, while the sky contributes as a indirect one.
+The sun constitutes a direct light source, while the sky contributes as a indirect one. \\
 
+\noindent
+In the scene below, we can find:
+\begin{itemize}
+	\item 6 point lights
+	\item 9 spheres
+	\item 1 box and 1 rounded box
+	\item 1 triangular prism and 1 hexagonal prism
+	\item 1 torus, 1 square flat torus and 1 circular flat torus
+	\item 1 capsule
+	\item 1 cylinder
+	\item 1 plane
+\end{itemize}
+
+    \begin{figure}[!htb]\centering
+        \begin{minipage}{0.48\textwidth}
+            \frame{\includegraphics[width=\linewidth]{./images/day.png}}
+            \caption{Day}
+        \end{minipage}
+        \begin{minipage}{0.48\textwidth}
+        \frame{\includegraphics[width=\linewidth]{./images/dusk.png}}
+        \caption{Dusk}
+        \end{minipage}
+    \end{figure}
+    
+\noindent
+The central cube (on top of the glass pyramid) uses subsurface scattering. The yellow primitives are pure diffuse, the red ones are made of red acrylic (diffuse + reflective) and the others are made of metal. The light spheres are made of an emissive white material. \\
+
+\noindent
+You can find some rendered images on the \textit{images} folder.
 
 \section{Limitations \& further improvements}
 
